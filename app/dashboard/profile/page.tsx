@@ -51,10 +51,13 @@ export default function ProfilePage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingPortrait, setUploadingPortrait] = useState(false)
   const [generatingSetting, setGeneratingSetting] = useState<string | null>(null)
+  const [queueMsg, setQueueMsg] = useState('')
+  const [elapsedSecs, setElapsedSecs] = useState(0)
   const [settingImages, setSettingImages] = useState<SettingImage[]>([])
   const [selectedSetting, setSelectedSetting] = useState<string | null>(null)
   const [loadingImages, setLoadingImages] = useState(false)
   const [propertyTestUrl, setPropertyTestUrl] = useState('')
+  const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
 
@@ -130,12 +133,20 @@ export default function ProfilePage() {
     }
 
     setGeneratingSetting(settingId)
+    setQueueMsg('Sender til fal.ai...')
+    setElapsedSecs(0)
+    elapsedRef.current = setInterval(() => setElapsedSecs(s => s + 1), 1000)
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let result: any
 
       if (settingId === 'property_front') {
         result = await fal.subscribe('fal-ai/omnigen-v1', {
+          onQueueUpdate: (update) => {
+            if (update.status === 'IN_QUEUE') setQueueMsg(`Venter i kø (posisjon ${(update as { queue_position?: number }).queue_position ?? '?'})...`)
+            else if (update.status === 'IN_PROGRESS') setQueueMsg('Genererer bilde...')
+          },
           input: {
             input_image_urls: [profile.portrait_url, propertyTestUrl.trim()],
             prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
@@ -148,6 +159,10 @@ export default function ProfilePage() {
         })
       } else {
         result = await fal.subscribe('fal-ai/pulid', {
+          onQueueUpdate: (update) => {
+            if (update.status === 'IN_QUEUE') setQueueMsg(`Venter i kø (posisjon ${(update as { queue_position?: number }).queue_position ?? '?'})...`)
+            else if (update.status === 'IN_PROGRESS') setQueueMsg('Genererer bilde...')
+          },
           input: {
             reference_images: [{ image_url: profile.portrait_url }],
             prompt: PULID_PROMPTS[settingId] || '',
@@ -176,6 +191,9 @@ export default function ProfilePage() {
       alert('Generering feilet: ' + String(err))
     } finally {
       setGeneratingSetting(null)
+      setQueueMsg('')
+      setElapsedSecs(0)
+      if (elapsedRef.current) clearInterval(elapsedRef.current)
     }
   }
 
@@ -348,9 +366,12 @@ export default function ProfilePage() {
               />
             </div>
             {generatingSetting && (
-              <div className="mb-3 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-                <span className="animate-spin inline-block">⟳</span>
-                Genererer bilde — dette tar 30–60 sekunder...
+              <div className="mb-3 flex items-center justify-between text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="animate-spin inline-block">⟳</span>
+                  <span>{queueMsg || 'Kobler til fal.ai...'}</span>
+                </div>
+                <span className="text-blue-400 tabular-nums">{elapsedSecs}s</span>
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
