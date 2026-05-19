@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type Property = {
   id: string
@@ -14,6 +15,7 @@ type Property = {
 }
 
 export default function PropertiesPage() {
+  const router = useRouter()
   const [url, setUrl] = useState('')
   const [scraping, setScraping] = useState(false)
   const [scrapeError, setScrapeError] = useState('')
@@ -110,7 +112,7 @@ export default function PropertiesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {properties.map(p => (
-              <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <div key={p.id} onClick={() => router.push(`/dashboard/properties/${p.id}`)} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                 {p.images?.[0] ? (
                   <img
                     src={p.images[0]}
