@@ -30,118 +30,104 @@ function getSupabase() {
 }
 
 export async function POST(request: Request) {
-  const encoder = new TextEncoder()
+  try {
+    const { setting, portraitUrl, propertyImageUrl } = await request.json()
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const keepAlive = setInterval(() => {
-        try { controller.enqueue(encoder.encode('\n')) } catch { /* closed */ }
-      }, 5000)
+    if (!setting || !portraitUrl) {
+      return Response.json({ error: 'Missing setting or portraitUrl' }, { status: 400 })
+    }
 
-      const send = (data: object) => {
-        clearInterval(keepAlive)
-        try {
-          controller.enqueue(encoder.encode(JSON.stringify(data)))
-          controller.close()
-        } catch { /* closed */ }
+    let falRes: Response
+
+    if (setting === 'property_front') {
+      if (!propertyImageUrl) {
+        return Response.json({ error: 'Mangler propertyImageUrl for property_front' }, { status: 400 })
       }
 
-      try {
-        const { setting, portraitUrl, propertyImageUrl } = await request.json()
-
-        if (!setting || !portraitUrl) return send({ error: 'Missing setting or portraitUrl' })
-
-        let falRes: Response
-
-        if (setting === 'property_front') {
-          if (!propertyImageUrl) return send({ error: 'Mangler propertyImageUrl for property_front' })
-
-          // OmniGen: composites the actual face + actual property image
-          falRes = await fetch('https://fal.run/fal-ai/omnigen-v1', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Key ${process.env.FAL_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              input_image_urls: [portraitUrl, propertyImageUrl],
-              prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
-              negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text',
-              num_images: 1,
-              guidance_scale: 3.0,
-              img_guidance_scale: 1.6,
-              num_inference_steps: 15,
-              image_size: 'landscape_16_9',
-            }),
-          })
-        } else {
-          const prompt = PULID_PROMPTS[setting]
-          if (!prompt) return send({ error: 'Unknown setting type' })
-
-          // PuLID: identity-preserving generation for standard settings
-          falRes = await fetch('https://fal.run/fal-ai/pulid', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Key ${process.env.FAL_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              reference_images: [{ image_url: portraitUrl }],
-              prompt,
-              negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
-              num_images: 1,
-              guidance_scale: 1.5,
-              num_inference_steps: 20,
-              id_scale: 0.8,
-              mode: 'fidelity',
-              image_size: 'portrait_4_3',
-            }),
-          })
-        }
-
-        if (!falRes.ok) {
-          const err = await falRes.text()
-          console.error('[generate-setting] fal.ai error:', err)
-          return send({ error: 'fal.ai feilet: ' + err })
-        }
-
-        const falData = await falRes.json()
-        const falImageUrl = falData.images?.[0]?.url
-        if (!falImageUrl) return send({ error: 'No image returned from fal.ai' })
-
-        // For OmniGen (property_front): use fal.ai URL directly to avoid timeout from download+R2 upload
-        // For PuLID: download and re-host on R2 for permanent storage
-        let url: string
-        if (setting === 'property_front') {
-          url = falImageUrl
-        } else {
-          const imgRes = await fetch(falImageUrl)
-          if (!imgRes.ok) return send({ error: 'Failed to fetch fal.ai result' })
-          const imgBuffer = Buffer.from(await imgRes.arrayBuffer())
-
-          const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-          const key = `boligforge/agent/settings/${setting}_${Date.now()}.png`
-
-          await getR2().send(
-            new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: 'image/png' })
-          )
-          url = `${process.env.R2_PUBLIC_URL}/${key}`
-        }
-
-        await getSupabase().from('agent_settings_images').insert({
-          setting_type: setting,
-          image_url: url,
-        })
-
-        send({ url, setting })
-      } catch (err: unknown) {
-        console.error('[generate-setting]', err)
-        send({ error: String(err) })
+      // OmniGen: composites the actual face + actual property image
+      falRes = await fetch('https://fal.run/fal-ai/omnigen-v1', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${process.env.FAL_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          input_image_urls: [portraitUrl, propertyImageUrl],
+          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
+          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text',
+          num_images: 1,
+          guidance_scale: 3.0,
+          img_guidance_scale: 1.6,
+          num_inference_steps: 15,
+          image_size: 'landscape_16_9',
+        }),
+      })
+    } else {
+      const prompt = PULID_PROMPTS[setting]
+      if (!prompt) {
+        return Response.json({ error: 'Unknown setting type' }, { status: 400 })
       }
-    },
-  })
 
-  return new Response(stream, {
-    headers: { 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' },
-  })
+      // PuLID: identity-preserving generation for standard settings
+      falRes = await fetch('https://fal.run/fal-ai/pulid', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${process.env.FAL_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reference_images: [{ image_url: portraitUrl }],
+          prompt,
+          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
+          num_images: 1,
+          guidance_scale: 1.5,
+          num_inference_steps: 20,
+          id_scale: 0.8,
+          mode: 'fidelity',
+          image_size: 'portrait_4_3',
+        }),
+      })
+    }
+
+    if (!falRes.ok) {
+      const err = await falRes.text()
+      console.error('[generate-setting] fal.ai error:', err)
+      return Response.json({ error: 'fal.ai feilet: ' + err }, { status: 500 })
+    }
+
+    const falData = await falRes.json()
+    const falImageUrl = falData.images?.[0]?.url
+    if (!falImageUrl) {
+      return Response.json({ error: 'No image returned from fal.ai' }, { status: 500 })
+    }
+
+    // For OmniGen (property_front): use fal.ai URL directly to save time
+    // For PuLID: download and re-host on R2 for permanent storage
+    let url: string
+    if (setting === 'property_front') {
+      url = falImageUrl
+    } else {
+      const imgRes = await fetch(falImageUrl)
+      if (!imgRes.ok) return Response.json({ error: 'Failed to fetch fal.ai result' }, { status: 500 })
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer())
+
+      const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
+      const key = `boligforge/agent/settings/${setting}_${Date.now()}.png`
+
+      await getR2().send(
+        new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: 'image/png' })
+      )
+      url = `${process.env.R2_PUBLIC_URL}/${key}`
+    }
+
+    await getSupabase().from('agent_settings_images').insert({
+      setting_type: setting,
+      image_url: url,
+    })
+
+    return Response.json({ url, setting })
+  } catch (err: unknown) {
+    console.error('[generate-setting]', err)
+    return Response.json({ error: String(err) }, { status: 500 })
+  }
 }

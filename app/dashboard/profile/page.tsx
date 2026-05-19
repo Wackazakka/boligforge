@@ -130,9 +130,7 @@ export default function ProfilePage() {
     })
     setGeneratingSetting(null)
     try {
-      const text = await res.text()
-      const lastLine = text.trim().split('\n').pop() || '{}'
-      const data = JSON.parse(lastLine)
+      const data = await res.json()
       if (data.error) {
         alert('Generering feilet: ' + data.error)
       } else {
