@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fal } from '@fal-ai/client'
 
-fal.config({ proxyUrl: '/api/fal/proxy' })
+fal.config({ credentials: process.env.NEXT_PUBLIC_FAL_KEY! })
 
 const VOICES = [
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel – Rolig, naturlig' },
@@ -141,12 +141,10 @@ export default function ProfilePage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let result: any
 
+      setQueueMsg('Genererer bilde...')
+
       if (settingId === 'property_front') {
-        result = await fal.subscribe('fal-ai/omnigen-v1', {
-          onQueueUpdate: (update) => {
-            if (update.status === 'IN_QUEUE') setQueueMsg(`Venter i kø (posisjon ${(update as { queue_position?: number }).queue_position ?? '?'})...`)
-            else if (update.status === 'IN_PROGRESS') setQueueMsg('Genererer bilde...')
-          },
+        result = await fal.run('fal-ai/omnigen-v1', {
           input: {
             input_image_urls: [profile.portrait_url, propertyTestUrl.trim()],
             prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
@@ -158,11 +156,7 @@ export default function ProfilePage() {
           },
         })
       } else {
-        result = await fal.subscribe('fal-ai/pulid', {
-          onQueueUpdate: (update) => {
-            if (update.status === 'IN_QUEUE') setQueueMsg(`Venter i kø (posisjon ${(update as { queue_position?: number }).queue_position ?? '?'})...`)
-            else if (update.status === 'IN_PROGRESS') setQueueMsg('Genererer bilde...')
-          },
+        result = await fal.run('fal-ai/pulid', {
           input: {
             reference_images: [{ image_url: profile.portrait_url }],
             prompt: PULID_PROMPTS[settingId] || '',
@@ -177,7 +171,7 @@ export default function ProfilePage() {
         })
       }
 
-      const imageUrl = result?.data?.images?.[0]?.url
+      const imageUrl = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url
       if (!imageUrl) { alert('Ingen bilde returnert fra fal.ai'); return }
 
       await fetch('/api/profile/save-setting', {
