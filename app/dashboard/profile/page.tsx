@@ -118,26 +118,76 @@ export default function ProfilePage() {
       alert('Lim inn en URL til et boligbilde for å teste «Foran eiendommen»')
       return
     }
+
+    const FAL_KEY = process.env.NEXT_PUBLIC_FAL_KEY
+    if (!FAL_KEY) { alert('FAL_KEY mangler'); return }
+
     setGeneratingSetting(settingId)
-    const res = await fetch('/api/profile/generate-setting', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        setting: settingId,
-        portraitUrl: profile.portrait_url,
-        ...(settingId === 'property_front' ? { propertyImageUrl: propertyTestUrl.trim() } : {}),
-      }),
-    })
-    setGeneratingSetting(null)
     try {
-      const data = await res.json()
-      if (data.error) {
-        alert('Generering feilet: ' + data.error)
+      let falUrl: string
+      let body: object
+
+      if (settingId === 'property_front') {
+        body = {
+          input_image_urls: [profile.portrait_url, propertyTestUrl.trim()],
+          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
+          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text',
+          num_images: 1,
+          guidance_scale: 3.0,
+          img_guidance_scale: 1.6,
+          num_inference_steps: 15,
+          image_size: 'landscape_16_9',
+        }
+        falUrl = 'https://fal.run/fal-ai/omnigen-v1'
       } else {
-        loadSettingImages()
+        const PULID_PROMPTS: Record<string, string> = {
+          modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent is smiling confidently, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
+          office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
+          studio: 'A professional Norwegian real estate agent against a smooth warm-neutral gradient studio backdrop. Soft, even professional lighting from the side. Confident, friendly expression. High-end professional headshot, sharp focus on face.',
+          neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent is relaxed and smiling. Editorial lifestyle photography.',
+        }
+        body = {
+          reference_images: [{ image_url: profile.portrait_url }],
+          prompt: PULID_PROMPTS[settingId] || '',
+          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
+          num_images: 1,
+          guidance_scale: 1.5,
+          num_inference_steps: 20,
+          id_scale: 0.8,
+          mode: 'fidelity',
+          image_size: 'portrait_4_3',
+        }
+        falUrl = 'https://fal.run/fal-ai/pulid'
       }
-    } catch {
-      alert(`Generering feilet: HTTP ${res.status}`)
+
+      const falRes = await fetch(falUrl, {
+        method: 'POST',
+        headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      if (!falRes.ok) {
+        const err = await falRes.text()
+        alert('fal.ai feilet: ' + err)
+        return
+      }
+
+      const falData = await falRes.json()
+      const imageUrl = falData.images?.[0]?.url
+      if (!imageUrl) { alert('Ingen bilde returnert fra fal.ai'); return }
+
+      // Save to Supabase via lightweight route
+      await fetch('/api/profile/save-setting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setting: settingId, url: imageUrl }),
+      })
+
+      loadSettingImages()
+    } catch (err) {
+      alert('Generering feilet: ' + String(err))
+    } finally {
+      setGeneratingSetting(null)
     }
   }
 
