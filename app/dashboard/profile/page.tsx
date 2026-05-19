@@ -51,6 +51,7 @@ export default function ProfilePage() {
   const [settingImages, setSettingImages] = useState<SettingImage[]>([])
   const [selectedSetting, setSelectedSetting] = useState<string | null>(null)
   const [loadingImages, setLoadingImages] = useState(false)
+  const [propertyTestUrl, setPropertyTestUrl] = useState('')
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
 
@@ -113,6 +114,10 @@ export default function ProfilePage() {
       alert('Last opp et portrettbilde først')
       return
     }
+    if (settingId === 'property_front' && !propertyTestUrl.trim()) {
+      alert('Lim inn en URL til et boligbilde for å teste «Foran eiendommen»')
+      return
+    }
     setGeneratingSetting(settingId)
     const res = await fetch('/api/profile/generate-setting', {
       method: 'POST',
@@ -120,6 +125,7 @@ export default function ProfilePage() {
       body: JSON.stringify({
         setting: settingId,
         portraitUrl: profile.portrait_url,
+        ...(settingId === 'property_front' ? { propertyImageUrl: propertyTestUrl.trim() } : {}),
       }),
     })
     setGeneratingSetting(null)
@@ -293,6 +299,18 @@ export default function ProfilePage() {
           {/* Setting generator */}
           <div className="border-t border-gray-100 pt-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Generer setting-bilde</h3>
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Boligbilde-URL <span className="text-gray-400 font-normal">(for «Foran eiendommen» — erstattes av Finn.no-scraper)</span>
+              </label>
+              <input
+                type="url"
+                value={propertyTestUrl}
+                onChange={e => setPropertyTestUrl(e.target.value)}
+                placeholder="https://eksempel.no/boligbilde.jpg"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
             {generatingSetting && (
               <div className="mb-3 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
                 <span className="animate-spin inline-block">⟳</span>
