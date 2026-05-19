@@ -1,12 +1,15 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
+export const maxDuration = 120
+
+// Prompts describe the full scene — PuLID generates from scratch with the agent's face as identity reference
 const SETTING_PROMPTS: Record<string, string> = {
-  modern_home: 'A professional real estate agent standing in front of a beautiful modern Norwegian residential home with clean architecture, natural light, professional photo',
-  office: 'A professional real estate agent in a bright, modern Scandinavian office environment with clean lines and minimalist decor, professional headshot',
-  studio: 'A professional real estate agent against a clean, neutral studio backdrop with soft professional lighting, business portrait',
-  neighborhood: 'A professional real estate agent standing outdoors in a pleasant Norwegian residential neighborhood with houses visible in the background, natural daylight',
+  modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent is smiling confidently, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
+  office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
+  studio: 'A professional Norwegian real estate agent against a smooth warm-neutral gradient studio backdrop. Soft, even professional lighting from the side. Confident, friendly expression. High-end professional headshot, sharp focus on face.',
+  neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent is relaxed and smiling. Editorial lifestyle photography.',
+  property_front: 'A professional Norwegian real estate agent standing in front of a beautiful white Norwegian family home at dusk. The house has a large wraparound deck with white railings, a double garage, large windows with warm interior lighting, lush garden with green shrubs. The agent stands on the gravel driveway, smiling confidently. Editorial real estate photography, blue-hour lighting.',
 }
 
 function getR2() {
@@ -28,66 +31,88 @@ function getSupabase() {
 }
 
 export async function POST(request: Request) {
-  try {
-    const { setting, portraitUrl } = await request.json()
+  const encoder = new TextEncoder()
 
-    if (!setting || !portraitUrl) {
-      return NextResponse.json({ error: 'Missing setting or portraitUrl' }, { status: 400 })
-    }
+  const stream = new ReadableStream({
+    async start(controller) {
+      const keepAlive = setInterval(() => {
+        try { controller.enqueue(encoder.encode('\n')) } catch { /* closed */ }
+      }, 5000)
 
-    const prompt = SETTING_PROMPTS[setting]
-    if (!prompt) {
-      return NextResponse.json({ error: 'Unknown setting type' }, { status: 400 })
-    }
+      const send = (data: object) => {
+        clearInterval(keepAlive)
+        try {
+          controller.enqueue(encoder.encode(JSON.stringify(data)))
+          controller.close()
+        } catch { /* closed */ }
+      }
 
-    const portraitRes = await fetch(portraitUrl)
-    if (!portraitRes.ok) throw new Error('Failed to fetch portrait image')
-    const portraitBuffer = Buffer.from(await portraitRes.arrayBuffer())
+      try {
+        const { setting, portraitUrl } = await request.json()
 
-    const formData = new FormData()
-    const imageBlob = new Blob([portraitBuffer], { type: 'image/png' })
-    formData.append('image[]', imageBlob, 'portrait.png')
-    formData.append('prompt', prompt)
-    formData.append('model', 'gpt-image-1')
-    formData.append('n', '1')
-    formData.append('size', '1024x1024')
-    formData.append('quality', 'medium')
+        if (!setting || !portraitUrl) return send({ error: 'Missing setting or portraitUrl' })
 
-    const openaiRes = await fetch('https://api.openai.com/v1/images/edits', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: formData,
-    })
+        const prompt = SETTING_PROMPTS[setting]
+        if (!prompt) return send({ error: 'Unknown setting type' })
 
-    if (!openaiRes.ok) {
-      const err = await openaiRes.text()
-      console.error('[generate-setting] OpenAI error:', err)
-      return NextResponse.json({ error: 'OpenAI feilet: ' + err }, { status: 502 })
-    }
+        // PuLID: identity-preserving generation — face image as reference, scene described in prompt
+        const falRes = await fetch('https://fal.run/fal-ai/pulid', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Key ${process.env.FAL_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            reference_images: [{ image_url: portraitUrl }],
+            prompt,
+            negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
+            num_images: 1,
+            guidance_scale: 1.5,
+            num_inference_steps: 20,
+            id_scale: 0.8,
+            mode: 'fidelity',
+            image_size: 'portrait_4_3',
+          }),
+        })
 
-    const openaiData = await openaiRes.json()
-    const b64 = openaiData.data?.[0]?.b64_json
-    if (!b64) throw new Error('No image in OpenAI response')
+        if (!falRes.ok) {
+          const err = await falRes.text()
+          console.error('[generate-setting] fal.ai error:', err)
+          return send({ error: 'fal.ai feilet: ' + err })
+        }
 
-    const imgBuffer = Buffer.from(b64, 'base64')
-    const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-    const key = `boligforge/agent/settings/${setting}_${Date.now()}.png`
+        const falData = await falRes.json()
+        const falImageUrl = falData.images?.[0]?.url
+        if (!falImageUrl) return send({ error: 'No image returned from fal.ai' })
 
-    await getR2().send(
-      new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: 'image/png' })
-    )
+        // Download from fal.ai and upload to R2
+        const imgRes = await fetch(falImageUrl)
+        if (!imgRes.ok) return send({ error: 'Failed to fetch fal.ai result' })
+        const imgBuffer = Buffer.from(await imgRes.arrayBuffer())
 
-    const url = `${process.env.R2_PUBLIC_URL}/${key}`
+        const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
+        const key = `boligforge/agent/settings/${setting}_${Date.now()}.png`
 
-    await getSupabase().from('agent_settings_images').insert({
-      user_id: 'default',
-      setting_type: setting,
-      image_url: url,
-    })
+        await getR2().send(
+          new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: 'image/png' })
+        )
 
-    return NextResponse.json({ url, setting })
-  } catch (err: unknown) {
-    console.error('[generate-setting]', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
-  }
+        const url = `${process.env.R2_PUBLIC_URL}/${key}`
+
+        await getSupabase().from('agent_settings_images').insert({
+          setting_type: setting,
+          image_url: url,
+        })
+
+        send({ url, setting })
+      } catch (err: unknown) {
+        console.error('[generate-setting]', err)
+        send({ error: String(err) })
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: { 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' },
+  })
 }

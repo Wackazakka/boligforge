@@ -18,6 +18,7 @@ const SETTINGS = [
   { id: 'office', label: 'I et lyst, profesjonelt kontor' },
   { id: 'studio', label: 'Nøytral studiobakgrunn' },
   { id: 'neighborhood', label: 'Utendørs i et boligfelt' },
+  { id: 'property_front', label: 'Foran eiendommen (Finn.no-bilde)' },
 ]
 
 type Profile = {
@@ -116,15 +117,34 @@ export default function ProfilePage() {
     const res = await fetch('/api/profile/generate-setting', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ setting: settingId, portraitUrl: profile.portrait_url }),
+      body: JSON.stringify({
+        setting: settingId,
+        portraitUrl: profile.portrait_url,
+      }),
     })
     setGeneratingSetting(null)
-    if (res.ok) {
-      loadSettingImages()
-    } else {
-      const e = await res.json()
-      alert('Generering feilet: ' + (e.error || 'ukjent feil'))
+    try {
+      const text = await res.text()
+      const lastLine = text.trim().split('\n').pop() || '{}'
+      const data = JSON.parse(lastLine)
+      if (data.error) {
+        alert('Generering feilet: ' + data.error)
+      } else {
+        loadSettingImages()
+      }
+    } catch {
+      alert(`Generering feilet: HTTP ${res.status}`)
     }
+  }
+
+  async function handleDeleteSettingImage(id: string, imageUrl: string) {
+    if (!confirm('Slett dette bildet?')) return
+    await fetch('/api/profile/delete-setting-image', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, imageUrl }),
+    })
+    setSettingImages(imgs => imgs.filter(i => i.id !== id))
   }
 
   async function handleSelectSettingImage(url: string) {
@@ -243,7 +263,7 @@ export default function ProfilePage() {
         {/* Portrait + AI settings */}
         <section className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">Portrettbilde og setting</h2>
-          <p className="text-sm text-gray-500 mb-5">Last opp et portrettbilde, deretter generer en profesjonell setting med OpenAI.</p>
+          <p className="text-sm text-gray-500 mb-5">Last opp et portrettbilde, deretter generer en profesjonell setting med AI. Ansiktet ditt bevares i alle settings.</p>
 
           <div className="flex items-center gap-4 mb-6">
             {profile.portrait_url ? (
@@ -273,6 +293,12 @@ export default function ProfilePage() {
           {/* Setting generator */}
           <div className="border-t border-gray-100 pt-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Generer setting-bilde</h3>
+            {generatingSetting && (
+              <div className="mb-3 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                <span className="animate-spin inline-block">⟳</span>
+                Genererer bilde — dette tar 30–60 sekunder...
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {SETTINGS.map(s => (
                 <button
@@ -282,7 +308,7 @@ export default function ProfilePage() {
                   className="text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {generatingSetting === s.id ? (
-                    <span className="text-blue-600">Genererer...</span>
+                    <span className="text-blue-600 font-medium">⟳ Genererer...</span>
                   ) : s.label}
                 </button>
               ))}
@@ -295,27 +321,64 @@ export default function ProfilePage() {
           {/* Generated images gallery */}
           {settingImages.length > 0 && (
             <div className="border-t border-gray-100 pt-5 mt-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Genererte setting-bilder – velg favoritt</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">Lagrede setting-bilder</h3>
+                <span className="text-xs text-gray-400">{settingImages.length} bilde{settingImages.length !== 1 ? 'r' : ''} lagret</span>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {settingImages.map(img => {
                   const isSelected = profile.portrait_url === img.image_url
                   return (
-                    <button
+                    <div
                       key={img.id}
-                      onClick={() => handleSelectSettingImage(img.image_url)}
-                      className={`relative rounded-xl overflow-hidden border-2 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-300' : 'border-transparent hover:border-gray-300'}`}
+                      className={`relative rounded-xl overflow-hidden border-2 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200'}`}
                     >
-                      <img src={img.image_url} alt={img.setting_type} className="w-full aspect-square object-cover" />
+                      <button
+                        onClick={() => handleSelectSettingImage(img.image_url)}
+                        className="block w-full"
+                      >
+                        <img src={img.image_url} alt={img.setting_type} className="w-full aspect-square object-cover" />
+                      </button>
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">✓</div>
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">✓</div>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 truncate">
-                        {SETTINGS.find(s => s.id === img.setting_type)?.label || img.setting_type}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1.5 flex items-center justify-between gap-1">
+                        <span className="text-white text-xs truncate">
+                          {SETTINGS.find(s => s.id === img.setting_type)?.label || img.setting_type}
+                        </span>
+                        <div className="flex gap-1 shrink-0">
+                          <button
+                            onClick={() => handleGenerateSetting(img.setting_type)}
+                            disabled={!!generatingSetting || !profile.portrait_url}
+                            title="Generer nytt"
+                            className="w-6 h-6 rounded bg-white/20 hover:bg-white/40 flex items-center justify-center text-white text-xs disabled:opacity-50"
+                          >
+                            {generatingSetting === img.setting_type ? '⟳' : '↺'}
+                          </button>
+                          <a
+                            href={img.image_url}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Last ned"
+                            className="w-6 h-6 rounded bg-white/20 hover:bg-white/40 flex items-center justify-center text-white text-xs"
+                          >
+                            ↓
+                          </a>
+                          <button
+                            onClick={() => handleDeleteSettingImage(img.id, img.image_url)}
+                            title="Slett bilde"
+                            className="w-6 h-6 rounded bg-red-500/60 hover:bg-red-500/90 flex items-center justify-center text-white text-xs"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
+              <p className="text-xs text-gray-400 mt-2">Klikk på et bilde for å velge det som aktivt portrett. Trykk ↺ for å generere et nytt bilde med samme setting.</p>
             </div>
           )}
 
