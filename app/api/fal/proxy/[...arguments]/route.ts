@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const FAL_KEY = process.env.FAL_KEY!
+const TARGET_URL_HEADER = 'x-fal-target-url'
 
 async function handler(req: NextRequest) {
-  const url = new URL(req.url)
-  // Strip /api/fal/proxy prefix and forward to fal queue
-  const falPath = url.pathname.replace(/^\/api\/fal\/proxy/, '')
-  const falUrl = `https://queue.fal.run${falPath}${url.search}`
+  // fal client sends the real target URL in x-fal-target-url header
+  const targetUrl = req.headers.get(TARGET_URL_HEADER)
+  if (!targetUrl) {
+    return NextResponse.json({ error: 'Missing x-fal-target-url header' }, { status: 400 })
+  }
 
   const body = req.method !== 'GET' ? await req.text() : undefined
 
-  const res = await fetch(falUrl, {
+  const res = await fetch(targetUrl, {
     method: req.method,
     headers: {
       'Authorization': `Key ${FAL_KEY}`,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
     body,
   })
