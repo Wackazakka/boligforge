@@ -70,7 +70,7 @@ export async function POST(request: Request) {
               num_images: 1,
               guidance_scale: 3.0,
               img_guidance_scale: 1.6,
-              num_inference_steps: 50,
+              num_inference_steps: 15,
               image_size: 'landscape_16_9',
             }),
           })
@@ -109,19 +109,24 @@ export async function POST(request: Request) {
         const falImageUrl = falData.images?.[0]?.url
         if (!falImageUrl) return send({ error: 'No image returned from fal.ai' })
 
-        // Download from fal.ai and upload to R2
-        const imgRes = await fetch(falImageUrl)
-        if (!imgRes.ok) return send({ error: 'Failed to fetch fal.ai result' })
-        const imgBuffer = Buffer.from(await imgRes.arrayBuffer())
+        // For OmniGen (property_front): use fal.ai URL directly to avoid timeout from download+R2 upload
+        // For PuLID: download and re-host on R2 for permanent storage
+        let url: string
+        if (setting === 'property_front') {
+          url = falImageUrl
+        } else {
+          const imgRes = await fetch(falImageUrl)
+          if (!imgRes.ok) return send({ error: 'Failed to fetch fal.ai result' })
+          const imgBuffer = Buffer.from(await imgRes.arrayBuffer())
 
-        const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-        const key = `boligforge/agent/settings/${setting}_${Date.now()}.png`
+          const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
+          const key = `boligforge/agent/settings/${setting}_${Date.now()}.png`
 
-        await getR2().send(
-          new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: 'image/png' })
-        )
-
-        const url = `${process.env.R2_PUBLIC_URL}/${key}`
+          await getR2().send(
+            new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: 'image/png' })
+          )
+          url = `${process.env.R2_PUBLIC_URL}/${key}`
+        }
 
         await getSupabase().from('agent_settings_images').insert({
           setting_type: setting,
