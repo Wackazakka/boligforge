@@ -11,14 +11,8 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - run: npm run build
-      - uses: nwtgck/actions-netlify@v3
-        with:
-          publish-dir: '.next'
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-          production-deploy: true
+      - run: npm install -g netlify-cli
+      - run: netlify deploy --build --prod
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ad721a69-c5ee-4e66-8131-b06a0ff93e21
