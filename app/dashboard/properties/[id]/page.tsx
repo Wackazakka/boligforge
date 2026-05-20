@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { fal } from '@fal-ai/client'
 
-fal.config({ credentials: process.env.NEXT_PUBLIC_FAL_KEY! })
+fal.config({ proxyUrl: '/api/fal/proxy' })
 
 type Property = {
   id: string
@@ -100,7 +100,7 @@ export default function PropertyDetailPage() {
     setError('')
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = await fal.run('fal-ai/omnigen-v1', {
+      const result: any = await fal.subscribe('fal-ai/omnigen-v1', {
         input: {
           input_image_urls: [profile.portrait_url, propertyImg],
           prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
@@ -110,6 +110,7 @@ export default function PropertyDetailPage() {
           num_inference_steps: 15,
           image_size: 'landscape_16_9' as const,
         },
+        pollInterval: 3000,
       })
       const url = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url
       if (!url) { setError('Ingen bilde returnert fra fal.ai'); return }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fal } from '@fal-ai/client'
 
-fal.config({ credentials: process.env.NEXT_PUBLIC_FAL_KEY! })
+fal.config({ proxyUrl: '/api/fal/proxy' })
 
 const VOICES = [
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel – Rolig, naturlig' },
@@ -135,7 +135,7 @@ export default function ProfilePage() {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = await fal.run('fal-ai/pulid', {
+      const result: any = await fal.subscribe('fal-ai/pulid', {
         input: {
           reference_images: [{ image_url: portraitUrl }],
           prompt: PULID_PROMPTS[settingId] || '',
@@ -147,6 +147,7 @@ export default function ProfilePage() {
           mode: 'fidelity',
           image_size: 'portrait_4_3',
         },
+        pollInterval: 3000,
       })
 
       const imageUrl = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url
