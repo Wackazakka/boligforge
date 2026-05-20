@@ -148,8 +148,8 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
           num_images: 1,
           guidance_scale: 1.5,
-          num_inference_steps: 8,
-          id_scale: 0.8,
+          num_inference_steps: 20,
+          id_scale: 1.0,
           mode: 'fidelity',
           image_size: 'portrait_4_3',
         }),
@@ -408,8 +408,19 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                               </svg>
                               <span className="text-xs text-blue-400">Genererer...</span>
                             </>
+                          ) : err ? (
+                            <>
+                              <span className="text-xs text-center px-2 text-red-400">{err}</span>
+                              <button
+                                onClick={() => handleGenerateSetting(s.id)}
+                                disabled={!profile.portrait_url}
+                                className="text-xs text-blue-500 hover:underline disabled:opacity-50"
+                              >
+                                ↺ Prøv igjen
+                              </button>
+                            </>
                           ) : (
-                            <span className="text-xs text-center px-2">{err || 'Ikke generert'}</span>
+                            <span className="text-xs text-center px-2">Ikke generert</span>
                           )}
                         </div>
                       )}
