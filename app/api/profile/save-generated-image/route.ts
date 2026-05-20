@@ -45,9 +45,13 @@ export async function POST(request: Request) {
     )
     const url = `${process.env.R2_PUBLIC_URL}/${key}`
 
-    await getSupabase().from('agent_settings_images').insert({ setting_type: setting, image_url: url })
+    const { data: row } = await getSupabase()
+      .from('agent_settings_images')
+      .insert({ setting_type: setting, image_url: url })
+      .select('id')
+      .single()
 
-    return Response.json({ url, setting })
+    return Response.json({ url, setting, id: row?.id })
   } catch (err: unknown) {
     console.error('[save-generated-image]', err)
     return Response.json({ error: String(err) }, { status: 500 })

@@ -53,6 +53,8 @@ export default function PropertyDetailPage() {
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>('')
   const [generatingAvatar, setGeneratingAvatar] = useState(false)
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null)
+  const [savingAvatar, setSavingAvatar] = useState(false)
+  const [avatarSaved, setAvatarSaved] = useState(false)
   const [script, setScript] = useState('')
   const [generatingScript, setGeneratingScript] = useState(false)
   const [generatingVideo, setGeneratingVideo] = useState(false)
@@ -77,6 +79,26 @@ export default function PropertyDetailPage() {
       }
     })
   }, [id])
+
+  async function handleSaveAvatar() {
+    if (!generatedAvatarUrl) return
+    setSavingAvatar(true)
+    try {
+      const res = await fetch('/api/profile/save-generated-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ falImageUrl: generatedAvatarUrl, setting: 'property_front' }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        setSettingImages(prev => [...prev, { id: data.id || data.url, setting_type: 'property_front', image_url: data.url }])
+        setAvatarSaved(true)
+        setTimeout(() => setAvatarSaved(false), 3000)
+      }
+    } finally {
+      setSavingAvatar(false)
+    }
+  }
 
   async function handleDeleteSettingImage(img: SettingImage) {
     if (!confirm('Slett dette avatarbildet?')) return
@@ -368,23 +390,34 @@ export default function PropertyDetailPage() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                   )}
-                  {generatingAvatar ? 'Genererer (~30 sek)...' : 'Generer foran denne boligen'}
+                  {generatingAvatar ? 'Genererer (~30 sek)...' : generatedAvatarUrl ? '↺ Regenerer' : 'Generer foran denne boligen'}
                 </button>
                 {!profile.portrait_url && (
                   <p className="text-xs text-gray-400">Last opp portrett i profilen din først</p>
                 )}
               </div>
 
-              {/* Show generated result + select it */}
+              {/* Show generated result + select + save */}
               {generatedAvatarUrl && (
-                <div
-                  onClick={() => setSelectedAvatarUrl(generatedAvatarUrl)}
-                  className={`inline-block cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === generatedAvatarUrl ? 'border-blue-500' : 'border-gray-200 opacity-80 hover:opacity-100'}`}
-                >
-                  <img src={generatedAvatarUrl} alt="Generert avatar" className="w-48 h-32 object-cover" />
-                  <p className="text-xs text-center text-gray-500 py-1">
-                    {selectedAvatarUrl === generatedAvatarUrl ? '✓ Valgt' : 'Klikk for å velge'}
-                  </p>
+                <div className="flex items-end gap-3">
+                  <div
+                    onClick={() => setSelectedAvatarUrl(generatedAvatarUrl)}
+                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === generatedAvatarUrl ? 'border-blue-500' : 'border-gray-200 opacity-80 hover:opacity-100'}`}
+                  >
+                    <img src={generatedAvatarUrl} alt="Generert avatar" className="w-48 h-32 object-cover" />
+                    <p className="text-xs text-center text-gray-500 py-1">
+                      {selectedAvatarUrl === generatedAvatarUrl ? '✓ Valgt' : 'Klikk for å velge'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 pb-1">
+                    <button
+                      onClick={handleSaveAvatar}
+                      disabled={savingAvatar}
+                      className="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 transition-colors"
+                    >
+                      {savingAvatar ? 'Lagrer...' : avatarSaved ? '✓ Lagret' : 'Lagre til bibliotek'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
