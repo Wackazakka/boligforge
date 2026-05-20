@@ -109,18 +109,20 @@ export async function POST(request: Request) {
     const bgWidth = bgMeta.width ?? 1200
     const bgHeight = bgMeta.height ?? 800
 
-    // Agent height: 55% of bg height — shows full upper body incl. shoulders
-    const agentHeight = Math.round(bgHeight * 0.55)
+    // Resize agent to fit within 50% height and 40% width — preserves aspect ratio
+    const maxAgentHeight = Math.round(bgHeight * 0.50)
+    const maxAgentWidth = Math.round(bgWidth * 0.40)
     const agentPng = await sharp(cutoutBuffer)
-      .resize({ height: agentHeight, withoutEnlargement: false })
+      .resize({ height: maxAgentHeight, width: maxAgentWidth, fit: 'inside', withoutEnlargement: false })
       .png()
       .toBuffer()
 
     const agentMeta = await sharp(agentPng).metadata()
     const agentWidth = agentMeta.width ?? 400
+    const agentHeight = agentMeta.height ?? 400
 
     // Position: centered horizontally, feet at bottom (2% margin)
-    const left = Math.max(0, Math.round((bgWidth - agentWidth) / 2))
+    const left = Math.round((bgWidth - agentWidth) / 2)
     const top = Math.max(0, bgHeight - agentHeight - Math.round(bgHeight * 0.02))
 
     const composited = await sharp(propertyBuffer)
