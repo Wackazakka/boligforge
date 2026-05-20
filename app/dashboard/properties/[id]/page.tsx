@@ -2,9 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { fal } from '@fal-ai/client'
-
-fal.config({ proxyUrl: '/api/fal/proxy' })
 
 type Property = {
   id: string
@@ -81,23 +78,9 @@ export default function PropertyDetailPage() {
   }, [id])
 
   async function handleSaveAvatar() {
-    if (!generatedAvatarUrl) return
-    setSavingAvatar(true)
-    try {
-      const res = await fetch('/api/profile/save-generated-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ falImageUrl: generatedAvatarUrl, setting: 'property_front' }),
-      })
-      const data = await res.json()
-      if (res.ok && data.url) {
-        setSettingImages(prev => [...prev, { id: data.id || data.url, setting_type: 'property_front', image_url: data.url }])
-        setAvatarSaved(true)
-        setTimeout(() => setAvatarSaved(false), 3000)
-      }
-    } finally {
-      setSavingAvatar(false)
-    }
+    // Image is already saved to library by composite-avatar route
+    setAvatarSaved(true)
+    setTimeout(() => setAvatarSaved(false), 3000)
   }
 
   async function handleDeleteSettingImage(img: SettingImage) {
@@ -131,25 +114,22 @@ export default function PropertyDetailPage() {
     if (!property?.images?.length) { setError('Ingen boligbilder tilgjengelig'); return }
     const propertyImg = property.images[selectedImageIdx]
     setGeneratingAvatar(true)
+    setAvatarSaved(false)
     setError('')
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = await fal.subscribe('fal-ai/omnigen-v1', {
-        input: {
-          input_image_urls: [profile.portrait_url, propertyImg],
-          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is wearing business casual attire, natural expression. Editorial real estate photography, natural lighting.',
-          num_images: 1,
-          guidance_scale: 3.0,
-          img_guidance_scale: 1.6,
-          num_inference_steps: 15,
-          image_size: 'landscape_16_9' as const,
-        },
-        pollInterval: 3000,
+      const res = await fetch('/api/profile/composite-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ portraitUrl: profile.portrait_url, propertyImageUrl: propertyImg }),
       })
-      const url = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url
-      if (!url) { setError('Ingen bilde returnert fra fal.ai'); return }
-      setGeneratedAvatarUrl(url)
-      setSelectedAvatarUrl(url)
+      const data = await res.json()
+      if (!res.ok || data.error) { setError(data.error || 'Komposisjon feilet'); return }
+      setGeneratedAvatarUrl(data.url)
+      setSelectedAvatarUrl(data.url)
+      // Already saved to Supabase by the route — add to local list
+      if (data.id) {
+        setSettingImages(prev => [...prev, { id: data.id, setting_type: 'property_front', image_url: data.url }])
+      }
     } catch (err) {
       setError('Avatar-generering feilet: ' + String(err))
     } finally {
