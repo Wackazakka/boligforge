@@ -34,12 +34,14 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Failed to fetch image from fal.ai' }, { status: 500 })
     }
     const imgBuffer = Buffer.from(await imgRes.arrayBuffer())
+    const contentType = imgRes.headers.get('content-type') || 'image/jpeg'
+    const ext = contentType.includes('png') ? 'png' : 'jpg'
 
     const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-    const key = `boligforge/agent/settings/${setting}_${Date.now()}.png`
+    const key = `boligforge/agent/settings/${setting}_${Date.now()}.${ext}`
 
     await getR2().send(
-      new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: 'image/png' })
+      new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: contentType })
     )
     const url = `${process.env.R2_PUBLIC_URL}/${key}`
 

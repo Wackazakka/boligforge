@@ -134,22 +134,25 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
-      // FLUX PuLID: FLUX-based identity preservation (much better than SDXL PuLID)
+      // Ideogram V3 Character: purpose-built for consistent character appearance
+      // across scenes. Far superior face fidelity vs FLUX PuLID / SDXL PuLID / InstantID.
       // Step 1: submit to queue (returns immediately)
+      const MODEL_PATH = 'fal-ai/ideogram/character'
       const submitRes = await fetch('/api/fal/proxy', {
         method: 'POST',
         headers: {
-          'x-fal-target-url': 'https://queue.fal.run/fal-ai/flux-pulid',
+          'x-fal-target-url': `https://queue.fal.run/${MODEL_PATH}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reference_image_url: portraitUrl,
+          reference_image_urls: [portraitUrl],
           prompt,
-          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
-          num_inference_steps: 20,
-          guidance_scale: 4,
-          id_weight: 3.0,
+          negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, illustration, painting, unrealistic skin',
+          rendering_speed: 'QUALITY',
+          style: 'REALISTIC',
           image_size: 'portrait_4_3',
+          expand_prompt: false,
+          num_images: 1,
           seed: Math.floor(Math.random() * 999999999),
         }),
       })
@@ -158,19 +161,20 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
         setSettingErrors(prev => ({ ...prev, [settingId]: `Innsending feilet: ${errText.slice(0, 150)}` }))
         return
       }
-      const { request_id } = await submitRes.json()
+      const submitData = await submitRes.json()
+      const request_id = submitData?.request_id
       if (!request_id) {
-        setSettingErrors(prev => ({ ...prev, [settingId]: 'Ingen request_id fra fal.ai' }))
+        setSettingErrors(prev => ({ ...prev, [settingId]: `Ingen request_id: ${JSON.stringify(submitData).slice(0, 150)}` }))
         return
       }
 
-      // Step 2: poll status every 3s (max 5 min)
+      // Step 2: poll status every 3s (max 7 min for QUALITY rendering)
       let falImageUrl: string | null = null
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 140; i++) {
         await new Promise(r => setTimeout(r, 3000))
         const statusRes = await fetch('/api/fal/proxy', {
           method: 'GET',
-          headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/flux-pulid/requests/${request_id}/status` },
+          headers: { 'x-fal-target-url': `https://queue.fal.run/${MODEL_PATH}/requests/${request_id}/status` },
         })
         if (!statusRes.ok) continue
         const status = await statusRes.json()
@@ -178,20 +182,24 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           // Step 3: fetch result
           const resultRes = await fetch('/api/fal/proxy', {
             method: 'GET',
-            headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/flux-pulid/requests/${request_id}` },
+            headers: { 'x-fal-target-url': `https://queue.fal.run/${MODEL_PATH}/requests/${request_id}` },
           })
           const resultData = await resultRes.json()
-          falImageUrl = resultData?.images?.[0]?.url ?? resultData?.output?.images?.[0]?.url ?? null
+          falImageUrl =
+            resultData?.images?.[0]?.url ??
+            resultData?.output?.images?.[0]?.url ??
+            resultData?.data?.images?.[0]?.url ??
+            null
           break
         }
         if (status.status === 'FAILED') {
-          setSettingErrors(prev => ({ ...prev, [settingId]: 'fal.ai generering feilet' }))
+          setSettingErrors(prev => ({ ...prev, [settingId]: `fal.ai generering feilet: ${JSON.stringify(status).slice(0, 150)}` }))
           return
         }
       }
 
       if (!falImageUrl) {
-        setSettingErrors(prev => ({ ...prev, [settingId]: 'Timeout: ingen bilde returnert etter 3 min' }))
+        setSettingErrors(prev => ({ ...prev, [settingId]: 'Timeout: ingen bilde returnert etter 7 min' }))
         return
       }
 
