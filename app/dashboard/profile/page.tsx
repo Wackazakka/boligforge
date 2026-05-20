@@ -134,23 +134,21 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
-      // PuLID: identity-preserving generation via queue (no Netlify timeout)
+      // FLUX PuLID: FLUX-based identity preservation (much better than SDXL PuLID)
       // Step 1: submit to queue (returns immediately)
       const submitRes = await fetch('/api/fal/proxy', {
         method: 'POST',
         headers: {
-          'x-fal-target-url': 'https://queue.fal.run/fal-ai/pulid',
+          'x-fal-target-url': 'https://queue.fal.run/fal-ai/flux-pulid',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reference_images: [{ image_url: portraitUrl }],
+          reference_image_url: portraitUrl,
           prompt,
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
-          num_images: 1,
-          guidance_scale: 1.5,
           num_inference_steps: 20,
-          id_scale: 0.8,
-          mode: 'fidelity',
+          guidance_scale: 4,
+          id_weight: 3.0,
           image_size: 'portrait_4_3',
         }),
       })
@@ -171,7 +169,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
         await new Promise(r => setTimeout(r, 3000))
         const statusRes = await fetch('/api/fal/proxy', {
           method: 'GET',
-          headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/pulid/requests/${request_id}/status` },
+          headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/flux-pulid/requests/${request_id}/status` },
         })
         if (!statusRes.ok) continue
         const status = await statusRes.json()
@@ -179,7 +177,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           // Step 3: fetch result
           const resultRes = await fetch('/api/fal/proxy', {
             method: 'GET',
-            headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/pulid/requests/${request_id}` },
+            headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/flux-pulid/requests/${request_id}` },
           })
           const resultData = await resultRes.json()
           falImageUrl = resultData?.images?.[0]?.url ?? resultData?.output?.images?.[0]?.url ?? null
