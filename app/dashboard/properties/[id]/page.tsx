@@ -50,6 +50,7 @@ export default function PropertyDetailPage() {
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>('')
   const [generatingAvatar, setGeneratingAvatar] = useState(false)
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null)
+  const [cachedCutoutUrl, setCachedCutoutUrl] = useState<string | null>(null)
   const [savingAvatar, setSavingAvatar] = useState(false)
   const [avatarSaved, setAvatarSaved] = useState(false)
   const [script, setScript] = useState('')
@@ -120,12 +121,17 @@ export default function PropertyDetailPage() {
       const res = await fetch('/api/profile/composite-avatar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ portraitUrl: profile.portrait_url, propertyImageUrl: propertyImg }),
+        body: JSON.stringify({
+          portraitUrl: profile.portrait_url,
+          propertyImageUrl: propertyImg,
+          cutoutUrl: cachedCutoutUrl, // reuse cached cutout — skips Bria on subsequent calls
+        }),
       })
       const data = await res.json()
       if (!res.ok || data.error) { setError(data.error || 'Komposisjon feilet'); return }
       setGeneratedAvatarUrl(data.url)
       setSelectedAvatarUrl(data.url)
+      if (data.cutoutUrl) setCachedCutoutUrl(data.cutoutUrl) // cache for next regenerate
       // Already saved to Supabase by the route — add to local list
       if (data.id) {
         setSettingImages(prev => [...prev, { id: data.id, setting_type: 'property_front', image_url: data.url }])

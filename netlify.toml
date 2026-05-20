@@ -5,5 +5,9 @@
 [build.environment]
   NEXT_PUBLIC_BASE_URL = "https://boligforge.netlify.app"
 
+[functions]
+  node_bundler = "nft"
+  included_files = ["node_modules/sharp/**/*"]
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"

@@ -50,30 +50,47 @@ function getSupabase() {
 
 export async function POST(request: Request) {
   try {
-    const { portraitUrl, propertyImageUrl } = await request.json()
+    const { portraitUrl, propertyImageUrl, cutoutUrl: existingCutoutUrl } = await request.json()
     if (!portraitUrl || !propertyImageUrl) {
       return Response.json({ error: 'Missing portraitUrl or propertyImageUrl' }, { status: 400 })
     }
 
-    // Step 1: Remove background from portrait using Bria
-    const briaRes = await fetch('https://fal.run/fal-ai/bria/background/remove', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${process.env.FAL_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ image_url: portraitUrl }),
-    })
-
-    if (!briaRes.ok) {
-      const errText = await briaRes.text()
-      return Response.json({ error: `Background removal failed: ${errText.slice(0, 200)}` }, { status: 500 })
-    }
-
-    const briaData = await briaRes.json()
-    const cutoutUrl = briaData?.image?.url
+    // Step 1: Get portrait cutout — reuse cached cutout if provided, else run Bria
+    let cutoutUrl = existingCutoutUrl
     if (!cutoutUrl) {
-      return Response.json({ error: 'No cutout returned from Bria' }, { status: 500 })
+      const briaRes = await fetch('https://fal.run/fal-ai/bria/background/remove', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${process.env.FAL_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image_url: portraitUrl }),
+      })
+
+      if (!briaRes.ok) {
+        const errText = await briaRes.text()
+        return Response.json({ error: `Background removal failed: ${errText.slice(0, 200)}` }, { status: 500 })
+      }
+
+      const briaData = await briaRes.json()
+      cutoutUrl = briaData?.image?.url
+      if (!cutoutUrl) {
+        return Response.json({ error: 'No cutout returned from Bria' }, { status: 500 })
+      }
+
+      // Re-host cutout to R2 so it can be reused across composites
+      const tmpRes = await fetch(cutoutUrl)
+      if (tmpRes.ok) {
+        const tmpBuf = Buffer.from(await tmpRes.arrayBuffer())
+        const cutoutKey = `boligforge/agent/cutout/${Date.now()}.png`
+        await getR2().send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets',
+          Key: cutoutKey,
+          Body: tmpBuf,
+          ContentType: 'image/png',
+        }))
+        cutoutUrl = `${process.env.R2_PUBLIC_URL}/${cutoutKey}`
+      }
     }
 
     // Step 2: Download both images in parallel
@@ -127,7 +144,7 @@ export async function POST(request: Request) {
       .select('id')
       .single()
 
-    return Response.json({ url, id: row?.id })
+    return Response.json({ url, id: row?.id, cutoutUrl })
   } catch (err: unknown) {
     console.error('[composite-avatar]', err)
     return Response.json({ error: String(err) }, { status: 500 })
