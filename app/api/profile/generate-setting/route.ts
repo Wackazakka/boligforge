@@ -68,23 +68,21 @@ export async function POST(request: Request) {
         return Response.json({ error: 'Unknown setting type' }, { status: 400 })
       }
 
-      // FLUX PuLID: face-identity transfer model, ~20-25s, strong likeness.
-      // reference_image_url preserves identity; id_weight controls face fidelity vs. prompt.
-      falRes = await fetch('https://fal.run/fal-ai/flux-pulid', {
+      // Ideogram V3 Character QUALITY: best face fidelity, ~60-90s.
+      falRes = await fetch('https://fal.run/fal-ai/ideogram/character', {
         method: 'POST',
         headers: {
           'Authorization': `Key ${process.env.FAL_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reference_image_url: portraitUrl,
+          reference_image_urls: [portraitUrl],
           prompt,
           negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, illustration, painting, unrealistic skin',
-          num_inference_steps: 20,
-          guidance_scale: 3.5,
-          id_weight: 1.0,
+          rendering_speed: 'QUALITY',
+          style: 'REALISTIC',
+          expand_prompt: false,
           num_images: 1,
-          image_size: 'portrait_4_3',
           seed: Math.floor(Math.random() * 999999999),
         }),
       })
