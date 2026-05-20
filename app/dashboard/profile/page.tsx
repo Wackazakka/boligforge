@@ -17,11 +17,10 @@ const VOICES = [
 ]
 
 const SETTINGS = [
-  { id: 'modern_home', label: 'Foran en moderne bolig (utendørs)' },
-  { id: 'office', label: 'I et lyst, profesjonelt kontor' },
-  { id: 'studio', label: 'Nøytral studiobakgrunn' },
-  { id: 'neighborhood', label: 'Utendørs i et boligfelt' },
-  { id: 'property_front', label: 'Foran eiendommen (Finn.no-bilde)' },
+  { id: 'modern_home', label: 'Foran en moderne bolig' },
+  { id: 'office', label: 'I et lyst kontor' },
+  { id: 'studio', label: 'Nøytral studio' },
+  { id: 'neighborhood', label: 'Utendørs i boligfelt' },
 ]
 
 type Profile = {
@@ -50,16 +49,15 @@ export default function ProfilePage() {
   const [savedMsg, setSavedMsg] = useState('')
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingPortrait, setUploadingPortrait] = useState(false)
-  const [generatingSetting, setGeneratingSetting] = useState<string | null>(null)
-  const [queueMsg, setQueueMsg] = useState('')
-  const [elapsedSecs, setElapsedSecs] = useState(0)
+  const [generatingSettings, setGeneratingSettings] = useState<Record<string, boolean>>({})
+  const [settingErrors, setSettingErrors] = useState<Record<string, string>>({})
   const [settingImages, setSettingImages] = useState<SettingImage[]>([])
   const [selectedSetting, setSelectedSetting] = useState<string | null>(null)
   const [loadingImages, setLoadingImages] = useState(false)
-  const [propertyTestUrl, setPropertyTestUrl] = useState('')
-  const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [saveError, setSaveError] = useState('')
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
+  const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     fetch('/api/profile/get')
@@ -85,17 +83,19 @@ export default function ProfilePage() {
   async function handleSave() {
     setSaving(true)
     setSavedMsg('')
+    setSaveError('')
     const res = await fetch('/api/profile/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profile),
     })
+    const data = await res.json()
     setSaving(false)
     if (res.ok) {
       setSavedMsg('Lagret!')
       setTimeout(() => setSavedMsg(''), 3000)
     } else {
-      setSavedMsg('Feil ved lagring')
+      setSaveError(data?.error || 'Ukjent lagrefeil')
     }
   }
 
@@ -110,6 +110,10 @@ export default function ProfilePage() {
     if (res.ok) {
       const { url } = await res.json()
       setProfile(p => ({ ...p, [`${type}_url`]: url }))
+      // Auto-generate all 4 settings in parallel after portrait upload
+      if (type === 'portrait') {
+        SETTINGS.forEach(s => handleGenerateSetting(s.id, url))
+      }
     } else {
       alert('Opplasting feilet')
     }
@@ -122,57 +126,31 @@ export default function ProfilePage() {
     neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent is relaxed and smiling. Editorial lifestyle photography.',
   }
 
-  async function handleGenerateSetting(settingId: string) {
-    if (!profile.portrait_url) {
-      alert('Last opp et portrettbilde først')
-      return
-    }
-    if (settingId === 'property_front' && !propertyTestUrl.trim()) {
-      alert('Lim inn en URL til et boligbilde for å teste «Foran eiendommen»')
-      return
-    }
+  async function handleGenerateSetting(settingId: string, portraitOverride?: string) {
+    const portraitUrl = portraitOverride || profile.portrait_url
+    if (!portraitUrl) { alert('Last opp et portrettbilde først'); return }
 
-    setGeneratingSetting(settingId)
-    setQueueMsg('Sender til fal.ai...')
-    setElapsedSecs(0)
-    elapsedRef.current = setInterval(() => setElapsedSecs(s => s + 1), 1000)
+    setGeneratingSettings(prev => ({ ...prev, [settingId]: true }))
+    setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let result: any
-
-      setQueueMsg('Genererer bilde...')
-
-      if (settingId === 'property_front') {
-        result = await fal.run('fal-ai/omnigen-v1', {
-          input: {
-            input_image_urls: [profile.portrait_url, propertyTestUrl.trim()],
-            prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
-            num_images: 1,
-            guidance_scale: 3.0,
-            img_guidance_scale: 1.6,
-            num_inference_steps: 15,
-            image_size: 'landscape_16_9' as const,
-          },
-        })
-      } else {
-        result = await fal.run('fal-ai/pulid', {
-          input: {
-            reference_images: [{ image_url: profile.portrait_url }],
-            prompt: PULID_PROMPTS[settingId] || '',
-            negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
-            num_images: 1,
-            guidance_scale: 1.5,
-            num_inference_steps: 28,
-            id_scale: 1.0,
-            mode: 'fidelity',
-            image_size: 'portrait_4_3',
-          },
-        })
-      }
+      const result: any = await fal.run('fal-ai/pulid', {
+        input: {
+          reference_images: [{ image_url: portraitUrl }],
+          prompt: PULID_PROMPTS[settingId] || '',
+          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
+          num_images: 1,
+          guidance_scale: 1.5,
+          num_inference_steps: 28,
+          id_scale: 1.0,
+          mode: 'fidelity',
+          image_size: 'portrait_4_3',
+        },
+      })
 
       const imageUrl = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url
-      if (!imageUrl) { alert('Ingen bilde returnert fra fal.ai'); return }
+      if (!imageUrl) { setSettingErrors(prev => ({ ...prev, [settingId]: 'Ingen bilde returnert' })); return }
 
       await fetch('/api/profile/save-setting', {
         method: 'POST',
@@ -182,12 +160,9 @@ export default function ProfilePage() {
 
       loadSettingImages()
     } catch (err) {
-      alert('Generering feilet: ' + String(err))
+      setSettingErrors(prev => ({ ...prev, [settingId]: String(err) }))
     } finally {
-      setGeneratingSetting(null)
-      setQueueMsg('')
-      setElapsedSecs(0)
-      if (elapsedRef.current) clearInterval(elapsedRef.current)
+      setGeneratingSettings(prev => ({ ...prev, [settingId]: false }))
     }
   }
 
@@ -346,110 +321,65 @@ export default function ProfilePage() {
 
           {/* Setting generator */}
           <div className="border-t border-gray-100 pt-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Generer setting-bilde</h3>
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Boligbilde-URL <span className="text-gray-400 font-normal">(for «Foran eiendommen» — erstattes av Finn.no-scraper)</span>
-              </label>
-              <input
-                type="url"
-                value={propertyTestUrl}
-                onChange={e => setPropertyTestUrl(e.target.value)}
-                placeholder="https://eksempel.no/boligbilde.jpg"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            {generatingSetting && (
-              <div className="mb-3 flex items-center justify-between text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="animate-spin inline-block">⟳</span>
-                  <span>{queueMsg || 'Kobler til fal.ai...'}</span>
-                </div>
-                <span className="text-blue-400 tabular-nums">{elapsedSecs}s</span>
-              </div>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {SETTINGS.map(s => (
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-semibold text-gray-700">Settings-bibliotek</h3>
+              {profile.portrait_url && (
                 <button
-                  key={s.id}
-                  onClick={() => handleGenerateSetting(s.id)}
-                  disabled={!!generatingSetting || !profile.portrait_url}
-                  className="text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => SETTINGS.forEach(s => handleGenerateSetting(s.id))}
+                  disabled={Object.values(generatingSettings).some(Boolean)}
+                  className="text-xs text-blue-600 hover:underline disabled:opacity-50"
                 >
-                  {generatingSetting === s.id ? (
-                    <span className="text-blue-600 font-medium">⟳ Genererer...</span>
-                  ) : s.label}
+                  ↺ Generer alle på nytt
                 </button>
-              ))}
+              )}
             </div>
-            {!profile.portrait_url && (
-              <p className="text-xs text-gray-400 mt-2">Last opp et portrettbilde for å aktivere setting-generator</p>
-            )}
-          </div>
-
-          {/* Generated images gallery */}
-          {settingImages.length > 0 && (
-            <div className="border-t border-gray-100 pt-5 mt-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">Lagrede setting-bilder</h3>
-                <span className="text-xs text-gray-400">{settingImages.length} bilde{settingImages.length !== 1 ? 'r' : ''} lagret</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {settingImages.map(img => {
-                  const isSelected = profile.portrait_url === img.image_url
-                  return (
-                    <div
-                      key={img.id}
-                      className={`relative rounded-xl overflow-hidden border-2 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200'}`}
-                    >
-                      <button
-                        onClick={() => handleSelectSettingImage(img.image_url)}
-                        className="block w-full"
-                      >
-                        <img src={img.image_url} alt={img.setting_type} className="w-full aspect-square object-cover" />
-                      </button>
-                      {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">✓</div>
-                      )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1.5 flex items-center justify-between gap-1">
-                        <span className="text-white text-xs truncate">
-                          {SETTINGS.find(s => s.id === img.setting_type)?.label || img.setting_type}
-                        </span>
-                        <div className="flex gap-1 shrink-0">
-                          <button
-                            onClick={() => handleGenerateSetting(img.setting_type)}
-                            disabled={!!generatingSetting || !profile.portrait_url}
-                            title="Generer nytt"
-                            className="w-6 h-6 rounded bg-white/20 hover:bg-white/40 flex items-center justify-center text-white text-xs disabled:opacity-50"
-                          >
-                            {generatingSetting === img.setting_type ? '⟳' : '↺'}
-                          </button>
-                          <a
-                            href={img.image_url}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Last ned"
-                            className="w-6 h-6 rounded bg-white/20 hover:bg-white/40 flex items-center justify-center text-white text-xs"
-                          >
-                            ↓
-                          </a>
-                          <button
-                            onClick={() => handleDeleteSettingImage(img.id, img.image_url)}
-                            title="Slett bilde"
-                            className="w-6 h-6 rounded bg-red-500/60 hover:bg-red-500/90 flex items-center justify-center text-white text-xs"
-                          >
-                            ×
-                          </button>
+            <p className="text-xs text-gray-400 mb-4">
+              {profile.portrait_url
+                ? 'Klikk ↺ på et bilde for å regenerere det. Disse settingsene er tilgjengelige på alle eiendomssider.'
+                : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {SETTINGS.map(s => {
+                const existing = settingImages.find(i => i.setting_type === s.id)
+                const isGenerating = generatingSettings[s.id]
+                const err = settingErrors[s.id]
+                return (
+                  <div key={s.id} className="space-y-1">
+                    <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-[3/4]">
+                      {existing && !isGenerating ? (
+                        <img src={existing.image_url} alt={s.label} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-400">
+                          {isGenerating ? (
+                            <>
+                              <svg className="animate-spin h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              <span className="text-xs text-blue-400">Genererer...</span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-center px-2">{err || 'Ikke generert'}</span>
+                          )}
                         </div>
-                      </div>
+                      )}
+                      {existing && !isGenerating && (
+                        <button
+                          onClick={() => handleGenerateSetting(s.id)}
+                          disabled={!profile.portrait_url}
+                          title="Generer nytt"
+                          className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white text-sm disabled:opacity-50"
+                        >
+                          ↺
+                        </button>
+                      )}
                     </div>
-                  )
-                })}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">Klikk på et bilde for å velge det som aktivt portrett. Trykk ↺ for å generere et nytt bilde med samme setting.</p>
+                    <p className="text-xs text-gray-500 text-center leading-tight">{s.label}</p>
+                  </div>
+                )
+              })}
             </div>
-          )}
+          </div>
 
           {loadingImages && <p className="text-sm text-gray-400 mt-3">Laster bilder...</p>}
         </section>
@@ -464,6 +394,7 @@ export default function ProfilePage() {
             {saving ? 'Lagrer...' : 'Lagre profil'}
           </button>
           {savedMsg && <span className="text-sm text-green-600 font-medium">{savedMsg}</span>}
+          {saveError && <span className="text-sm text-red-600">{saveError}</span>}
         </div>
       </div>
     </div>
