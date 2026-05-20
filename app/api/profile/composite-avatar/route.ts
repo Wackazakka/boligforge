@@ -4,6 +4,32 @@ import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
 
+const SCRAPER_URL = 'http://139.59.212.218:3003'
+
+// Fetch property image — if it's a Finn.no URL, proxy through scraper VPS
+async function fetchPropertyImage(url: string): Promise<Buffer> {
+  // Try direct fetch first (works for R2 URLs)
+  const isFinnCdn = url.includes('finn') || url.includes('schibsted') || url.includes('finncdn')
+  if (!isFinnCdn) {
+    const res = await fetch(url)
+    if (res.ok) return Buffer.from(await res.arrayBuffer())
+  }
+  // Proxy through scraper VPS (has Finn.no CDN access)
+  const res = await fetch(`${SCRAPER_URL}/image?url=${encodeURIComponent(url)}`, {
+    signal: AbortSignal.timeout(15000),
+  })
+  if (res.ok) return Buffer.from(await res.arrayBuffer())
+  // Last resort: direct with browser headers
+  const fallback = await fetch(url, {
+    headers: {
+      'Referer': 'https://www.finn.no',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+    },
+  })
+  if (!fallback.ok) throw new Error(`Could not fetch property image (${fallback.status})`)
+  return Buffer.from(await fallback.arrayBuffer())
+}
+
 function getR2() {
   return new S3Client({
     region: 'auto',
@@ -51,25 +77,14 @@ export async function POST(request: Request) {
     }
 
     // Step 2: Download both images in parallel
-    // Finn.no CDN requires Referer header for server-side fetches
-    const [cutoutRes, propertyRes] = await Promise.all([
-      fetch(cutoutUrl),
-      fetch(propertyImageUrl, {
-        headers: {
-          'Referer': 'https://www.finn.no',
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        },
-      }),
-    ])
+    const cutoutRes = await fetch(cutoutUrl)
+    if (!cutoutRes.ok) return Response.json({ error: 'Failed to download cutout' }, { status: 500 })
+    const cutoutBuffer = Buffer.from(await cutoutRes.arrayBuffer())
 
-    if (!cutoutRes.ok || !propertyRes.ok) {
-      return Response.json({ error: 'Failed to download images' }, { status: 500 })
-    }
-
-    const [cutoutBuffer, propertyBuffer] = await Promise.all([
-      cutoutRes.arrayBuffer().then(Buffer.from),
-      propertyRes.arrayBuffer().then(Buffer.from),
-    ])
+    // Property image: route through scraper VPS if Finn.no URL
+    const propertyBuffer = await fetchPropertyImage(propertyImageUrl).catch(err =>
+      Promise.reject(new Error(`Property image: ${err.message}`))
+    )
 
     // Step 3: Composite with Sharp
     // Property image is background; agent cutout placed at lower-center

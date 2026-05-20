@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const SCRAPER_URL = 'http://139.59.212.218:3003'
 
@@ -8,6 +9,45 @@ function getSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+}
+
+function getR2() {
+  return new S3Client({
+    region: 'auto',
+    endpoint: process.env.R2_ENDPOINT!,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  })
+}
+
+// Download a Finn.no image via the scraper VPS (which can access Finn.no CDN)
+// and re-host it on R2 for permanent, unrestricted access.
+async function rehostImage(finnUrl: string, index: number): Promise<string> {
+  try {
+    const proxyUrl = `${SCRAPER_URL}/image?url=${encodeURIComponent(finnUrl)}`
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) })
+    if (!res.ok) return finnUrl // fallback to original URL
+
+    const contentType = res.headers.get('content-type') || 'image/jpeg'
+    if (!contentType.startsWith('image/')) return finnUrl
+
+    const buffer = Buffer.from(await res.arrayBuffer())
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg'
+    const key = `boligforge/properties/${Date.now()}_${index}.${ext}`
+
+    await getR2().send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets',
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    }))
+
+    return `${process.env.R2_PUBLIC_URL}/${key}`
+  } catch {
+    return finnUrl // fallback silently
+  }
 }
 
 export async function POST(request: Request) {
@@ -28,6 +68,12 @@ export async function POST(request: Request) {
 
     const data = await scraperRes.json()
     if (data.error) return NextResponse.json({ error: data.error }, { status: 500 })
+
+    // Re-host images to R2 via scraper VPS (Netlify can't fetch Finn.no CDN directly)
+    const finnImages: string[] = data.images || []
+    const rehostedImages = await Promise.all(
+      finnImages.slice(0, 12).map((imgUrl, i) => rehostImage(imgUrl, i))
+    )
 
     const supabase = getSupabase()
 
@@ -58,7 +104,7 @@ export async function POST(request: Request) {
           facilities: data.facilities,
           description: data.description,
           property_info_text: data.propertyInfoText,
-          images: data.images,
+          images: rehostedImages,
           viewing_dates: data.viewingDates,
           finn_url: url,
         },
