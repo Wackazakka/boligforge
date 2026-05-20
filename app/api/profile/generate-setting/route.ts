@@ -68,22 +68,23 @@ export async function POST(request: Request) {
         return Response.json({ error: 'Unknown setting type' }, { status: 400 })
       }
 
-      // Ideogram V3 Character: synchronous endpoint, ~14s, returns directly.
-      // Purpose-built for consistent character appearance across scenes.
-      falRes = await fetch('https://fal.run/fal-ai/ideogram/character', {
+      // FLUX PuLID: face-identity transfer model, ~20-25s, strong likeness.
+      // reference_image_url preserves identity; id_weight controls face fidelity vs. prompt.
+      falRes = await fetch('https://fal.run/fal-ai/flux-pulid', {
         method: 'POST',
         headers: {
           'Authorization': `Key ${process.env.FAL_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reference_image_urls: [portraitUrl],
+          reference_image_url: portraitUrl,
           prompt,
           negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, illustration, painting, unrealistic skin',
-          rendering_speed: 'BALANCED',
-          style: 'REALISTIC',
-          expand_prompt: false,
+          num_inference_steps: 20,
+          guidance_scale: 3.5,
+          id_weight: 1.0,
           num_images: 1,
+          image_size: 'portrait_4_3',
           seed: Math.floor(Math.random() * 999999999),
         }),
       })
