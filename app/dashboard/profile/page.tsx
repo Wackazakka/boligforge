@@ -1,10 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { fal } from '@fal-ai/client'
-
-fal.config({ proxyUrl: '/api/fal/proxy' })
-
 const PULID_PROMPTS: Record<string, string> = {
   modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent is smiling confidently, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
   office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
@@ -138,9 +134,15 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
-      // fal.subscribe polls via /api/fal/proxy — each poll is <1s, no Netlify timeout issues
-      const result = await fal.subscribe('fal-ai/pulid', {
-        input: {
+      // Use fal.ai queue API directly — each proxy call is <1s, no Netlify timeout
+      // Step 1: submit job to queue (returns immediately with request_id)
+      const submitRes = await fetch('/api/fal/proxy', {
+        method: 'POST',
+        headers: {
+          'x-fal-target-url': 'https://queue.fal.run/fal-ai/pulid',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           reference_images: [{ image_url: portraitUrl }],
           prompt,
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
@@ -150,17 +152,51 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           id_scale: 0.8,
           mode: 'fidelity',
           image_size: 'portrait_4_3',
-        },
-        pollInterval: 3000,
-      }) as { data: { images: { url: string }[] } }
-
-      const falImageUrl = result?.data?.images?.[0]?.url
-      if (!falImageUrl) {
-        setSettingErrors(prev => ({ ...prev, [settingId]: 'Ingen bilde returnert fra fal.ai' }))
+        }),
+      })
+      if (!submitRes.ok) {
+        const errText = await submitRes.text()
+        setSettingErrors(prev => ({ ...prev, [settingId]: `Innsending feilet: ${errText.slice(0, 150)}` }))
+        return
+      }
+      const { request_id } = await submitRes.json()
+      if (!request_id) {
+        setSettingErrors(prev => ({ ...prev, [settingId]: 'Ingen request_id fra fal.ai' }))
         return
       }
 
-      // Save to R2 + Supabase via lightweight server route
+      // Step 2: poll status every 3s (max 3 min)
+      let falImageUrl: string | null = null
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        const statusRes = await fetch('/api/fal/proxy', {
+          method: 'GET',
+          headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/pulid/requests/${request_id}/status` },
+        })
+        if (!statusRes.ok) continue
+        const status = await statusRes.json()
+        if (status.status === 'COMPLETED') {
+          // Step 3: fetch result
+          const resultRes = await fetch('/api/fal/proxy', {
+            method: 'GET',
+            headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/pulid/requests/${request_id}` },
+          })
+          const resultData = await resultRes.json()
+          falImageUrl = resultData?.images?.[0]?.url ?? resultData?.output?.images?.[0]?.url ?? null
+          break
+        }
+        if (status.status === 'FAILED') {
+          setSettingErrors(prev => ({ ...prev, [settingId]: 'fal.ai generering feilet' }))
+          return
+        }
+      }
+
+      if (!falImageUrl) {
+        setSettingErrors(prev => ({ ...prev, [settingId]: 'Timeout: ingen bilde returnert etter 3 min' }))
+        return
+      }
+
+      // Step 4: save to R2 + Supabase (fast, <5s)
       const saveRes = await fetch('/api/profile/save-generated-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
