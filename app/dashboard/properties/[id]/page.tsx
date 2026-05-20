@@ -137,11 +137,11 @@ export default function PropertyDetailPage() {
       const result: any = await fal.subscribe('fal-ai/omnigen-v1', {
         input: {
           input_image_urls: [profile.portrait_url, propertyImg],
-          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
+          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the exact house from <img><|image_2|></img>. Preserve the building architecture, facade, colors and surroundings from image 2 exactly. The agent wears business casual attire, natural confident expression. Editorial real estate photography, natural lighting.',
           num_images: 1,
-          guidance_scale: 3.0,
-          img_guidance_scale: 1.6,
-          num_inference_steps: 15,
+          guidance_scale: 3.5,
+          img_guidance_scale: 2.2,
+          num_inference_steps: 20,
           image_size: 'landscape_16_9' as const,
         },
         pollInterval: 3000,
