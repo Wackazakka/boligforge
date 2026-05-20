@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 const SETTING_PROMPTS: Record<string, string> = {
-  modern_home: 'analog film photo of a professional real estate agent standing in front of a modern Scandinavian house, white walls, black windows, green garden, golden hour sunlight, business casual suit, confident smile, sharp focus, 35mm film',
-  office: 'analog film photo of a professional real estate agent standing in a bright modern Scandinavian office, light wood, tall windows, soft daylight, business suit, confident and approachable, sharp focus, 35mm film',
-  studio: 'professional studio portrait of a real estate agent, warm neutral gradient background, soft side lighting, business shirt, confident friendly expression, sharp focus on face, high-end headshot photography',
-  neighborhood: 'analog film photo of a professional real estate agent standing on a sunny Norwegian residential street, colorful wooden houses, leafy trees, blue sky, business casual, relaxed smile, sharp focus, 35mm film',
+  modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent is smiling confidently, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
+  office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
+  studio: 'A professional Norwegian real estate agent against a smooth warm-neutral gradient studio backdrop. Soft, even professional lighting from the side. Confident, friendly expression. High-end professional headshot, sharp focus on face.',
+  neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent is relaxed and smiling. Editorial lifestyle photography.',
 }
 
 const VOICES = [
@@ -134,24 +134,24 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
-      // InstantID: high face fidelity via ip_adapter + identity controlnet
+      // PuLID: identity-preserving generation via queue (no Netlify timeout)
       // Step 1: submit to queue (returns immediately)
       const submitRes = await fetch('/api/fal/proxy', {
         method: 'POST',
         headers: {
-          'x-fal-target-url': 'https://queue.fal.run/fal-ai/instantid',
+          'x-fal-target-url': 'https://queue.fal.run/fal-ai/pulid',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          face_image_url: portraitUrl,
+          reference_images: [{ image_url: portraitUrl }],
           prompt,
-          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic, cartoon, painting',
-          num_inference_steps: 50,
-          guidance_scale: 5.0,
-          ip_adapter_scale: 1.0,
-          identity_controlnet_conditioning_scale: 1.0,
-          enhance_face_region: true,
-          enable_lcm: false,
+          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
+          num_images: 1,
+          guidance_scale: 1.5,
+          num_inference_steps: 20,
+          id_scale: 0.8,
+          mode: 'fidelity',
+          image_size: 'portrait_4_3',
         }),
       })
       if (!submitRes.ok) {
@@ -171,7 +171,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
         await new Promise(r => setTimeout(r, 3000))
         const statusRes = await fetch('/api/fal/proxy', {
           method: 'GET',
-          headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/instantid/requests/${request_id}/status` },
+          headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/pulid/requests/${request_id}/status` },
         })
         if (!statusRes.ok) continue
         const status = await statusRes.json()
@@ -179,7 +179,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           // Step 3: fetch result
           const resultRes = await fetch('/api/fal/proxy', {
             method: 'GET',
-            headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/instantid/requests/${request_id}` },
+            headers: { 'x-fal-target-url': `https://queue.fal.run/fal-ai/pulid/requests/${request_id}` },
           })
           const resultData = await resultRes.json()
           falImageUrl = resultData?.images?.[0]?.url ?? resultData?.output?.images?.[0]?.url ?? null
