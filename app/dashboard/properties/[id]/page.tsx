@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { fal } from '@fal-ai/client'
+
+fal.config({ credentials: process.env.NEXT_PUBLIC_FAL_KEY! })
 
 type Property = {
   id: string
@@ -46,7 +49,9 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<Property | null>(null)
   const [profile, setProfile] = useState<AgentProfile>({})
   const [settingImages, setSettingImages] = useState<SettingImage[]>([])
-  const [selectedSetting, setSelectedSetting] = useState<string>('')
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>('')
+  const [generatingAvatar, setGeneratingAvatar] = useState(false)
+  const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null)
   const [script, setScript] = useState('')
   const [generatingScript, setGeneratingScript] = useState(false)
   const [generatingVideo, setGeneratingVideo] = useState(false)
@@ -67,7 +72,7 @@ export default function PropertyDetailPage() {
     fetch('/api/profile/settings-images').then(r => r.json()).then((d: SettingImage[]) => {
       if (Array.isArray(d)) {
         setSettingImages(d)
-        if (d.length > 0) setSelectedSetting(d[0].setting_type)
+        if (d.length > 0) setSelectedAvatarUrl(d[0].image_url)
       }
     })
   }, [id])
@@ -85,6 +90,36 @@ export default function PropertyDetailPage() {
     setGeneratingScript(false)
     if (data.error) setError(data.error)
     else setScript(data.script)
+  }
+
+  async function handleGenerateAvatar() {
+    if (!profile.portrait_url) { setError('Last opp et portrettbilde i profilen din først'); return }
+    if (!property?.images?.length) { setError('Ingen boligbilder tilgjengelig'); return }
+    const propertyImg = property.images[selectedImageIdx]
+    setGeneratingAvatar(true)
+    setError('')
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any = await fal.run('fal-ai/omnigen-v1', {
+        input: {
+          input_image_urls: [profile.portrait_url, propertyImg],
+          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
+          num_images: 1,
+          guidance_scale: 3.0,
+          img_guidance_scale: 1.6,
+          num_inference_steps: 15,
+          image_size: 'landscape_16_9' as const,
+        },
+      })
+      const url = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url
+      if (!url) { setError('Ingen bilde returnert fra fal.ai'); return }
+      setGeneratedAvatarUrl(url)
+      setSelectedAvatarUrl(url)
+    } catch (err) {
+      setError('Avatar-generering feilet: ' + String(err))
+    } finally {
+      setGeneratingAvatar(false)
+    }
   }
 
   const STATUS_LABELS: Record<string, string> = {
@@ -131,8 +166,7 @@ export default function PropertyDetailPage() {
       setError('Mangler manus eller stemme-ID i profilen')
       return
     }
-    const avatarImg = settingImages.find(s => s.setting_type === selectedSetting)?.image_url
-    if (!avatarImg) {
+    if (!selectedAvatarUrl) {
       setError('Velg et avatar-bilde under')
       return
     }
@@ -149,7 +183,7 @@ export default function PropertyDetailPage() {
         propertyId: id,
         script,
         voiceId: profile.voice_id,
-        avatarImageUrl: avatarImg,
+        avatarImageUrl: selectedAvatarUrl,
         propertyImages: selectedVideoImages,
       }),
     })
@@ -258,22 +292,84 @@ export default function PropertyDetailPage() {
         </div>
 
         {/* Avatar picker */}
-        {settingImages.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
-            <h2 className="font-semibold text-gray-900">Velg avatar-bilde</h2>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {settingImages.map(s => (
-                <div
-                  key={s.setting_type}
-                  onClick={() => setSelectedSetting(s.setting_type)}
-                  className={`flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedSetting === s.setting_type ? 'border-blue-500' : 'border-transparent'}`}
-                >
-                  <img src={s.image_url} alt={s.setting_type} className="w-24 h-32 object-cover" />
-                </div>
-              ))}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+          <h2 className="font-semibold text-gray-900">Velg avatar-bilde</h2>
+
+          {/* Library: saved settings from profile */}
+          {settingImages.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Fra profilen din</p>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {settingImages.map(s => (
+                  <div
+                    key={s.image_url}
+                    onClick={() => setSelectedAvatarUrl(s.image_url)}
+                    className={`flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === s.image_url ? 'border-blue-500' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                  >
+                    <img src={s.image_url} alt={s.setting_type} className="w-24 h-32 object-cover" />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Generate avatar in front of this property */}
+          {property.images?.length > 0 && (
+            <div className="space-y-3 border-t border-gray-100 pt-4">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Foran denne boligen</p>
+              <p className="text-xs text-gray-400">Velg hvilke boligbilde du vil stå foran, og generer et nytt avatarbilde.</p>
+
+              {/* Property image selector — reuses selectedImageIdx from gallery */}
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {property.images.slice(0, 12).map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    alt=""
+                    onClick={() => setSelectedImageIdx(i)}
+                    className={`w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 border-2 transition-colors ${i === selectedImageIdx ? 'border-blue-500' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleGenerateAvatar}
+                  disabled={generatingAvatar || !profile.portrait_url}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                >
+                  {generatingAvatar && (
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {generatingAvatar ? 'Genererer (~30 sek)...' : 'Generer foran denne boligen'}
+                </button>
+                {!profile.portrait_url && (
+                  <p className="text-xs text-gray-400">Last opp portrett i profilen din først</p>
+                )}
+              </div>
+
+              {/* Show generated result + select it */}
+              {generatedAvatarUrl && (
+                <div
+                  onClick={() => setSelectedAvatarUrl(generatedAvatarUrl)}
+                  className={`inline-block cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === generatedAvatarUrl ? 'border-blue-500' : 'border-gray-200 opacity-80 hover:opacity-100'}`}
+                >
+                  <img src={generatedAvatarUrl} alt="Generert avatar" className="w-48 h-32 object-cover" />
+                  <p className="text-xs text-center text-gray-500 py-1">
+                    {selectedAvatarUrl === generatedAvatarUrl ? '✓ Valgt' : 'Klikk for å velge'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {settingImages.length === 0 && !property.images?.length && (
+            <p className="text-sm text-gray-400">Gå til Profil for å generere setting-bilder.</p>
+          )}
+        </div>
 
         {/* Property image picker for video */}
         {property.images?.length > 0 && (
