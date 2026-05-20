@@ -109,8 +109,8 @@ export async function POST(request: Request) {
     const bgWidth = bgMeta.width ?? 1200
     const bgHeight = bgMeta.height ?? 800
 
-    // Agent height: 70% of bg height (prominent but not overwhelming)
-    const agentHeight = Math.round(bgHeight * 0.70)
+    // Agent height: 55% of bg height — shows full upper body incl. shoulders
+    const agentHeight = Math.round(bgHeight * 0.55)
     const agentPng = await sharp(cutoutBuffer)
       .resize({ height: agentHeight, withoutEnlargement: false })
       .png()
