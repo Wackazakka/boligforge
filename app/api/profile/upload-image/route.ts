@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const updateField = type === 'logo' ? { logo_url: url } : { portrait_url: url }
 
     await getSupabase().from('agent_profiles').upsert(
-      { user_id: 'default', ...updateField, updated_at: new Date().toISOString() },
+      { user_id: '00000000-0000-0000-0000-000000000001', ...updateField },
       { onConflict: 'user_id' }
     )
 

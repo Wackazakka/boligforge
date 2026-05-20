@@ -127,90 +127,20 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
     const portraitUrl = portraitOverride || profile.portrait_url
     if (!portraitUrl) { alert('Last opp et portrettbilde først'); return }
 
-    const prompt = SETTING_PROMPTS[settingId]
-    if (!prompt) { alert('Ukjent setting-type'); return }
-
     setGeneratingSettings(prev => ({ ...prev, [settingId]: true }))
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
-      // Ideogram V3 Character: purpose-built for consistent character appearance
-      // across scenes. Far superior face fidelity vs FLUX PuLID / SDXL PuLID / InstantID.
-      // Step 1: submit to queue (returns immediately)
-      const MODEL_PATH = 'fal-ai/ideogram/character'
-      const submitRes = await fetch('/api/fal/proxy', {
-        method: 'POST',
-        headers: {
-          'x-fal-target-url': `https://queue.fal.run/${MODEL_PATH}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reference_image_urls: [portraitUrl],
-          prompt,
-          negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, illustration, painting, unrealistic skin',
-          rendering_speed: 'BALANCED',
-          style: 'REALISTIC',
-          expand_prompt: false,
-          num_images: 1,
-          seed: Math.floor(Math.random() * 999999999),
-        }),
-      })
-      if (!submitRes.ok) {
-        const errText = await submitRes.text()
-        setSettingErrors(prev => ({ ...prev, [settingId]: `Innsending feilet: ${errText.slice(0, 150)}` }))
-        return
-      }
-      const submitData = await submitRes.json()
-      const request_id = submitData?.request_id
-      if (!request_id) {
-        setSettingErrors(prev => ({ ...prev, [settingId]: `Ingen request_id: ${JSON.stringify(submitData).slice(0, 150)}` }))
-        return
-      }
-
-      // Step 2: poll status every 3s (max 7 min for QUALITY rendering)
-      let falImageUrl: string | null = null
-      for (let i = 0; i < 140; i++) {
-        await new Promise(r => setTimeout(r, 3000))
-        const statusRes = await fetch('/api/fal/proxy', {
-          method: 'GET',
-          headers: { 'x-fal-target-url': `https://queue.fal.run/${MODEL_PATH}/requests/${request_id}/status` },
-        })
-        if (!statusRes.ok) continue
-        const status = await statusRes.json()
-        if (status.status === 'COMPLETED') {
-          // Step 3: fetch result
-          const resultRes = await fetch('/api/fal/proxy', {
-            method: 'GET',
-            headers: { 'x-fal-target-url': `https://queue.fal.run/${MODEL_PATH}/requests/${request_id}` },
-          })
-          const resultData = await resultRes.json()
-          falImageUrl =
-            resultData?.images?.[0]?.url ??
-            resultData?.output?.images?.[0]?.url ??
-            resultData?.data?.images?.[0]?.url ??
-            null
-          break
-        }
-        if (status.status === 'FAILED') {
-          setSettingErrors(prev => ({ ...prev, [settingId]: `fal.ai generering feilet: ${JSON.stringify(status).slice(0, 150)}` }))
-          return
-        }
-      }
-
-      if (!falImageUrl) {
-        setSettingErrors(prev => ({ ...prev, [settingId]: 'Timeout: ingen bilde returnert etter 7 min' }))
-        return
-      }
-
-      // Step 4: save to R2 + Supabase (fast, <5s)
-      const saveRes = await fetch('/api/profile/save-generated-image', {
+      // Single server-side call: sync fal.ai (~14s) + R2 upload + Supabase insert.
+      // Server route has maxDuration=120, so no timeout. No client polling needed.
+      const res = await fetch('/api/profile/generate-setting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ falImageUrl, setting: settingId }),
+        body: JSON.stringify({ setting: settingId, portraitUrl }),
       })
-      const saveData = await saveRes.json()
-      if (!saveRes.ok || saveData.error) {
-        setSettingErrors(prev => ({ ...prev, [settingId]: saveData.error || 'Lagring feilet' }))
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setSettingErrors(prev => ({ ...prev, [settingId]: data.error || `HTTP ${res.status}` }))
         return
       }
       loadSettingImages()

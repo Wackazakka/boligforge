@@ -13,9 +13,11 @@ export async function GET() {
   const { data, error } = await supabase
     .from('agent_profiles')
     .select('*')
-    .eq('user_id', 'default')
+    .eq('user_id', '00000000-0000-0000-0000-000000000001')
     .maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data || {})
+  if (!data) return NextResponse.json({})
+  const { default_voice_id, ...rest } = data
+  return NextResponse.json({ ...rest, voice_id: default_voice_id })
 }

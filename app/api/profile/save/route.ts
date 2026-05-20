@@ -16,17 +16,16 @@ export async function POST(request: Request) {
     const supabase = getSupabase()
     const { error } = await supabase.from('agent_profiles').upsert(
       {
-        user_id: 'default',
+        user_id: '00000000-0000-0000-0000-000000000001',
         name,
         title,
         phone,
         email,
         website,
-        voice_id,
+        default_voice_id: voice_id,
         tone_of_voice,
         hashtags,
         ...(portrait_url !== undefined ? { portrait_url } : {}),
-        updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
     )

@@ -13,7 +13,6 @@ export async function GET() {
   const { data, error } = await supabase
     .from('agent_settings_images')
     .select('*')
-    .eq('user_id', 'default')
     .order('created_at', { ascending: false })
     .limit(12)
 
