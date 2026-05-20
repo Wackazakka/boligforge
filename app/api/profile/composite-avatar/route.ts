@@ -51,9 +51,15 @@ export async function POST(request: Request) {
     }
 
     // Step 2: Download both images in parallel
+    // Finn.no CDN requires Referer header for server-side fetches
     const [cutoutRes, propertyRes] = await Promise.all([
       fetch(cutoutUrl),
-      fetch(propertyImageUrl),
+      fetch(propertyImageUrl, {
+        headers: {
+          'Referer': 'https://www.finn.no',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        },
+      }),
     ])
 
     if (!cutoutRes.ok || !propertyRes.ok) {

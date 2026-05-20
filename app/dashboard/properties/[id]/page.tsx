@@ -370,7 +370,7 @@ export default function PropertyDetailPage() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                   )}
-                  {generatingAvatar ? 'Genererer (~30 sek)...' : generatedAvatarUrl ? '↺ Regenerer' : 'Generer foran denne boligen'}
+                  {generatingAvatar ? 'Genererer (~20 sek)...' : generatedAvatarUrl ? '↺ Regenerer' : 'Generer foran denne boligen'}
                 </button>
                 {!profile.portrait_url && (
                   <p className="text-xs text-gray-400">Last opp portrett i profilen din først</p>
