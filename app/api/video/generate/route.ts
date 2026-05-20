@@ -21,14 +21,14 @@ export async function POST(request: Request) {
 
     const jobId = randomUUID()
 
-    // Create a pending job record in Supabase so it shows up immediately
+    // Create a pending job record in Supabase (best-effort — don't block if table missing)
     if (propertyId) {
-      await getSupabase().from('production_jobs').insert({
+      getSupabase().from('production_jobs').insert({
         id: jobId,
         property_id: propertyId,
         script,
         status: 'queued',
-      })
+      }).then(({ error }) => { if (error) console.warn('[video/generate] production_jobs insert:', error.message) })
     }
 
     // Dispatch to droplet worker — returns immediately
