@@ -51,6 +51,7 @@ export default function PropertyDetailPage() {
   const [generatingAvatar, setGeneratingAvatar] = useState(false)
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null)
   const [cachedCutoutUrl, setCachedCutoutUrl] = useState<string | null>(null)
+  const [cutoutSourceUrl, setCutoutSourceUrl] = useState<string | null>(null)
   const [savingAvatar, setSavingAvatar] = useState(false)
   const [avatarSaved, setAvatarSaved] = useState(false)
   const [script, setScript] = useState('')
@@ -118,20 +119,28 @@ export default function PropertyDetailPage() {
     setAvatarSaved(false)
     setError('')
     try {
+      // Use selected avatar (has shoulders) or fall back to portrait
+      const agentSourceUrl = selectedAvatarUrl || profile.portrait_url
+      // Invalidate cutout cache if source image changed
+      const reuseCutout = cachedCutoutUrl && cutoutSourceUrl === agentSourceUrl ? cachedCutoutUrl : null
+
       const res = await fetch('/api/profile/composite-avatar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          portraitUrl: profile.portrait_url,
+          portraitUrl: agentSourceUrl,
           propertyImageUrl: propertyImg,
-          cutoutUrl: cachedCutoutUrl, // reuse cached cutout — skips Bria on subsequent calls
+          cutoutUrl: reuseCutout,
         }),
       })
       const data = await res.json()
       if (!res.ok || data.error) { setError(data.error || 'Komposisjon feilet'); return }
       setGeneratedAvatarUrl(data.url)
       setSelectedAvatarUrl(data.url)
-      if (data.cutoutUrl) setCachedCutoutUrl(data.cutoutUrl) // cache for next regenerate
+      if (data.cutoutUrl) {
+        setCachedCutoutUrl(data.cutoutUrl)
+        setCutoutSourceUrl(agentSourceUrl ?? null)
+      }
       // Already saved to Supabase by the route — add to local list
       if (data.id) {
         setSettingImages(prev => [...prev, { id: data.id, setting_type: 'property_front', image_url: data.url }])
@@ -364,10 +373,24 @@ export default function PropertyDetailPage() {
                 ))}
               </div>
 
+              {(selectedAvatarUrl || profile.portrait_url) && (
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <img
+                    src={selectedAvatarUrl || profile.portrait_url}
+                    className="w-8 h-10 object-cover rounded border border-gray-200"
+                    alt="Kilde"
+                  />
+                  <span>
+                    {selectedAvatarUrl
+                      ? 'Bruker valgt bilde — velg et annet over for å bytte'
+                      : 'Bruker portrettbilde — velg et setting-bilde over for bedre resultat'}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleGenerateAvatar}
-                  disabled={generatingAvatar || !profile.portrait_url}
+                  disabled={generatingAvatar || (!profile.portrait_url && !selectedAvatarUrl)}
                   className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
                 >
                   {generatingAvatar && (
@@ -378,7 +401,7 @@ export default function PropertyDetailPage() {
                   )}
                   {generatingAvatar ? 'Genererer (~20 sek)...' : generatedAvatarUrl ? '↺ Regenerer' : 'Generer foran denne boligen'}
                 </button>
-                {!profile.portrait_url && (
+                {!profile.portrait_url && !selectedAvatarUrl && (
                   <p className="text-xs text-gray-400">Last opp portrett i profilen din først</p>
                 )}
               </div>
