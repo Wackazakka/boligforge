@@ -114,9 +114,9 @@ export default function ProfilePage() {
     if (res.ok) {
       const { url } = await res.json()
       setProfile(p => ({ ...p, [`${type}_url`]: url }))
-      // Auto-generate all 4 settings in parallel after portrait upload
+      // Auto-generate all 4 settings sequentially after portrait upload
       if (type === 'portrait') {
-        SETTINGS.forEach(s => handleGenerateSetting(s.id, url))
+        ;(async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id, url) })()
       }
     } else {
       alert('Opplasting feilet')
@@ -146,10 +146,10 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           face_image_url: portraitUrl,
           prompt,
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic, cartoon, painting',
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
-          ip_adapter_scale: 0.9,
-          identity_controlnet_conditioning_scale: 0.9,
+          num_inference_steps: 50,
+          guidance_scale: 5.0,
+          ip_adapter_scale: 1.0,
+          identity_controlnet_conditioning_scale: 1.0,
           enhance_face_region: true,
           enable_lcm: false,
         }),
@@ -375,7 +375,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
               <h3 className="text-sm font-semibold text-gray-700">Settings-bibliotek</h3>
               {profile.portrait_url && (
                 <button
-                  onClick={() => SETTINGS.forEach(s => handleGenerateSetting(s.id))}
+                  onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
                   disabled={Object.values(generatingSettings).some(Boolean)}
                   className="text-xs text-blue-600 hover:underline disabled:opacity-50"
                 >
