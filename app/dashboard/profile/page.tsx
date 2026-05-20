@@ -1,9 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { fal } from '@fal-ai/client'
-
-fal.config({ proxyUrl: '/api/fal/proxy' })
 
 const VOICES = [
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel – Rolig, naturlig' },
@@ -119,14 +116,7 @@ export default function ProfilePage() {
     }
   }
 
-  const PULID_PROMPTS: Record<string, string> = {
-    modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent is smiling confidently, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
-    office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
-    studio: 'A professional Norwegian real estate agent against a smooth warm-neutral gradient studio backdrop. Soft, even professional lighting from the side. Confident, friendly expression. High-end professional headshot, sharp focus on face.',
-    neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent is relaxed and smiling. Editorial lifestyle photography.',
-  }
-
-  async function handleGenerateSetting(settingId: string, portraitOverride?: string) {
+async function handleGenerateSetting(settingId: string, portraitOverride?: string) {
     const portraitUrl = portraitOverride || profile.portrait_url
     if (!portraitUrl) { alert('Last opp et portrettbilde først'); return }
 
@@ -134,31 +124,16 @@ export default function ProfilePage() {
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = await fal.subscribe('fal-ai/pulid', {
-        input: {
-          reference_images: [{ image_url: portraitUrl }],
-          prompt: PULID_PROMPTS[settingId] || '',
-          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
-          num_images: 1,
-          guidance_scale: 1.5,
-          num_inference_steps: 28,
-          id_scale: 1.0,
-          mode: 'fidelity',
-          image_size: 'portrait_4_3',
-        },
-        pollInterval: 3000,
-      })
-
-      const imageUrl = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url
-      if (!imageUrl) { setSettingErrors(prev => ({ ...prev, [settingId]: 'Ingen bilde returnert' })); return }
-
-      await fetch('/api/profile/save-setting', {
+      const res = await fetch('/api/profile/generate-setting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setting: settingId, url: imageUrl }),
+        body: JSON.stringify({ setting: settingId, portraitUrl }),
       })
-
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setSettingErrors(prev => ({ ...prev, [settingId]: data.error || 'Generering feilet' }))
+        return
+      }
       loadSettingImages()
     } catch (err) {
       setSettingErrors(prev => ({ ...prev, [settingId]: String(err) }))
