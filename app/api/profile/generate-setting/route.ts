@@ -76,7 +76,7 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          face_image_url: portraitUrl,
+          reference_images: [{ image_url: portraitUrl }],
           prompt,
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
           num_images: 1,
@@ -90,9 +90,16 @@ export async function POST(request: Request) {
     }
 
     if (!falRes.ok) {
-      const err = await falRes.text()
-      console.error('[generate-setting] fal.ai error:', err)
-      return Response.json({ error: 'fal.ai feilet: ' + err }, { status: 500 })
+      const errText = await falRes.text()
+      console.error('[generate-setting] fal.ai error:', falRes.status, errText)
+      // Parse fal.ai validation error for cleaner message
+      try {
+        const errJson = JSON.parse(errText)
+        const msg = errJson?.detail?.[0]?.msg || errJson?.message || errText
+        return Response.json({ error: `fal.ai ${falRes.status}: ${msg}` }, { status: 500 })
+      } catch {
+        return Response.json({ error: `fal.ai ${falRes.status}: ${errText.slice(0, 200)}` }, { status: 500 })
+      }
     }
 
     const falData = await falRes.json()
