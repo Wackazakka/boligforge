@@ -76,7 +76,7 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reference_images: [{ image_url: portraitUrl }],
+          face_image_url: portraitUrl,
           prompt,
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, unrealistic',
           num_images: 1,

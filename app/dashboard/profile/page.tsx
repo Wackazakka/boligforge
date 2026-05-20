@@ -31,6 +31,7 @@ type Profile = {
   hashtags?: string
   logo_url?: string
   portrait_url?: string
+  selected_avatar_url?: string
 }
 
 type SettingImage = {
@@ -154,12 +155,13 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
 
   async function handleSelectSettingImage(url: string) {
     setSelectedSetting(url)
+    // Store selected avatar separately — do NOT overwrite portrait_url
     await fetch('/api/profile/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...profile, portrait_url: url }),
+      body: JSON.stringify({ ...profile, selected_avatar_url: url }),
     })
-    setProfile(p => ({ ...p, portrait_url: url }))
+    setProfile(p => ({ ...p, selected_avatar_url: url }))
   }
 
   return (
