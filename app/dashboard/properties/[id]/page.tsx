@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 type Property = {
@@ -54,9 +54,15 @@ export default function PropertyDetailPage() {
   const [error, setError] = useState('')
   const [statusMsg, setStatusMsg] = useState('')
   const [selectedImageIdx, setSelectedImageIdx] = useState(0)
+  const [selectedVideoImages, setSelectedVideoImages] = useState<string[]>([])
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    fetch(`/api/properties/get?id=${id}`).then(r => r.json()).then(setProperty)
+    fetch(`/api/properties/get?id=${id}`).then(r => r.json()).then((p: Property) => {
+      setProperty(p)
+      setSelectedVideoImages((p.images || []).slice(0, 8))
+    })
     fetch('/api/profile/get').then(r => r.json()).then(setProfile)
     fetch('/api/profile/settings-images').then(r => r.json()).then((d: SettingImage[]) => {
       if (Array.isArray(d)) {
@@ -81,6 +87,45 @@ export default function PropertyDetailPage() {
     else setScript(data.script)
   }
 
+  const STATUS_LABELS: Record<string, string> = {
+    queued: 'Venter i kø...',
+    tts: 'Genererer tale med ElevenLabs...',
+    lipsync: 'Genererer avatar-video med VEED Fabric...',
+    assembling: 'Setter sammen video med boligbilder...',
+    uploading: 'Laster opp ferdig video...',
+    done: 'Ferdig!',
+    failed: 'Noe gikk galt.',
+  }
+
+  function startPolling(jobId: string) {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/video/status/${jobId}`)
+        const data = await res.json()
+        const label = STATUS_LABELS[data.status] || `Status: ${data.status}`
+        setStatusMsg(label)
+        if (data.status === 'done') {
+          clearInterval(pollRef.current!)
+          pollRef.current = null
+          setGeneratingVideo(false)
+          setActiveJobId(null)
+          setStatusMsg('')
+          setVideoUrl(data.videoUrl)
+        } else if (data.status === 'failed') {
+          clearInterval(pollRef.current!)
+          pollRef.current = null
+          setGeneratingVideo(false)
+          setActiveJobId(null)
+          setStatusMsg('')
+          setError(data.error || 'Video-generering feilet')
+        }
+      } catch {
+        // Ignore transient poll errors
+      }
+    }, 3000)
+  }
+
   async function handleGenerateVideo() {
     if (!script || !profile.voice_id) {
       setError('Mangler manus eller stemme-ID i profilen')
@@ -95,8 +140,8 @@ export default function PropertyDetailPage() {
     setGeneratingVideo(true)
     setError('')
     setVideoUrl(null)
+    setStatusMsg('Sender til worker...')
 
-    setStatusMsg('Genererer tale med ElevenLabs...')
     const res = await fetch('/api/video/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,16 +150,21 @@ export default function PropertyDetailPage() {
         script,
         voiceId: profile.voice_id,
         avatarImageUrl: avatarImg,
-        propertyImages: property?.images?.slice(0, 8) || [],
+        propertyImages: selectedVideoImages,
       }),
     })
 
     const data = await res.json()
-    setGeneratingVideo(false)
-    setStatusMsg('')
+    if (data.error) {
+      setGeneratingVideo(false)
+      setStatusMsg('')
+      setError(data.error)
+      return
+    }
 
-    if (data.error) setError(data.error)
-    else setVideoUrl(data.videoUrl)
+    setActiveJobId(data.jobId)
+    setStatusMsg(STATUS_LABELS['queued'])
+    startPolling(data.jobId)
   }
 
   function formatPrice(p: number | null) {
@@ -225,17 +275,87 @@ export default function PropertyDetailPage() {
           </div>
         )}
 
+        {/* Property image picker for video */}
+        {property.images?.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-900">Velg bilder til video</h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {selectedVideoImages.length} av {property.images.length} valgt · Klikk for å velge/fjerne
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedVideoImages(property.images.slice(0, 8))}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Velg alle
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={() => setSelectedVideoImages([])}
+                  className="text-xs text-gray-400 hover:underline"
+                >
+                  Fjern alle
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {property.images.map((img, i) => {
+                const isSelected = selectedVideoImages.includes(img)
+                return (
+                  <div
+                    key={i}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedVideoImages(prev => prev.filter(u => u !== img))
+                      } else {
+                        setSelectedVideoImages(prev => [...prev, img])
+                      }
+                    }}
+                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${isSelected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
+                  >
+                    <img src={img} alt="" className="w-20 h-14 object-cover" />
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Generate video button */}
         <div className="space-y-3">
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">{error}</p>
           )}
-          {statusMsg && (
+          {generatingVideo && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                <svg className="animate-spin h-4 w-4 text-blue-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>{statusMsg || 'Jobber...'}</span>
+              </div>
+              {activeJobId && (
+                <p className="text-xs text-gray-400 text-center">Jobb-ID: {activeJobId}</p>
+              )}
+            </div>
+          )}
+          {!generatingVideo && statusMsg && (
             <p className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5">{statusMsg}</p>
           )}
           <button
             onClick={handleGenerateVideo}
-            disabled={generatingVideo || !script}
+            disabled={generatingVideo || !script || selectedVideoImages.length === 0}
             className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}
