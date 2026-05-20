@@ -9,14 +9,13 @@ const SETTING_PROMPTS: Record<string, string> = {
 }
 
 const VOICES = [
-  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel – Rolig, naturlig' },
-  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi – Energisk' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella – Varm' },
-  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni – Profesjonell' },
-  { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli – Engasjert' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum – Trygg' },
-  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam – Dyp' },
-  { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam – Vennlig' },
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind – Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
+  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis – Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes – Selvsikker', preview: 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja – Nordisk, dramatisk', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/ed9b05e6324c457685490352e9a1ec90/voices/BGEU6wFi2uNm6Kje1Yhk/gCIHS9pPkrtwiAjN4VgG.mp3' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert – Oslo', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/2461cf568dc042a3bbfbf75522203b35/voices/CMbvLbbccSd611KtwxV3/fabf86a6-90db-42c2-9993-47fff3f73a80.mp3' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/3690d7df74c84d8880e0e0d0641de7f2/voices/vUmLiNBm6MDcy1NUHaVr/6JBvRVvXcssLtXlaqLg1.mp3' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia – Norsk kvinne', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/a2175a4ce5a74c88868dd9d4a000c9a6/voices/uNsWM1StCcpydKYOjKyu/868f87d5-7724-4786-a7fa-a48e01b2ba54.mp3' },
 ]
 
 const SETTINGS = [
@@ -210,17 +209,28 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           <h2 className="text-base font-semibold text-gray-800 mb-5">Stemme og tone</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Foretrukket stemme (ElevenLabs)</label>
-              <select
-                value={profile.voice_id || ''}
-                onChange={e => set('voice_id', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Velg stemme...</option>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Foretrukket stemme</label>
+              <div className="grid grid-cols-1 gap-2">
                 {VOICES.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => set('voice_id', v.id)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
+                      profile.voice_id === v.id
+                        ? 'border-blue-500 bg-blue-50 text-blue-800 font-medium'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <span>{v.name}</span>
+                    <span
+                      onClick={e => { e.stopPropagation(); new Audio(v.preview).play() }}
+                      className="ml-2 text-gray-400 hover:text-blue-600 text-xs px-2 py-0.5 rounded hover:bg-blue-100"
+                      title="Hør forhåndsvisning"
+                    >▶ Hør</span>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tone of voice</label>
