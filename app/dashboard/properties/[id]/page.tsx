@@ -136,12 +136,12 @@ export default function PropertyDetailPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result: any = await fal.subscribe('fal-ai/omnigen-v1', {
         input: {
-          input_image_urls: [propertyImg, profile.portrait_url],
-          prompt: 'The building from <img><|image_1|></img> is the background. Place the person from <img><|image_2|></img> standing in front of it. Keep the building architecture, facade, colors, windows, roof, and surroundings from image 1 exactly unchanged. The person stands slightly to the side, wearing business casual attire, natural expression. Editorial real estate photography, natural lighting.',
+          input_image_urls: [profile.portrait_url, propertyImg],
+          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is wearing business casual attire, natural expression. Editorial real estate photography, natural lighting.',
           num_images: 1,
-          guidance_scale: 4.0,
-          img_guidance_scale: 2.8,
-          num_inference_steps: 20,
+          guidance_scale: 3.0,
+          img_guidance_scale: 1.6,
+          num_inference_steps: 15,
           image_size: 'landscape_16_9' as const,
         },
         pollInterval: 3000,
