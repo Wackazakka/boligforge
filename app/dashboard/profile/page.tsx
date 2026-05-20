@@ -150,6 +150,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           guidance_scale: 4,
           id_weight: 3.0,
           image_size: 'portrait_4_3',
+          seed: Math.floor(Math.random() * 999999999),
         }),
       })
       if (!submitRes.ok) {
@@ -394,35 +395,32 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                 return (
                   <div key={s.id} className="space-y-1">
                     <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-[3/4]">
-                      {existing && !isGenerating ? (
-                        <img src={existing.image_url} alt={s.label} className="w-full h-full object-cover" />
+                      {isGenerating ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                          <svg className="animate-spin h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          <span className="text-xs text-blue-400">Genererer...</span>
+                        </div>
+                      ) : err ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-2">
+                          <span className="text-xs text-center text-red-400">{err}</span>
+                          <button onClick={() => handleGenerateSetting(s.id)} disabled={!profile.portrait_url} className="text-xs text-blue-500 hover:underline disabled:opacity-50">↺ Prøv igjen</button>
+                        </div>
+                      ) : existing ? (
+                        <>
+                          <img src={existing.image_url} alt={s.label} className="w-full h-full object-cover" />
+                          <span className="absolute bottom-1 left-1 text-[10px] text-white/70 bg-black/40 rounded px-1">
+                            {new Date(existing.created_at).toLocaleTimeString('no', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </>
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-400">
-                          {isGenerating ? (
-                            <>
-                              <svg className="animate-spin h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                              </svg>
-                              <span className="text-xs text-blue-400">Genererer...</span>
-                            </>
-                          ) : err ? (
-                            <>
-                              <span className="text-xs text-center px-2 text-red-400">{err}</span>
-                              <button
-                                onClick={() => handleGenerateSetting(s.id)}
-                                disabled={!profile.portrait_url}
-                                className="text-xs text-blue-500 hover:underline disabled:opacity-50"
-                              >
-                                ↺ Prøv igjen
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-xs text-center px-2">Ikke generert</span>
-                          )}
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-xs text-gray-400 text-center px-2">Ikke generert</span>
                         </div>
                       )}
-                      {existing && !isGenerating && (
+                      {existing && !isGenerating && !err && (
                         <button
                           onClick={() => handleGenerateSetting(s.id)}
                           disabled={!profile.portrait_url}
