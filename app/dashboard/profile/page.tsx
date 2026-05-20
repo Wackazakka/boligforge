@@ -174,12 +174,11 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-900">Meglerprofil</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Konfigurer din profil og avatar</p>
-      </header>
-
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Meglerprofil</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Konfigurer din profil og avatar</p>
+        </div>
 
         {/* Basic info */}
         <section className="bg-white rounded-xl border border-gray-200 p-6">
@@ -375,7 +374,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
             </div>
           </div>
 
-          {loadingImages && <p className="text-sm text-gray-400 mt-3">Laster bilder...</p>}
+            {loadingImages && <p className="text-sm text-gray-400 mt-3">Laster bilder...</p>}
         </section>
 
         {/* Save button */}

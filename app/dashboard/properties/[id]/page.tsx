@@ -38,6 +38,7 @@ type AgentProfile = {
 }
 
 type SettingImage = {
+  id: string
   setting_type: string
   image_url: string
 }
@@ -76,6 +77,17 @@ export default function PropertyDetailPage() {
       }
     })
   }, [id])
+
+  async function handleDeleteSettingImage(img: SettingImage) {
+    if (!confirm('Slett dette avatarbildet?')) return
+    await fetch('/api/profile/delete-setting-image', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: img.id, imageUrl: img.image_url }),
+    })
+    setSettingImages(prev => prev.filter(s => s.id !== img.id))
+    if (selectedAvatarUrl === img.image_url) setSelectedAvatarUrl('')
+  }
 
   async function handleGenerateScript() {
     if (!property) return
@@ -304,10 +316,21 @@ export default function PropertyDetailPage() {
                 {settingImages.map(s => (
                   <div
                     key={s.image_url}
-                    onClick={() => setSelectedAvatarUrl(s.image_url)}
-                    className={`flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === s.image_url ? 'border-blue-500' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                    className={`relative flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === s.image_url ? 'border-blue-500' : 'border-transparent opacity-70 hover:opacity-100'}`}
                   >
-                    <img src={s.image_url} alt={s.setting_type} className="w-24 h-32 object-cover" />
+                    <img
+                      src={s.image_url}
+                      alt={s.setting_type}
+                      onClick={() => setSelectedAvatarUrl(s.image_url)}
+                      className="w-24 h-32 object-cover cursor-pointer"
+                    />
+                    <button
+                      onClick={() => handleDeleteSettingImage(s)}
+                      title="Slett bilde"
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-red-600 flex items-center justify-center text-white text-xs transition-colors"
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))}
               </div>
