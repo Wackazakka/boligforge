@@ -218,7 +218,14 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                   <button
                     key={v.id}
                     type="button"
-                    onClick={() => set('voice_id', v.id)}
+                    onClick={async () => {
+                      set('voice_id', v.id)
+                      await fetch('/api/profile/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...profile, voice_id: v.id }),
+                      })
+                    }}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
                       profile.voice_id === v.id
                         ? 'border-blue-500 bg-blue-50 text-blue-800 font-medium'
