@@ -121,9 +121,12 @@ export async function POST(request: Request) {
     const agentWidth = agentMeta.width ?? 400
     const agentHeight = agentMeta.height ?? 400
 
-    // Position: centered horizontally, feet at bottom (2% margin)
+    // Position: centered horizontally, shifted down so the cutout bottom
+    // extends ~20% of avatar height below the frame — hides missing legs
+    // and makes the person look grounded rather than floating.
     const left = Math.max(0, Math.round((bgWidth - agentWidth) / 2))
-    const top = Math.max(0, bgHeight - agentHeight - Math.round(bgHeight * 0.02))
+    const shiftDown = Math.round(agentHeight * 0.20)
+    const top = Math.max(0, bgHeight - agentHeight + shiftDown)
 
     const blurredBg = await sharp(propertyBuffer).blur(1.5).toBuffer()
 
