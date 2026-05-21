@@ -83,6 +83,7 @@ export async function POST(request: Request) {
           style: 'REALISTIC',
           expand_prompt: false,
           num_images: 1,
+          image_size: 'landscape_16_9',
           seed: Math.floor(Math.random() * 999999999),
         }),
       })

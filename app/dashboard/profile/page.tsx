@@ -342,7 +342,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                 const err = settingErrors[s.id]
                 return (
                   <div key={s.id} className="space-y-1">
-                    <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-[3/4]">
+                    <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-video">
                       {isGenerating ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                           <svg className="animate-spin h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24">
