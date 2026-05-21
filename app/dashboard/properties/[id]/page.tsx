@@ -329,7 +329,15 @@ export default function PropertyDetailPage() {
     setVideoUrl(null)
     setStatusMsg('Sender til worker...')
 
-    const outroPayload = outro.images.length > 0 ? outro : undefined
+    const tickerText = outro.images.length > 0 ? [
+      property?.address,
+      property?.price ? `Prisantydning: ${formatPrice(property.price)}` : null,
+      property?.size_bra ? `BRA: ${property.size_bra} m²` : null,
+      property?.rooms ? `${property.rooms} rom` : null,
+      property?.build_year ? `Byggeår: ${property.build_year}` : null,
+      property?.property_type ?? null,
+    ].filter(Boolean).join('  ·  ') : undefined
+    const outroPayload = outro.images.length > 0 ? { ...outro, tickerText } : undefined
     const body = segments.length > 0
       ? { propertyId: id, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl || profile.portrait_url, portraitUrl: profile.portrait_url, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments, outro: outroPayload }
       : { propertyId: id, script, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages }
