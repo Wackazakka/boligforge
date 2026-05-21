@@ -88,7 +88,7 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     fetch(`/api/properties/get?id=${id}`).then(r => r.json()).then((p: Property) => {
       setProperty(p)
-      setSelectedVideoImages((p.images || []).slice(0, 8))
+      setSelectedVideoImages(p.images || [])
     })
     fetch('/api/profile/get').then(r => r.json()).then(setProfile)
     fetch('/api/profile/settings-images').then(r => r.json()).then((d: SettingImage[]) => {
@@ -804,7 +804,7 @@ export default function PropertyDetailPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setSelectedVideoImages(property.images.slice(0, 8))}
+                  onClick={() => setSelectedVideoImages(property.images)}
                   className="text-xs text-blue-600 hover:underline"
                 >
                   Velg alle
