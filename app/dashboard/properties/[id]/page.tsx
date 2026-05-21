@@ -81,6 +81,8 @@ export default function PropertyDetailPage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
   const [segments, setSegments] = useState<Segment[]>([])
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
+  const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string }[]>([])
+  const [uploadingMusic, setUploadingMusic] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -94,6 +96,9 @@ export default function PropertyDetailPage() {
         setSettingImages(d)
         if (d.length > 0) setSelectedAvatarUrl(d[0].image_url)
       }
+    })
+    fetch('/api/music').then(r => r.json()).then(d => {
+      if (Array.isArray(d.files)) setMusicFiles(d.files)
     })
   }, [id])
 
@@ -159,6 +164,34 @@ export default function PropertyDetailPage() {
   async function handleRegenSegmentAudio(idx: number) {
     const url = await generateSegmentAudio(idx)
     if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
+  }
+
+  async function handleMusicUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingMusic(true)
+    setError('')
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/music/upload', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || 'Opplasting feilet')
+      const newFile = { id: data.id || String(Date.now()), name: data.name, url: data.url }
+      setMusicFiles(prev => [newFile, ...prev])
+      setOutro(o => ({ ...o, musicUrl: data.url }))
+    } catch (err) {
+      setError(`Musikk-opplasting feilet: ${String(err)}`)
+    } finally {
+      setUploadingMusic(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleDeleteMusic(id: string, url: string) {
+    await fetch('/api/music', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    setMusicFiles(prev => prev.filter(f => f.id !== id))
+    if (outro.musicUrl === url) setOutro(o => ({ ...o, musicUrl: '' }))
   }
 
   async function handleSaveAvatar() {
@@ -566,16 +599,37 @@ export default function PropertyDetailPage() {
                     />
                     <span className="text-xs text-gray-600 w-12 text-right">{outro.durationPerImage} sek</span>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-gray-600">Bakgrunnsmusikk (URL til MP3, valgfritt)</label>
-                    <input
-                      type="url"
-                      value={outro.musicUrl}
-                      onChange={e => setOutro(o => ({ ...o, musicUrl: e.target.value }))}
-                      placeholder="https://eksempel.com/musikk.mp3"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-400">Lim inn en direkte URL til en MP3-fil. Musikken fades ut på slutten.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-gray-600">Bakgrunnsmusikk (valgfritt)</label>
+                      <label className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${uploadingMusic ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                        {uploadingMusic ? 'Laster opp...' : '+ Last opp MP3'}
+                        <input type="file" accept="audio/*" className="hidden" onChange={handleMusicUpload} disabled={uploadingMusic} />
+                      </label>
+                    </div>
+
+                    {musicFiles.length > 0 && (
+                      <div className="space-y-1">
+                        {musicFiles.map(f => (
+                          <div
+                            key={f.id}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${outro.musicUrl === f.url ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                            onClick={() => setOutro(o => ({ ...o, musicUrl: outro.musicUrl === f.url ? '' : f.url }))}
+                          >
+                            <span className="text-sm">{outro.musicUrl === f.url ? '♪' : '○'}</span>
+                            <span className="text-sm text-gray-700 flex-1 truncate">{f.name}</span>
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDeleteMusic(f.id, f.url) }}
+                              className="text-gray-300 hover:text-red-500 text-xs px-1 transition-colors"
+                            >✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {musicFiles.length === 0 && !uploadingMusic && (
+                      <p className="text-xs text-gray-400">Last opp en MP3-fil. Musikken loopes og fades ut på slutten av outtoen.</p>
+                    )}
                   </div>
                 </div>
               )}
