@@ -31,7 +31,7 @@ function getSupabase() {
 
 export async function POST(request: Request) {
   try {
-    const { setting, portraitUrl, propertyImageUrl } = await request.json()
+    const { setting, portraitUrl, propertyImageUrl, prompt: customPrompt } = await request.json()
 
     if (!setting || !portraitUrl) {
       return Response.json({ error: 'Missing setting or portraitUrl' }, { status: 400 })
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           input_image_urls: [portraitUrl, propertyImageUrl],
-          prompt: 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent is smiling, wearing business casual attire. Editorial real estate photography, natural lighting.',
+          prompt: customPrompt || 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent looks confident, wearing business casual attire. Editorial real estate photography, natural lighting.',
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text',
           num_images: 1,
           guidance_scale: 3.0,
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         }),
       })
     } else {
-      const prompt = SETTING_PROMPTS[setting]
+      const prompt = customPrompt || SETTING_PROMPTS[setting]
       if (!prompt) {
         return Response.json({ error: 'Unknown setting type' }, { status: 400 })
       }

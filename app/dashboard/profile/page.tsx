@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 const SETTING_PROMPTS: Record<string, string> = {
-  modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent is smiling confidently, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
+  modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent looks confident and natural, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
   office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
-  studio: 'A professional Norwegian real estate agent against a smooth warm-neutral gradient studio backdrop. Soft, even professional lighting from the side. Confident, friendly expression. High-end professional headshot, sharp focus on face.',
-  neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent is relaxed and smiling. Editorial lifestyle photography.',
+  studio: 'A professional Norwegian real estate agent against a smooth warm-neutral gradient studio backdrop. Soft, even professional lighting from the side. Confident, natural expression. High-end professional headshot, sharp focus on face.',
+  neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent looks relaxed and confident. Editorial lifestyle photography.',
 }
 
 const VOICES = [
@@ -58,6 +58,8 @@ export default function ProfilePage() {
   const [selectedSetting, setSelectedSetting] = useState<string | null>(null)
   const [loadingImages, setLoadingImages] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [customPrompts, setCustomPrompts] = useState<Record<string, string>>(SETTING_PROMPTS)
+  const [showPrompt, setShowPrompt] = useState<Record<string, boolean>>({})
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -135,7 +137,7 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
       const res = await fetch('/api/profile/generate-setting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setting: settingId, portraitUrl }),
+        body: JSON.stringify({ setting: settingId, portraitUrl, prompt: customPrompts[settingId] }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -377,7 +379,22 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                         </button>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 text-center leading-tight">{s.label}</p>
+                    <p className="text-xs text-gray-500 leading-tight">{s.label}</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowPrompt(p => ({ ...p, [s.id]: !p[s.id] }))}
+                      className="text-xs text-blue-500 hover:underline text-left"
+                    >
+                      {showPrompt[s.id] ? '▲ Skjul prompt' : '✎ Rediger prompt'}
+                    </button>
+                    {showPrompt[s.id] && (
+                      <textarea
+                        rows={5}
+                        value={customPrompts[s.id] || ''}
+                        onChange={e => setCustomPrompts(p => ({ ...p, [s.id]: e.target.value }))}
+                        className="w-full text-[11px] border border-gray-200 rounded-md px-2 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-y bg-gray-50"
+                      />
+                    )}
                   </div>
                 )
               })}
