@@ -34,6 +34,13 @@ type AgentProfile = {
   portrait_url?: string
 }
 
+type Segment = {
+  id: number
+  text: string
+  type: 'avatar' | 'image'
+  imageUrl?: string
+}
+
 type SettingImage = {
   id: string
   setting_type: string
@@ -64,6 +71,7 @@ export default function PropertyDetailPage() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [selectedVideoImages, setSelectedVideoImages] = useState<string[]>([])
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [segments, setSegments] = useState<Segment[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -79,6 +87,27 @@ export default function PropertyDetailPage() {
       }
     })
   }, [id])
+
+  function splitIntoSegments(text: string) {
+    const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
+    const result: Segment[] = []
+    for (let i = 0; i < sentences.length; i += 2) {
+      const s1 = sentences[i]?.trim() || ''
+      const s2 = sentences[i + 1]?.trim() || ''
+      const combined = s2 ? `${s1} ${s2}` : s1
+      if (combined.trim()) result.push({ id: result.length, text: combined.trim(), type: 'avatar' })
+    }
+    return result
+  }
+
+  function handleSplitSegments() {
+    if (!script) return
+    setSegments(splitIntoSegments(script))
+  }
+
+  function updateSegment(idx: number, patch: Partial<Segment>) {
+    setSegments(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+  }
 
   async function handleSaveAvatar() {
     // Image is already saved to library by composite-avatar route
@@ -156,8 +185,9 @@ export default function PropertyDetailPage() {
   const STATUS_LABELS: Record<string, string> = {
     queued: 'Venter i kø...',
     tts: 'Genererer tale med ElevenLabs...',
+    encoding: 'Koder bildesegmenter...',
     lipsync: 'Genererer avatar-video med VEED Fabric...',
-    assembling: 'Setter sammen video med boligbilder...',
+    assembling: 'Setter sammen video...',
     uploading: 'Laster opp ferdig video...',
     done: 'Ferdig!',
     failed: 'Noe gikk galt.',
@@ -201,22 +231,27 @@ export default function PropertyDetailPage() {
       setError('Velg et avatar-bilde under')
       return
     }
+    if (segments.length > 0) {
+      const imageSeg = segments.find(s => s.type === 'image' && !s.imageUrl)
+      if (imageSeg) {
+        setError(`Segment ${imageSeg.id + 1} er satt til «bilde» men mangler bildevalg.`)
+        return
+      }
+    }
 
     setGeneratingVideo(true)
     setError('')
     setVideoUrl(null)
     setStatusMsg('Sender til worker...')
 
+    const body = segments.length > 0
+      ? { propertyId: id, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, segments }
+      : { propertyId: id, script, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages }
+
     const res = await fetch('/api/video/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        propertyId: id,
-        script,
-        voiceId: profile.voice_id,
-        avatarImageUrl: selectedAvatarUrl,
-        propertyImages: selectedVideoImages,
-      }),
+      body: JSON.stringify(body),
     })
 
     const data = await res.json()
@@ -310,17 +345,27 @@ export default function PropertyDetailPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Presentasjonsmanus</h2>
-            <button
-              onClick={handleGenerateScript}
-              disabled={generatingScript}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {generatingScript ? 'Genererer...' : script ? 'Regenerer' : 'Generer manus'}
-            </button>
+            <div className="flex gap-2">
+              {script && (
+                <button
+                  onClick={handleSplitSegments}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Del opp i segmenter
+                </button>
+              )}
+              <button
+                onClick={handleGenerateScript}
+                disabled={generatingScript}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {generatingScript ? 'Genererer...' : script ? 'Regenerer' : 'Generer manus'}
+              </button>
+            </div>
           </div>
           <textarea
             value={script}
-            onChange={e => setScript(e.target.value)}
+            onChange={e => { setScript(e.target.value); setSegments([]) }}
             placeholder="Trykk «Generer manus» for å lage et AI-generert presentasjonsmanus basert på boligdataene..."
             rows={8}
             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -329,6 +374,61 @@ export default function PropertyDetailPage() {
             <p className="text-xs text-gray-400">{script.split(/\s+/).length} ord · ca. {Math.round(script.split(/\s+/).length / 2.5)} sek</p>
           )}
         </div>
+
+        {/* Segment editor */}
+        {segments.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-900">Segmenter</h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {segments.filter(s => s.type === 'avatar').length} avatar · {segments.filter(s => s.type === 'image').length} bilde
+                </p>
+              </div>
+              <button onClick={() => setSegments([])} className="text-xs text-gray-400 hover:text-gray-700">Fjern segmentering</button>
+            </div>
+            <div className="space-y-3">
+              {segments.map((seg, i) => (
+                <div key={seg.id} className="border border-gray-100 rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-gray-700 leading-relaxed">{i + 1}. {seg.text}</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => updateSegment(i, { type: 'avatar', imageUrl: undefined })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${seg.type === 'avatar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Avatarvideo
+                    </button>
+                    <button
+                      onClick={() => updateSegment(i, { type: 'image' })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${seg.type === 'image' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Boligbilde
+                    </button>
+                  </div>
+                  {seg.type === 'image' && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-400">Velg bilde for dette segmentet:</p>
+                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                        {(property?.images || []).map((img, j) => (
+                          <img
+                            key={j}
+                            src={img}
+                            alt=""
+                            onClick={() => updateSegment(i, { imageUrl: img })}
+                            className={`w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 border-2 transition-all ${seg.imageUrl === img ? 'border-blue-500 opacity-100' : 'border-transparent opacity-50 hover:opacity-80'}`}
+                          />
+                        ))}
+                      </div>
+                      {!seg.imageUrl && (
+                        <p className="text-xs text-amber-600">Velg et bilde over</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Avatar picker */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
@@ -460,8 +560,8 @@ export default function PropertyDetailPage() {
           )}
         </div>
 
-        {/* Property image picker for video */}
-        {property.images?.length > 0 && (
+        {/* Property image picker for video — hidden when segment editor is active */}
+        {segments.length === 0 && property.images?.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -540,7 +640,7 @@ export default function PropertyDetailPage() {
           )}
           <button
             onClick={handleGenerateVideo}
-            disabled={generatingVideo || !script || selectedVideoImages.length === 0}
+            disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
             className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}

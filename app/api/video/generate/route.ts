@@ -13,20 +13,25 @@ function getSupabase() {
 
 export async function POST(request: Request) {
   try {
-    const { propertyId, script, voiceId, avatarImageUrl, propertyImages } = await request.json()
+    const { propertyId, script, voiceId, avatarImageUrl, propertyImages, segments } = await request.json()
 
-    if (!script || !voiceId || !avatarImageUrl) {
+    const useSegments = Array.isArray(segments) && segments.length > 0
+    if (!useSegments && (!script || !voiceId || !avatarImageUrl)) {
       return NextResponse.json({ error: 'Mangler script, voiceId eller avatarImageUrl' }, { status: 400 })
+    }
+    if (useSegments && (!voiceId || !avatarImageUrl)) {
+      return NextResponse.json({ error: 'Mangler voiceId eller avatarImageUrl' }, { status: 400 })
     }
 
     const jobId = randomUUID()
+    const scriptText = useSegments ? segments.map((s: { text: string }) => s.text).join(' ') : script
 
     // Create a pending job record in Supabase (best-effort — don't block if table missing)
     if (propertyId) {
       getSupabase().from('production_jobs').insert({
         id: jobId,
         property_id: propertyId,
-        script,
+        script: scriptText,
         status: 'queued',
       }).then(({ error }) => { if (error) console.warn('[video/generate] production_jobs insert:', error.message) })
     }
@@ -35,14 +40,10 @@ export async function POST(request: Request) {
     const workerRes = await fetch(`${WORKER_URL}/jobs/video`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId,
-        propertyId,
-        avatarImageUrl,
-        scriptText: script,
-        voiceId,
-        imageUrls: (propertyImages || []).slice(0, 8),
-      }),
+      body: JSON.stringify(useSegments
+        ? { jobId, propertyId, avatarImageUrl, voiceId, segments }
+        : { jobId, propertyId, avatarImageUrl, scriptText: script, voiceId, imageUrls: (propertyImages || []).slice(0, 8) }
+      ),
     })
 
     if (!workerRes.ok) {
