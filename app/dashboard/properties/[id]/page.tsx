@@ -331,7 +331,7 @@ export default function PropertyDetailPage() {
 
     const outroPayload = outro.images.length > 0 ? outro : undefined
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, segments, outro: outroPayload }
+      ? { propertyId: id, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, portraitUrl: profile.portrait_url, segments, outro: outroPayload }
       : { propertyId: id, script, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages }
 
     const res = await fetch('/api/video/generate', {
