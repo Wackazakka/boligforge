@@ -61,6 +61,11 @@ export default function ProfilePage() {
   const [customPrompts, setCustomPrompts] = useState<Record<string, string>>(SETTING_PROMPTS)
   const [showPrompt, setShowPrompt] = useState<Record<string, boolean>>({})
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [voiceRecordState, setVoiceRecordState] = useState<'idle' | 'recording' | 'cloning' | 'done' | 'error'>('idle')
+  const [voiceRecordError, setVoiceRecordError] = useState('')
+  const [recordSeconds, setRecordSeconds] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -103,6 +108,59 @@ export default function ProfilePage() {
     } else {
       setSaveError(data?.error || 'Ukjent lagrefeil')
     }
+  }
+
+  async function startRecording() {
+    setVoiceRecordError('')
+    setVoiceRecordState('recording')
+    setRecordSeconds(0)
+    audioChunksRef.current = []
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      mediaRecorderRef.current = mr
+      mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
+      mr.start(500)
+      elapsedRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
+    } catch {
+      setVoiceRecordState('error')
+      setVoiceRecordError('Kunne ikke få tilgang til mikrofon. Sjekk tillatelser i nettleseren.')
+    }
+  }
+
+  async function stopAndClone() {
+    const mr = mediaRecorderRef.current
+    if (!mr) return
+    if (elapsedRef.current) { clearInterval(elapsedRef.current); elapsedRef.current = null }
+
+    if (recordSeconds < 10) {
+      setVoiceRecordState('error')
+      setVoiceRecordError('Opptaket er for kort. Ta opp minst 30 sekunder for best resultat.')
+      mr.stop()
+      return
+    }
+
+    setVoiceRecordState('cloning')
+    mr.onstop = async () => {
+      try {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const fd = new FormData()
+        fd.append('audio', blob, 'recording.webm')
+        fd.append('name', profile.name || 'Meglers stemme')
+
+        const res = await fetch('/api/profile/clone-voice', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Kloning feilet')
+
+        set('voice_id', data.voice_id)
+        setVoiceRecordState('done')
+      } catch (e: unknown) {
+        setVoiceRecordState('error')
+        setVoiceRecordError(e instanceof Error ? e.message : 'Ukjent feil')
+      }
+    }
+    mr.stop()
+    mr.stream.getTracks().forEach(t => t.stop())
   }
 
   async function handleUpload(file: File, type: 'logo' | 'portrait') {
@@ -242,6 +300,61 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                 ))}
               </div>
             </div>
+            {/* Voice cloning */}
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <p className="text-sm font-medium text-gray-700 mb-1">Klon din stemme</p>
+              <p className="text-xs text-gray-500 mb-3">Les teksten under høyt, klikk Stopp, og vi lager en AI-klon av stemmen din.</p>
+              <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600 italic mb-4 leading-relaxed">
+                Velkommen til visning. Denne boligen byr på en fantastisk mulighet for deg som ønsker å bo sentralt med god plass og flott utsikt.
+                Her finner du romslige stuer, moderne kjøkken og en terrasse som er perfekt for sommerens uteserveringer.
+                Boligen ligger i et stille og barnevennlig nabolag, med kort vei til skoler, butikker og kollektivtransport.
+                Vi ser frem til å vise deg alt dette huset har å tilby.
+              </div>
+              {voiceRecordState === 'idle' && (
+                <button
+                  onClick={startRecording}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                >
+                  <span className="w-2 h-2 rounded-full bg-white inline-block" /> Start opptak
+                </button>
+              )}
+              {voiceRecordState === 'recording' && (
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-2 text-sm text-red-600 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse inline-block" />
+                    Tar opp… {recordSeconds}s
+                  </span>
+                  <button
+                    onClick={stopAndClone}
+                    className="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900"
+                  >
+                    ■ Stopp og klon
+                  </button>
+                </div>
+              )}
+              {voiceRecordState === 'cloning' && (
+                <p className="text-sm text-blue-600 flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Kloner stemmen din…
+                </p>
+              )}
+              {voiceRecordState === 'done' && (
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-green-600 font-medium">✓ Stemme klonet og lagret!</p>
+                  <button onClick={() => { setVoiceRecordState('idle'); setRecordSeconds(0) }} className="text-xs text-gray-400 hover:text-gray-600">Ta opp på nytt</button>
+                </div>
+              )}
+              {voiceRecordState === 'error' && (
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-red-600">{voiceRecordError}</p>
+                  <button onClick={() => { setVoiceRecordState('idle'); setRecordSeconds(0) }} className="text-xs text-gray-400 hover:text-gray-600 underline">Prøv igjen</button>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tone of voice</label>
               <textarea
