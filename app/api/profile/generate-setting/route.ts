@@ -53,8 +53,8 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           reference_image_urls: [portraitUrl, propertyImageUrl],
-          prompt: customPrompt || 'A professional Norwegian real estate agent standing confidently outdoors in front of a house. Half-body shot, agent fills the frame from waist up, face clearly visible. The house from the second reference image is visible behind them, slightly out of focus. Editorial real estate photography, natural daylight.',
-          negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, tiny person, full body shot, small figure',
+          prompt: customPrompt || 'Close-up portrait of a professional Norwegian real estate agent standing outdoors. The agent dominates the frame, shown from chest to top of head, face sharp and prominent. The property from the reference image is softly blurred in the background. Natural daylight, editorial real estate photography style.',
+          negative_prompt: 'full body, tiny person, small figure, distant, far away, wide shot, whole body visible, blurry face, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon',
           rendering_speed: 'QUALITY',
           style: 'REALISTIC',
           expand_prompt: false,
