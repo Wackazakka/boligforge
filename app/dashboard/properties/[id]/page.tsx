@@ -39,8 +39,13 @@ type Segment = {
   text: string
   type: 'avatar' | 'image'
   imageUrl?: string
-  audioUrl?: string
   previewingAudio?: boolean
+}
+
+type Outro = {
+  images: string[]
+  musicUrl: string
+  durationPerImage: number
 }
 
 type SettingImage = {
@@ -74,6 +79,7 @@ export default function PropertyDetailPage() {
   const [selectedVideoImages, setSelectedVideoImages] = useState<string[]>([])
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
   const [segments, setSegments] = useState<Segment[]>([])
+  const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -91,16 +97,27 @@ export default function PropertyDetailPage() {
   }, [id])
 
   function splitIntoSegments(text: string) {
-    const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
-    return sentences
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
-      .map((s, i) => ({ id: i, text: s, type: 'avatar' as const }))
+    const raw = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
+    const sentences = raw.map(s => s.trim()).filter(s => s.length > 0)
+    const result: Segment[] = []
+    let i = 0
+    while (i < sentences.length) {
+      const words = sentences[i].split(/\s+/).filter(Boolean).length
+      if (words < 5 && i + 1 < sentences.length) {
+        result.push({ id: result.length, text: `${sentences[i]} ${sentences[i + 1]}`, type: 'avatar' })
+        i += 2
+      } else {
+        result.push({ id: result.length, text: sentences[i], type: 'avatar' })
+        i++
+      }
+    }
+    return result
   }
 
   function handleSplitSegments() {
     if (!script) return
     setSegments(splitIntoSegments(script))
+    setOutro({ images: [], musicUrl: '', durationPerImage: 4 })
   }
 
   function updateSegment(idx: number, patch: Partial<Segment>) {
@@ -109,21 +126,19 @@ export default function PropertyDetailPage() {
 
   async function handlePreviewSegmentAudio(idx: number) {
     if (!profile.voice_id) return
-    const seg = segments[idx]
     updateSegment(idx, { previewingAudio: true })
     try {
       const res = await fetch('/api/profile/tts-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: seg.text, voiceId: profile.voice_id }),
+        body: JSON.stringify({ text: segments[idx].text, voiceId: profile.voice_id }),
       })
       if (!res.ok) throw new Error('TTS feilet')
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      updateSegment(idx, { audioUrl: url, previewingAudio: false })
-      const audio = new Audio(url)
-      audio.play()
+      new Audio(URL.createObjectURL(blob)).play()
     } catch {
+      // silent
+    } finally {
       updateSegment(idx, { previewingAudio: false })
     }
   }
@@ -263,8 +278,9 @@ export default function PropertyDetailPage() {
     setVideoUrl(null)
     setStatusMsg('Sender til worker...')
 
+    const outroPayload = outro.images.length > 0 ? outro : undefined
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, segments }
+      ? { propertyId: id, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, segments, outro: outroPayload }
       : { propertyId: id, script, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages }
 
     const res = await fetch('/api/video/generate', {
@@ -409,7 +425,15 @@ export default function PropertyDetailPage() {
             <div className="space-y-3">
               {segments.map((seg, i) => (
                 <div key={seg.id} className="border border-gray-100 rounded-lg p-4 space-y-3">
-                  <p className="text-sm text-gray-700 leading-relaxed">{i + 1}. {seg.text}</p>
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs text-gray-400 mt-2 w-5 shrink-0">{i + 1}.</span>
+                    <textarea
+                      value={seg.text}
+                      onChange={e => updateSegment(i, { text: e.target.value })}
+                      rows={2}
+                      className="flex-1 text-sm text-gray-700 leading-relaxed rounded border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+                    />
+                  </div>
                   <div className="flex gap-2 flex-wrap items-center">
                     <button
                       onClick={() => updateSegment(i, { type: 'avatar', imageUrl: undefined })}
@@ -428,7 +452,7 @@ export default function PropertyDetailPage() {
                       disabled={seg.previewingAudio || !profile.voice_id}
                       className="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors"
                     >
-                      {seg.previewingAudio ? 'Laster...' : seg.audioUrl ? '▶ Spill på nytt' : '▶ Hør lyd'}
+                      {seg.previewingAudio ? 'Genererer lyd...' : '▶ Hør / regenerer lyd'}
                     </button>
                   </div>
                   {seg.type === 'image' && (
@@ -455,6 +479,81 @@ export default function PropertyDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Outro editor — only when segments are active */}
+        {segments.length > 0 && (() => {
+          const usedUrls = new Set(segments.filter(s => s.type === 'image' && s.imageUrl).map(s => s.imageUrl!))
+          const unused = (property?.images || []).filter(img => !usedUrls.has(img))
+          return (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+              <div>
+                <h2 className="font-semibold text-gray-900">Outro — gjenværende bilder</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{unused.length} bilder ikke brukt i segmentene. Velg hvilke som skal vises etter talen med musikk under.</p>
+              </div>
+
+              {unused.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {unused.map((img, j) => {
+                      const selected = outro.images.includes(img)
+                      return (
+                        <div
+                          key={j}
+                          onClick={() => setOutro(o => ({
+                            ...o,
+                            images: selected ? o.images.filter(u => u !== img) : [...o.images, img],
+                          }))}
+                          className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
+                        >
+                          <img src={img} alt="" className="w-20 h-14 object-cover" />
+                          {selected && (
+                            <div className="absolute top-1 right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
+                              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setOutro(o => ({ ...o, images: unused }))} className="text-xs text-blue-600 hover:underline">Velg alle</button>
+                    <span className="text-gray-300">|</span>
+                    <button onClick={() => setOutro(o => ({ ...o, images: [] }))} className="text-xs text-gray-400 hover:underline">Fjern alle</button>
+                    <span className="text-gray-400 text-xs ml-2">{outro.images.length} valgt</span>
+                  </div>
+                </div>
+              )}
+
+              {outro.images.length > 0 && (
+                <div className="space-y-3 border-t border-gray-100 pt-3">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-600 w-36 shrink-0">Varighet per bilde</label>
+                    <input
+                      type="range" min={2} max={10} step={1}
+                      value={outro.durationPerImage}
+                      onChange={e => setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) }))}
+                      className="flex-1"
+                    />
+                    <span className="text-xs text-gray-600 w-12 text-right">{outro.durationPerImage} sek</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-gray-600">Bakgrunnsmusikk (URL til MP3, valgfritt)</label>
+                    <input
+                      type="url"
+                      value={outro.musicUrl}
+                      onChange={e => setOutro(o => ({ ...o, musicUrl: e.target.value }))}
+                      placeholder="https://eksempel.com/musikk.mp3"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-400">Lim inn en direkte URL til en MP3-fil. Musikken fades ut på slutten.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Avatar picker */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
