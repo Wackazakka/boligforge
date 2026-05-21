@@ -13,7 +13,7 @@ function getSupabase() {
 
 export async function POST(request: Request) {
   try {
-    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, propertyImages, segments, outro } = await request.json()
+    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, backgroundImageUrl, propertyImages, segments, outro } = await request.json()
 
     const useSegments = Array.isArray(segments) && segments.length > 0
     if (!useSegments && (!script || !voiceId || !avatarImageUrl)) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(useSegments
-        ? { jobId, propertyId, avatarImageUrl, portraitUrl, voiceId, segments, outro }
+        ? { jobId, propertyId, avatarImageUrl, portraitUrl, backgroundImageUrl, voiceId, segments, outro }
         : { jobId, propertyId, avatarImageUrl, scriptText: script, voiceId, imageUrls: (propertyImages || []).slice(0, 8) }
       ),
     })
