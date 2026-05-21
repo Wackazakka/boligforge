@@ -427,9 +427,16 @@ export default function PropertyDetailPage() {
                 <div className="flex items-end gap-3">
                   <div
                     onClick={() => setSelectedAvatarUrl(generatedAvatarUrl)}
-                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === generatedAvatarUrl ? 'border-blue-500' : 'border-gray-200 opacity-80 hover:opacity-100'}`}
+                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === generatedAvatarUrl ? 'border-blue-500' : 'border-gray-200 opacity-80 hover:opacity-100'}`}
                   >
                     <img src={generatedAvatarUrl} alt="Generert avatar" className="w-48 h-32 object-cover" />
+                    <button
+                      onClick={e => { e.stopPropagation(); setLightboxUrl(generatedAvatarUrl) }}
+                      title="Forstørr"
+                      className="absolute bottom-6 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-blue-600 flex items-center justify-center text-white text-xs transition-colors"
+                    >
+                      ⤢
+                    </button>
                     <p className="text-xs text-center text-gray-500 py-1">
                       {selectedAvatarUrl === generatedAvatarUrl ? '✓ Valgt' : 'Klikk for å velge'}
                     </p>
