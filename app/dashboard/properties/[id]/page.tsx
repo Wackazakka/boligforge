@@ -526,13 +526,18 @@ export default function PropertyDetailPage() {
                       <p className="text-xs text-gray-400">Velg bilde for dette segmentet:</p>
                       <div className="flex gap-1.5 overflow-x-auto pb-1">
                         {(property?.images || []).map((img, j) => (
-                          <img
-                            key={j}
-                            src={img}
-                            alt=""
-                            onClick={() => updateSegment(i, { imageUrl: img })}
-                            className={`w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 border-2 transition-all ${seg.imageUrl === img ? 'border-blue-500 opacity-100' : 'border-transparent opacity-50 hover:opacity-80'}`}
-                          />
+                          <div key={j} className="relative flex-shrink-0 group">
+                            <img
+                              src={img}
+                              alt=""
+                              onClick={() => updateSegment(i, { imageUrl: img })}
+                              className={`w-16 h-12 object-cover rounded cursor-pointer border-2 transition-all ${seg.imageUrl === img ? 'border-blue-500 opacity-100' : 'border-transparent opacity-50 hover:opacity-80'}`}
+                            />
+                            <button
+                              onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
+                              className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded bg-black/60 hover:bg-blue-600 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
+                            >⤢</button>
+                          </div>
                         ))}
                       </div>
                       {!seg.imageUrl && (
@@ -569,7 +574,7 @@ export default function PropertyDetailPage() {
                             ...o,
                             images: selected ? o.images.filter(u => u !== img) : [...o.images, img],
                           }))}
-                          className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
+                          className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all group ${selected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
                         >
                           <img src={img} alt="" className="w-20 h-14 object-cover" />
                           {selected && (
@@ -579,6 +584,10 @@ export default function PropertyDetailPage() {
                               </svg>
                             </div>
                           )}
+                          <button
+                            onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
+                            className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded bg-black/60 hover:bg-blue-600 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
+                          >⤢</button>
                         </div>
                       )
                     })}
