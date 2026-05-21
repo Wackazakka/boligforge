@@ -68,6 +68,7 @@ export default function ProfilePage() {
   const audioChunksRef = useRef<Blob[]>([])
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
+  const voiceFileRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -110,6 +111,33 @@ export default function ProfilePage() {
     }
   }
 
+  async function submitClone(audioBlob: Blob, filename: string) {
+    setVoiceRecordState('cloning')
+    setVoiceRecordError('')
+    try {
+      const fd = new FormData()
+      fd.append('audio', audioBlob, filename)
+      fd.append('name', profile.name || 'Meglers stemme')
+      const res = await fetch('/api/profile/clone-voice', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Kloning feilet')
+      set('voice_id', data.voice_id)
+      setVoiceRecordState('done')
+    } catch (e: unknown) {
+      setVoiceRecordState('error')
+      setVoiceRecordError(e instanceof Error ? e.message : 'Ukjent feil')
+    }
+  }
+
+  async function cloneFromFile(file: File) {
+    if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
+      setVoiceRecordState('error')
+      setVoiceRecordError('Velg en lyd- eller videofil (mp3, wav, m4a, mp4…)')
+      return
+    }
+    await submitClone(file, file.name)
+  }
+
   async function startRecording() {
     setVoiceRecordError('')
     setVoiceRecordState('recording')
@@ -140,24 +168,9 @@ export default function ProfilePage() {
       return
     }
 
-    setVoiceRecordState('cloning')
     mr.onstop = async () => {
-      try {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        const fd = new FormData()
-        fd.append('audio', blob, 'recording.webm')
-        fd.append('name', profile.name || 'Meglers stemme')
-
-        const res = await fetch('/api/profile/clone-voice', { method: 'POST', body: fd })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Kloning feilet')
-
-        set('voice_id', data.voice_id)
-        setVoiceRecordState('done')
-      } catch (e: unknown) {
-        setVoiceRecordState('error')
-        setVoiceRecordError(e instanceof Error ? e.message : 'Ukjent feil')
-      }
+      const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+      await submitClone(blob, 'recording.webm')
     }
     mr.stop()
     mr.stream.getTracks().forEach(t => t.stop())
@@ -303,26 +316,49 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
             {/* Voice cloning */}
             <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
               <p className="text-sm font-medium text-gray-700 mb-1">Klon din stemme</p>
-              <p className="text-xs text-gray-500 mb-3">Les teksten under høyt, klikk Stopp, og vi lager en AI-klon av stemmen din.</p>
-              <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600 italic mb-4 leading-relaxed">
-                Velkommen til visning. Denne boligen byr på en fantastisk mulighet for deg som ønsker å bo sentralt med god plass og flott utsikt.
-                Her finner du romslige stuer, moderne kjøkken og en terrasse som er perfekt for sommerens uteserveringer.
-                Boligen ligger i et stille og barnevennlig nabolag, med kort vei til skoler, butikker og kollektivtransport.
-                Vi ser frem til å vise deg alt dette huset har å tilby.
+              <p className="text-xs text-gray-500 mb-3">
+                Ta opp minst 2 minutter, eller last opp en eksisterende lydfil. Jo mer lyd, desto bedre resultat.
+              </p>
+
+              {/* Reading text */}
+              <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600 mb-4 leading-relaxed max-h-48 overflow-y-auto">
+                <p className="mb-2">Velkommen til visning av denne flotte boligen. Jeg er glad for å kunne presentere et hjem som kombinerer moderne komfort med et rolig og barnevennlig nabolag. Her har du alt du trenger innen kort rekkevidde – skoler, barnehager, dagligvarebutikker og gode kollektivforbindelser.</p>
+                <p className="mb-2">La oss starte med å se på stuen, som er boligens naturlige samlingspunkt. Her er det god takhøyde, store vinduer som slipper inn rikelig med naturlig lys, og en åpen planløsning som gjør rommet luftig og innbydende. Peisen gir varme og stemning på kalde høst- og vinterkvelder.</p>
+                <p className="mb-2">Kjøkkenet er nyoppusset og utstyrt med integrerte hvitevarer av høy kvalitet. Benkeplaten er i laminat, og det er god lagringsplass i skuffer og skap. Her kan hele familien samles til middag eller frokost i helgene.</p>
+                <p className="mb-2">Soverommet er romslig og har plass til dobbeltseng med nattbord på begge sider. Det er innebygde garderobeskap langs én vegg, noe som gir god oppbevaringsplass. Soverommene mot bakgården er stille og lyse, med utsikt mot den velstelte hagen.</p>
+                <p>Uteplassen er en av boligens store kvaliteter. En romslig terrasse med sørvestlig orientering gir sol store deler av dagen, og hagen er lav i vedlikehold. Alt i alt er dette en bolig som passer perfekt for en familie som ønsker å bo godt, med plass til både hverdagsliv og festlige anledninger.</p>
               </div>
-              {voiceRecordState === 'idle' && (
-                <button
-                  onClick={startRecording}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
-                >
-                  <span className="w-2 h-2 rounded-full bg-white inline-block" /> Start opptak
-                </button>
+
+              {/* Record controls */}
+              {(voiceRecordState === 'idle' || voiceRecordState === 'error') && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={startRecording}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-white inline-block" /> Start opptak
+                  </button>
+                  <span className="text-xs text-gray-400">eller</span>
+                  <button
+                    onClick={() => voiceFileRef.current?.click()}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 hover:bg-white"
+                  >
+                    Last opp lydfil
+                  </button>
+                  <input
+                    ref={voiceFileRef}
+                    type="file"
+                    accept="audio/*,video/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) cloneFromFile(f); e.target.value = '' }}
+                  />
+                </div>
               )}
               {voiceRecordState === 'recording' && (
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-2 text-sm text-red-600 font-medium">
                     <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse inline-block" />
-                    Tar opp… {recordSeconds}s
+                    Tar opp… {recordSeconds}s {recordSeconds < 60 ? `(anbefalt: 120s+)` : ''}
                   </span>
                   <button
                     onClick={stopAndClone}
@@ -344,14 +380,11 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
               {voiceRecordState === 'done' && (
                 <div className="flex items-center gap-3">
                   <p className="text-sm text-green-600 font-medium">✓ Stemme klonet og lagret!</p>
-                  <button onClick={() => { setVoiceRecordState('idle'); setRecordSeconds(0) }} className="text-xs text-gray-400 hover:text-gray-600">Ta opp på nytt</button>
+                  <button onClick={() => { setVoiceRecordState('idle'); setRecordSeconds(0) }} className="text-xs text-gray-400 hover:text-gray-600 underline">Gjør om igjen</button>
                 </div>
               )}
               {voiceRecordState === 'error' && (
-                <div className="flex items-center gap-3">
-                  <p className="text-sm text-red-600">{voiceRecordError}</p>
-                  <button onClick={() => { setVoiceRecordState('idle'); setRecordSeconds(0) }} className="text-xs text-gray-400 hover:text-gray-600 underline">Prøv igjen</button>
-                </div>
+                <p className="text-sm text-red-600 mt-2">{voiceRecordError}</p>
               )}
             </div>
 
