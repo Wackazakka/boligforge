@@ -53,12 +53,12 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           input_image_urls: [portraitUrl, propertyImageUrl],
-          prompt: customPrompt || 'A professional real estate agent from <img><|image_1|></img> standing close to the camera in front of the house from <img><|image_2|></img>. The agent is prominent in the foreground, upper body and face clearly visible, occupying at least half the frame height. The house is visible behind them. Editorial real estate photography, natural lighting, shallow depth of field.',
-          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text',
+          prompt: customPrompt || 'Half-body portrait of the person from <img><|image_1|></img> standing in the foreground. The person is large, centered, and fills most of the frame from waist up. The house from <img><|image_2|></img> is visible softly blurred behind them. Professional real estate photography.',
+          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, tiny person, small figure, full body, wide shot',
           num_images: 1,
-          guidance_scale: 3.0,
-          img_guidance_scale: 1.6,
-          num_inference_steps: 15,
+          guidance_scale: 5.0,
+          img_guidance_scale: 1.8,
+          num_inference_steps: 20,
           image_size: 'landscape_16_9',
         }),
       })
