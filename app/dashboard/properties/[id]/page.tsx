@@ -484,6 +484,11 @@ export default function PropertyDetailPage() {
                       rows={2}
                       className="flex-1 text-sm text-gray-700 leading-relaxed rounded border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
                     />
+                    <button
+                      onClick={() => setSegments(prev => prev.filter((_, j) => j !== i))}
+                      title="Fjern segment"
+                      className="mt-1.5 text-gray-300 hover:text-red-500 transition-colors text-sm px-1"
+                    >✕</button>
                   </div>
                   <div className="flex gap-2 flex-wrap items-center">
                     <button
