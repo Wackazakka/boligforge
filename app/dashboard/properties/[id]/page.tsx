@@ -397,7 +397,7 @@ export default function PropertyDetailPage() {
           <div className="space-y-2">
             <img src={property.images[selectedImageIdx]} alt="" className="w-full h-64 object-cover rounded-xl" />
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {property.images.slice(0, 12).map((img, i) => (
+              {property.images.map((img, i) => (
                 <img
                   key={i}
                   src={img}
@@ -710,7 +710,7 @@ export default function PropertyDetailPage() {
 
               {/* Property image selector — reuses selectedImageIdx from gallery */}
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {property.images.slice(0, 12).map((img, i) => (
+                {property.images.map((img, i) => (
                   <img
                     key={i}
                     src={img}
