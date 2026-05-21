@@ -40,6 +40,7 @@ type Segment = {
   type: 'avatar' | 'image'
   imageUrl?: string
   previewingAudio?: boolean
+  previewAudioUrl?: string
 }
 
 type Outro = {
@@ -124,8 +125,8 @@ export default function PropertyDetailPage() {
     setSegments(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
   }
 
-  async function handlePreviewSegmentAudio(idx: number) {
-    if (!profile.voice_id) return
+  async function generateSegmentAudio(idx: number): Promise<string | null> {
+    if (!profile.voice_id) { setError('Ingen stemme valgt i profilen'); return null }
     updateSegment(idx, { previewingAudio: true })
     try {
       const res = await fetch('/api/profile/tts-preview', {
@@ -133,14 +134,31 @@ export default function PropertyDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: segments[idx].text, voiceId: profile.voice_id }),
       })
-      if (!res.ok) throw new Error('TTS feilet')
+      if (!res.ok) {
+        const msg = await res.text()
+        throw new Error(msg || `HTTP ${res.status}`)
+      }
       const blob = await res.blob()
-      new Audio(URL.createObjectURL(blob)).play()
-    } catch {
-      // silent
+      const url = URL.createObjectURL(blob)
+      updateSegment(idx, { previewAudioUrl: url })
+      return url
+    } catch (e) {
+      setError(`TTS-feil: ${String(e)}`)
+      return null
     } finally {
       updateSegment(idx, { previewingAudio: false })
     }
+  }
+
+  async function handlePlaySegmentAudio(idx: number) {
+    const seg = segments[idx]
+    const url = seg.previewAudioUrl ?? await generateSegmentAudio(idx)
+    if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
+  }
+
+  async function handleRegenSegmentAudio(idx: number) {
+    const url = await generateSegmentAudio(idx)
+    if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
   }
 
   async function handleSaveAvatar() {
@@ -447,13 +465,23 @@ export default function PropertyDetailPage() {
                     >
                       Boligbilde
                     </button>
-                    <button
-                      onClick={() => handlePreviewSegmentAudio(i)}
-                      disabled={seg.previewingAudio || !profile.voice_id}
-                      className="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors"
-                    >
-                      {seg.previewingAudio ? 'Genererer lyd...' : '▶ Hør / regenerer lyd'}
-                    </button>
+                    <div className="ml-auto flex gap-1.5">
+                      <button
+                        onClick={() => handlePlaySegmentAudio(i)}
+                        disabled={seg.previewingAudio || !profile.voice_id}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors"
+                      >
+                        {seg.previewingAudio ? '...' : '▶ Hør lyd'}
+                      </button>
+                      <button
+                        onClick={() => handleRegenSegmentAudio(i)}
+                        disabled={seg.previewingAudio || !profile.voice_id}
+                        title="Generer ny versjon av lyden"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors"
+                      >
+                        ⟳ Regenerer
+                      </button>
+                    </div>
                   </div>
                   {seg.type === 'image' && (
                     <div className="space-y-1.5">
