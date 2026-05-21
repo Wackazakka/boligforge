@@ -776,7 +776,7 @@ export default function PropertyDetailPage() {
         {videoUrl && (
           <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
             <h2 className="font-semibold text-gray-900">Ferdig video</h2>
-            <video src={videoUrl} controls className="w-full rounded-lg" />
+            <video src={videoUrl} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
             <a
               href={videoUrl}
               download
