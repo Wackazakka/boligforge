@@ -44,22 +44,23 @@ export async function POST(request: Request) {
         return Response.json({ error: 'Mangler propertyImageUrl for property_front' }, { status: 400 })
       }
 
-      // OmniGen: composites the actual face + actual property image
-      falRes = await fetch('https://fal.run/fal-ai/omnigen-v1', {
+      // Ideogram Character: face from portrait, property as visual reference in prompt
+      falRes = await fetch('https://fal.run/fal-ai/ideogram/character', {
         method: 'POST',
         headers: {
           'Authorization': `Key ${process.env.FAL_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          input_image_urls: [portraitUrl, propertyImageUrl],
-          prompt: customPrompt || 'Half-body portrait of the person from <img><|image_1|></img> standing in the foreground. The person is large, centered, and fills most of the frame from waist up. The house from <img><|image_2|></img> is visible softly blurred behind them. Professional real estate photography.',
-          negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text, tiny person, small figure, full body, wide shot',
+          reference_image_urls: [portraitUrl, propertyImageUrl],
+          prompt: customPrompt || 'A professional Norwegian real estate agent standing confidently outdoors in front of a house. Half-body shot, agent fills the frame from waist up, face clearly visible. The house from the second reference image is visible behind them, slightly out of focus. Editorial real estate photography, natural daylight.',
+          negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, tiny person, full body shot, small figure',
+          rendering_speed: 'QUALITY',
+          style: 'REALISTIC',
+          expand_prompt: false,
           num_images: 1,
-          guidance_scale: 5.0,
-          img_guidance_scale: 1.8,
-          num_inference_steps: 20,
           image_size: 'landscape_16_9',
+          seed: Math.floor(Math.random() * 999999999),
         }),
       })
     } else {

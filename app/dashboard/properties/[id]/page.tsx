@@ -669,7 +669,7 @@ export default function PropertyDetailPage() {
                       src={s.image_url}
                       alt={s.setting_type}
                       onClick={() => setSelectedAvatarUrl(s.image_url)}
-                      className="w-24 h-32 object-cover cursor-pointer"
+                      className="w-40 h-24 object-cover cursor-pointer"
                     />
                     <button
                       onClick={() => handleDeleteSettingImage(s)}
