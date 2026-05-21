@@ -109,9 +109,9 @@ export async function POST(request: Request) {
     const bgWidth = bgMeta.width ?? 1200
     const bgHeight = bgMeta.height ?? 800
 
-    // Resize agent: max 90% height, 75% width — fit:inside preserves aspect ratio
-    const maxAgentHeight = Math.round(bgHeight * 0.90)
-    const maxAgentWidth = Math.round(bgWidth * 0.75)
+    // Resize agent: 130% height (crops into frame), 90% width — fit:inside preserves aspect ratio
+    const maxAgentHeight = Math.round(bgHeight * 1.30)
+    const maxAgentWidth = Math.round(bgWidth * 0.90)
     const agentPng = await sharp(cutoutBuffer)
       .resize({ height: maxAgentHeight, width: maxAgentWidth, fit: 'inside', withoutEnlargement: false })
       .png()
