@@ -61,6 +61,7 @@ export default function PropertyDetailPage() {
   const [error, setError] = useState('')
   const [statusMsg, setStatusMsg] = useState('')
   const [selectedImageIdx, setSelectedImageIdx] = useState(0)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [selectedVideoImages, setSelectedVideoImages] = useState<string[]>([])
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -240,6 +241,14 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <img src={lightboxUrl} alt="" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" />
+        </div>
+      )}
       <div className="max-w-4xl mx-auto space-y-8">
 
         {/* Header */}
@@ -347,6 +356,13 @@ export default function PropertyDetailPage() {
                       className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-red-600 flex items-center justify-center text-white text-xs transition-colors"
                     >
                       ✕
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); setLightboxUrl(s.image_url) }}
+                      title="Forstørr"
+                      className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-blue-600 flex items-center justify-center text-white text-xs transition-colors"
+                    >
+                      ⤢
                     </button>
                   </div>
                 ))}
