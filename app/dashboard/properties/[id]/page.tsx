@@ -39,6 +39,8 @@ type Segment = {
   text: string
   type: 'avatar' | 'image'
   imageUrl?: string
+  audioUrl?: string
+  previewingAudio?: boolean
 }
 
 type SettingImage = {
@@ -90,14 +92,10 @@ export default function PropertyDetailPage() {
 
   function splitIntoSegments(text: string) {
     const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
-    const result: Segment[] = []
-    for (let i = 0; i < sentences.length; i += 2) {
-      const s1 = sentences[i]?.trim() || ''
-      const s2 = sentences[i + 1]?.trim() || ''
-      const combined = s2 ? `${s1} ${s2}` : s1
-      if (combined.trim()) result.push({ id: result.length, text: combined.trim(), type: 'avatar' })
-    }
-    return result
+    return sentences
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .map((s, i) => ({ id: i, text: s, type: 'avatar' as const }))
   }
 
   function handleSplitSegments() {
@@ -107,6 +105,27 @@ export default function PropertyDetailPage() {
 
   function updateSegment(idx: number, patch: Partial<Segment>) {
     setSegments(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+  }
+
+  async function handlePreviewSegmentAudio(idx: number) {
+    if (!profile.voice_id) return
+    const seg = segments[idx]
+    updateSegment(idx, { previewingAudio: true })
+    try {
+      const res = await fetch('/api/profile/tts-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: seg.text, voiceId: profile.voice_id }),
+      })
+      if (!res.ok) throw new Error('TTS feilet')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      updateSegment(idx, { audioUrl: url, previewingAudio: false })
+      const audio = new Audio(url)
+      audio.play()
+    } catch {
+      updateSegment(idx, { previewingAudio: false })
+    }
   }
 
   async function handleSaveAvatar() {
@@ -391,7 +410,7 @@ export default function PropertyDetailPage() {
               {segments.map((seg, i) => (
                 <div key={seg.id} className="border border-gray-100 rounded-lg p-4 space-y-3">
                   <p className="text-sm text-gray-700 leading-relaxed">{i + 1}. {seg.text}</p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap items-center">
                     <button
                       onClick={() => updateSegment(i, { type: 'avatar', imageUrl: undefined })}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${seg.type === 'avatar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
@@ -403,6 +422,13 @@ export default function PropertyDetailPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${seg.type === 'image' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                       Boligbilde
+                    </button>
+                    <button
+                      onClick={() => handlePreviewSegmentAudio(i)}
+                      disabled={seg.previewingAudio || !profile.voice_id}
+                      className="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors"
+                    >
+                      {seg.previewingAudio ? 'Laster...' : seg.audioUrl ? '▶ Spill på nytt' : '▶ Hør lyd'}
                     </button>
                   </div>
                   {seg.type === 'image' && (

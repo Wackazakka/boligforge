@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     const left = Math.max(0, Math.round((bgWidth - agentWidth) / 2))
     const top = Math.max(0, bgHeight - agentHeight - Math.round(bgHeight * 0.02))
 
-    const blurredBg = await sharp(propertyBuffer).blur(4).toBuffer()
+    const blurredBg = await sharp(propertyBuffer).blur(1.5).toBuffer()
 
     const composited = await sharp(blurredBg)
       .composite([{ input: agentPng, left, top, blend: 'over' }])
