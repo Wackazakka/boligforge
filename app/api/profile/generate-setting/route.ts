@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           input_image_urls: [portraitUrl, propertyImageUrl],
-          prompt: customPrompt || 'A professional real estate agent from <img><|image_1|></img> standing confidently in front of the house from <img><|image_2|></img>. The agent looks confident, wearing business casual attire. Editorial real estate photography, natural lighting.',
+          prompt: customPrompt || 'A professional real estate agent from <img><|image_1|></img> standing close to the camera in front of the house from <img><|image_2|></img>. The agent is prominent in the foreground, upper body and face clearly visible, occupying at least half the frame height. The house is visible behind them. Editorial real estate photography, natural lighting, shallow depth of field.',
           negative_prompt: 'blurry, distorted face, extra fingers, bad anatomy, watermark, text',
           num_images: 1,
           guidance_scale: 3.0,
