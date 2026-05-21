@@ -60,6 +60,7 @@ export default function ProfilePage() {
   const [saveError, setSaveError] = useState('')
   const [customPrompts, setCustomPrompts] = useState<Record<string, string>>(SETTING_PROMPTS)
   const [showPrompt, setShowPrompt] = useState<Record<string, boolean>>({})
+  const [lightbox, setLightbox] = useState<string | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -358,7 +359,12 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                         </div>
                       ) : existing ? (
                         <>
-                          <img src={existing.image_url} alt={s.label} className="w-full h-full object-cover" />
+                          <img
+                            src={existing.image_url}
+                            alt={s.label}
+                            className="w-full h-full object-cover cursor-zoom-in"
+                            onClick={() => setLightbox(existing.image_url)}
+                          />
                           <span className="absolute bottom-1 left-1 text-[10px] text-white/70 bg-black/40 rounded px-1">
                             {new Date(existing.created_at).toLocaleTimeString('no', { hour: '2-digit', minute: '2-digit' })}
                           </span>
@@ -417,6 +423,26 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           {saveError && <span className="text-sm text-red-600">{saveError}</span>}
         </div>
       </div>
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <img
+            src={lightbox}
+            alt="Forstørret"
+            className="max-w-full max-h-full rounded-xl shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-9 h-9 flex items-center justify-center text-lg"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   )
 }
