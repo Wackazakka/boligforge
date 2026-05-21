@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     // Re-host images to R2 via scraper VPS (Netlify can't fetch Finn.no CDN directly)
     const finnImages: string[] = data.images || []
     const rehostedImages = await Promise.all(
-      finnImages.slice(0, 12).map((imgUrl, i) => rehostImage(imgUrl, i))
+      finnImages.map((imgUrl, i) => rehostImage(imgUrl, i))
     )
 
     const supabase = getSupabase()
