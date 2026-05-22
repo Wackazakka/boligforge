@@ -8,11 +8,12 @@ export const maxDuration = 60
 
 const WORKER_URL = 'http://139.59.212.218:3003'
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jvnavubholyvihvytqkn.supabase.co'
+
 function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error(`Supabase env mangler: url=${!!url} key=${!!key}`)
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
+  if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY mangler')
+  return createClient(SUPABASE_URL, key, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 
 export async function POST(request: Request) {
