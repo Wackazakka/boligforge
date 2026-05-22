@@ -284,13 +284,21 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Foretrukket stemme</label>
-              {/* Show cloned voice if active */}
-              {profile.voice_id && !VOICES.find(v => v.id === profile.voice_id) && (
-                <div className="px-3 py-2 rounded-lg border border-green-500 bg-green-50 text-green-800 text-sm font-medium mb-2">
-                  ✓ Din klonede stemme er aktiv — ta nytt opptak nedenfor for å bytte
-                </div>
-              )}
               <div className="grid grid-cols-1 gap-2">
+                {/* Cloned voice appears first if set */}
+                {profile.voice_id && !VOICES.find(v => v.id === profile.voice_id) && (
+                  <button
+                    key="cloned"
+                    type="button"
+                    onClick={async () => {
+                      // already active — no-op
+                    }}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg border border-blue-500 bg-blue-50 text-blue-800 text-sm font-medium text-left"
+                  >
+                    <span>🎙 Din klonede stemme</span>
+                    <span className="text-xs text-blue-500">Aktiv</span>
+                  </button>
+                )}
                 {VOICES.map(v => (
                   <button
                     key={v.id}
