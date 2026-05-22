@@ -646,52 +646,53 @@ export default function PropertyDetailPage() {
                 </div>
               )}
 
+              {/* Varighet — kun når outro-bilder er valgt */}
               {outro.images.length > 0 && (
-                <div className="space-y-3 border-t border-gray-100 pt-3">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs text-gray-600 w-36 shrink-0">Varighet per bilde</label>
-                    <input
-                      type="range" min={2} max={10} step={1}
-                      value={outro.durationPerImage}
-                      onChange={e => setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) }))}
-                      className="flex-1"
-                    />
-                    <span className="text-xs text-gray-600 w-12 text-right">{outro.durationPerImage} sek</span>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs text-gray-600">Bakgrunnsmusikk (valgfritt)</label>
-                      <label className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${uploadingMusic ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                        {uploadingMusic ? 'Laster opp...' : '+ Last opp MP3'}
-                        <input type="file" accept="audio/*" className="hidden" onChange={handleMusicUpload} disabled={uploadingMusic} />
-                      </label>
-                    </div>
-
-                    {musicFiles.length > 0 && (
-                      <div className="space-y-1">
-                        {musicFiles.map(f => (
-                          <div
-                            key={f.id}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${outro.musicUrl === f.url ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
-                            onClick={() => setOutro(o => ({ ...o, musicUrl: outro.musicUrl === f.url ? '' : f.url }))}
-                          >
-                            <span className="text-sm">{outro.musicUrl === f.url ? '♪' : '○'}</span>
-                            <span className="text-sm text-gray-700 flex-1 truncate">{f.name}</span>
-                            <button
-                              onClick={e => { e.stopPropagation(); handleDeleteMusic(f.id, f.url) }}
-                              className="text-gray-300 hover:text-red-500 text-xs px-1 transition-colors"
-                            >✕</button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {musicFiles.length === 0 && !uploadingMusic && (
-                      <p className="text-xs text-gray-400">Last opp en MP3-fil. Musikken loopes og fades ut på slutten av outtoen.</p>
-                    )}
-                  </div>
+                <div className="flex items-center gap-3 border-t border-gray-100 pt-3">
+                  <label className="text-xs text-gray-600 w-36 shrink-0">Varighet per bilde</label>
+                  <input
+                    type="range" min={2} max={10} step={1}
+                    value={outro.durationPerImage}
+                    onChange={e => setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) }))}
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-gray-600 w-12 text-right">{outro.durationPerImage} sek</span>
                 </div>
               )}
+
+              {/* Musikk — vises alltid når segmenter er aktive */}
+              <div className="space-y-2 border-t border-gray-100 pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-gray-600">Bakgrunnsmusikk (valgfritt)</label>
+                  <label className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${uploadingMusic ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                    {uploadingMusic ? 'Laster opp...' : '+ Last opp MP3'}
+                    <input type="file" accept="audio/*" className="hidden" onChange={handleMusicUpload} disabled={uploadingMusic} />
+                  </label>
+                </div>
+
+                {musicFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {musicFiles.map(f => (
+                      <div
+                        key={f.id}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${outro.musicUrl === f.url ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                        onClick={() => setOutro(o => ({ ...o, musicUrl: outro.musicUrl === f.url ? '' : f.url }))}
+                      >
+                        <span className="text-sm">{outro.musicUrl === f.url ? '♪' : '○'}</span>
+                        <span className="text-sm text-gray-700 flex-1 truncate">{f.name}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDeleteMusic(f.id, f.url) }}
+                          className="text-gray-300 hover:text-red-500 text-xs px-1 transition-colors"
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {musicFiles.length === 0 && !uploadingMusic && (
+                  <p className="text-xs text-gray-400">Ingen musikk lastet opp ennå. Last opp en MP3 — den loopes og fades ut.</p>
+                )}
+              </div>
             </div>
           )
         })()}
