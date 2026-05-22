@@ -90,7 +90,12 @@ export async function POST(request: Request) {
 
     if (!workerRes.ok) {
       const err = await workerRes.json().catch(() => ({ error: 'Worker feil' }))
-      return NextResponse.json({ error: err.error || 'Worker feilet ved oppstart' }, { status: 500 })
+      const rawErr = typeof err.error === 'string' ? err.error : 'Worker feilet ved oppstart'
+      // Worker-feil stammer fra dropleten (139.59.212.218), ikke fra BoligForge.
+      const friendly = rawErr.includes('supabaseUrl is required')
+        ? 'Video-tjenesten er feilkonfigurert (mangler Supabase-URL på serveren). Kontakt support.'
+        : rawErr
+      return NextResponse.json({ error: friendly }, { status: 500 })
     }
 
     // ── Increment usage ──────────────────────────────────────────────────────
