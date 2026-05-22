@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
-import { createSupabaseServerClient, getUser } from '../../../lib/supabase/server'
+import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 const WORKER_URL = 'http://139.59.212.218:3003'
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         property_id: propertyId,
         script: scriptText,
         status: 'queued',
-      }).then(({ error }) => { if (error) console.warn('[video/generate] production_jobs insert:', error.message) })
+      }).then(({ error: insertErr }) => { if (insertErr) console.warn('[video/generate] production_jobs insert:', insertErr.message) })
     }
 
     // Dispatch to droplet worker
