@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 // Lightweight route: receives fal.ai image URL, re-hosts on R2, saves to Supabase
 // Called by client after fal.subscribe() completes — well under 10s
@@ -15,15 +15,11 @@ function getR2() {
   })
 }
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
-
 export async function POST(request: Request) {
   try {
+    const user = await getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { falImageUrl, setting } = await request.json()
     if (!falImageUrl || !setting) {
       return Response.json({ error: 'Missing falImageUrl or setting' }, { status: 400 })
@@ -38,16 +34,17 @@ export async function POST(request: Request) {
     const ext = contentType.includes('png') ? 'png' : 'jpg'
 
     const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-    const key = `boligforge/agent/settings/${setting}_${Date.now()}.${ext}`
+    const key = `boligforge/agent/settings/${user.id}/${setting}_${Date.now()}.${ext}`
 
     await getR2().send(
       new PutObjectCommand({ Bucket: bucket, Key: key, Body: imgBuffer, ContentType: contentType })
     )
     const url = `${process.env.R2_PUBLIC_URL}/${key}`
 
-    const { data: row } = await getSupabase()
+    const supabase = await createSupabaseServerClient()
+    const { data: row } = await supabase
       .from('agent_settings_images')
-      .insert({ setting_type: setting, image_url: url })
+      .insert({ setting_type: setting, image_url: url, user_id: user.id })
       .select('id')
       .single()
 

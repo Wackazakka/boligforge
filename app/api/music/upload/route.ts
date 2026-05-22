@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 export const maxDuration = 30
 
@@ -14,15 +14,11 @@ function getR2() {
   })
 }
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
-
 export async function POST(request: Request) {
   try {
+    const user = await getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
     const form = await request.formData()
     const file = form.get('file')
     if (!file || !(file instanceof File)) {
@@ -33,7 +29,6 @@ export async function POST(request: Request) {
     }
 
     const buf = Buffer.from(await file.arrayBuffer())
-    const ext = file.name.split('.').pop() || 'mp3'
     const key = `boligforge/music/${Date.now()}_${file.name.replace(/[^a-z0-9._-]/gi, '_')}`
 
     await getR2().send(new PutObjectCommand({
@@ -45,8 +40,8 @@ export async function POST(request: Request) {
 
     const url = `${process.env.R2_PUBLIC_URL}/${key}`
 
-    // Save to Supabase — best effort (table may not exist yet)
-    const { data: row } = await getSupabase()
+    const supabase = await createSupabaseServerClient()
+    const { data: row } = await supabase
       .from('music_files')
       .insert({ name: file.name, url })
       .select('id')

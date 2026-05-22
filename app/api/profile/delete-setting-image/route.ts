@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 function getR2() {
   return new S3Client({
@@ -13,23 +13,20 @@ function getR2() {
   })
 }
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
-
 export async function DELETE(request: Request) {
   try {
+    const user = await getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { id, imageUrl } = await request.json()
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-    // Delete from Supabase
-    const { error } = await getSupabase()
+    const supabase = await createSupabaseServerClient()
+    const { error } = await supabase
       .from('agent_settings_images')
       .delete()
       .eq('id', id)
+      .eq('user_id', user.id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

@@ -1,14 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
+import { createSupabaseServerClient, getUser } from '../../../lib/supabase/server'
 
 export async function GET() {
-  const { data, error } = await getSupabase()
+  const user = await getUser()
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase
     .from('music_files')
     .select('id, name, url, created_at')
     .order('created_at', { ascending: false })
@@ -19,8 +16,13 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  const user = await getUser()
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id } = await request.json()
   if (!id) return Response.json({ error: 'Mangler id' }, { status: 400 })
-  await getSupabase().from('music_files').delete().eq('id', id)
+
+  const supabase = await createSupabaseServerClient()
+  await supabase.from('music_files').delete().eq('id', id)
   return Response.json({ ok: true })
 }
