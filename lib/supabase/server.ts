@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { unstable_noStore } from 'next/cache'
 
@@ -24,7 +25,41 @@ export async function createSupabaseServerClient() {
 }
 
 export async function getUser() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  // Prøv SSR-klient først
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    return user
+  } catch {
+    // Fallback: les token direkte fra cookie og verifiser med service role
+    try {
+      const cookieStore = await cookies()
+      const allCookies = cookieStore.getAll()
+
+      // Supabase lagrer auth-token i cookies som starter med 'sb-'
+      const authCookies = allCookies
+        .filter(c => /^sb-.+-auth-token/.test(c.name))
+        .sort((a, b) => a.name.localeCompare(b.name))
+
+      if (!authCookies.length) return null
+
+      // Token kan være delt i chunks — sett dem sammen
+      const rawValue = authCookies.map(c => c.value).join('')
+      const tokenData = JSON.parse(rawValue)
+      const accessToken = Array.isArray(tokenData) ? tokenData[0] : tokenData?.access_token
+
+      if (!accessToken) return null
+
+      const serviceClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+
+      const { data: { user } } = await serviceClient.auth.getUser(accessToken)
+      return user
+    } catch {
+      return null
+    }
+  }
 }
