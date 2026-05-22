@@ -284,6 +284,24 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Foretrukket stemme</label>
+              {/* Show cloned voice if active */}
+              {profile.voice_id && !VOICES.find(v => v.id === profile.voice_id) && (
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-green-500 bg-green-50 text-green-800 text-sm font-medium mb-2">
+                  <span>✓ Din klonede stemme (aktiv)</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      set('voice_id', '')
+                      await fetch('/api/profile/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...profile, voice_id: '' }),
+                      })
+                    }}
+                    className="text-xs text-green-600 hover:text-red-600 underline ml-2"
+                  >Fjern</button>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-2">
                 {VOICES.map(v => (
                   <button
