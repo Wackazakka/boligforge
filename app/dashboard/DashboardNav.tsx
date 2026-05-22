@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 const BASE_LINKS = [
   { href: '/dashboard/properties', label: 'Eiendommer' },
   { href: '/dashboard/profile', label: 'Profil' },
+  { href: '/dashboard/billing', label: 'Fakturering' },
 ]
 
 export default function DashboardNav() {

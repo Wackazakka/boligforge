@@ -83,6 +83,7 @@ export default function PropertyDetailPage() {
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
+  const [noCreditsModal, setNoCreditsModal] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -352,6 +353,12 @@ export default function PropertyDetailPage() {
     })
 
     const data = await res.json()
+    if (res.status === 402 && data.code === 'NO_CREDITS') {
+      setGeneratingVideo(false)
+      setStatusMsg('')
+      setNoCreditsModal(true)
+      return
+    }
     if (data.error) {
       setGeneratingVideo(false)
       setStatusMsg('')
@@ -373,6 +380,33 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* No credits modal */}
+      {noCreditsModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center">
+            <div className="text-4xl mb-3">🎬</div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Ingen videokreditter igjen</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Du har brukt opp alle inkluderte videoer denne måneden. Kredittene nullstilles 1. i neste måned.
+            </p>
+            <div className="flex flex-col gap-2">
+              <a
+                href="/dashboard/billing"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+              >
+                Se fakturering
+              </a>
+              <button
+                onClick={() => setNoCreditsModal(false)}
+                className="w-full text-sm text-gray-400 hover:text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50"
+              >
+                Lukk
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {lightboxUrl && (
         <div
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
