@@ -3,14 +3,27 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { useEffect, useState } from 'react'
 
-const LINKS = [
+const BASE_LINKS = [
   { href: '/dashboard/properties', label: 'Eiendommer' },
   { href: '/dashboard/profile', label: 'Profil' },
 ]
 
 export default function DashboardNav() {
   const pathname = usePathname()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/org/me')
+      .then(r => r.json())
+      .then(d => { if (d.role === 'admin') setIsAdmin(true) })
+      .catch(() => {})
+  }, [])
+
+  const links = isAdmin
+    ? [...BASE_LINKS, { href: '/dashboard/admin', label: 'Admin' }]
+    : BASE_LINKS
 
   async function handleLogout() {
     const supabase = createBrowserClient(
@@ -24,7 +37,7 @@ export default function DashboardNav() {
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-0 flex items-center gap-1 h-12">
       <span className="text-sm font-bold text-gray-900 mr-4">BoligForge</span>
-      {LINKS.map(link => {
+      {links.map(link => {
         const active = pathname.startsWith(link.href)
         return (
           <Link
