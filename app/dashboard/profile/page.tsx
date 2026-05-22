@@ -32,6 +32,7 @@ type Profile = {
   email?: string
   website?: string
   voice_id?: string
+  cloned_voice_id?: string
   tone_of_voice?: string
   hashtags?: string
   logo_url?: string
@@ -122,6 +123,7 @@ export default function ProfilePage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Kloning feilet')
       set('voice_id', data.voice_id)
+      set('cloned_voice_id', data.voice_id)
       setVoiceRecordState('done')
     } catch (e: unknown) {
       setVoiceRecordState('error')
@@ -285,18 +287,26 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Foretrukket stemme</label>
               <div className="grid grid-cols-1 gap-2">
-                {/* Cloned voice appears first if set */}
-                {profile.voice_id && !VOICES.find(v => v.id === profile.voice_id) && (
+                {/* Cloned voice — always visible once set */}
+                {profile.cloned_voice_id && (
                   <button
-                    key="cloned"
                     type="button"
                     onClick={async () => {
-                      // already active — no-op
+                      set('voice_id', profile.cloned_voice_id!)
+                      await fetch('/api/profile/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...profile, voice_id: profile.cloned_voice_id }),
+                      })
                     }}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg border border-blue-500 bg-blue-50 text-blue-800 text-sm font-medium text-left"
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
+                      profile.voice_id === profile.cloned_voice_id
+                        ? 'border-blue-500 bg-blue-50 text-blue-800 font-medium'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
                   >
                     <span>🎙 Din klonede stemme</span>
-                    <span className="text-xs text-blue-500">Aktiv</span>
+                    {profile.voice_id === profile.cloned_voice_id && <span className="text-xs text-blue-500">Aktiv</span>}
                   </button>
                 )}
                 {VOICES.map(v => (

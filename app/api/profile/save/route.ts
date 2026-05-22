@@ -11,7 +11,7 @@ function getSupabase() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, title, phone, email, website, voice_id, tone_of_voice, hashtags, portrait_url } = body
+    const { name, title, phone, email, website, voice_id, cloned_voice_id, tone_of_voice, hashtags, portrait_url } = body
 
     const supabase = getSupabase()
     const { error } = await supabase.from('agent_profiles').upsert(
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
         email,
         website,
         default_voice_id: voice_id,
+        ...(cloned_voice_id !== undefined ? { cloned_voice_id } : {}),
         tone_of_voice,
         hashtags,
         ...(portrait_url !== undefined ? { portrait_url } : {}),

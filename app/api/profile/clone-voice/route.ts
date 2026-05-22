@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const { error: dbError } = await getSupabase()
       .from('agent_profiles')
       .upsert(
-        { user_id: USER_ID, default_voice_id: voiceId },
+        { user_id: USER_ID, default_voice_id: voiceId, cloned_voice_id: voiceId },
         { onConflict: 'user_id' }
       )
 

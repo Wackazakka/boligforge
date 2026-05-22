@@ -18,6 +18,6 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({})
-  const { default_voice_id, ...rest } = data
-  return NextResponse.json({ ...rest, voice_id: default_voice_id })
+  const { default_voice_id, cloned_voice_id, ...rest } = data
+  return NextResponse.json({ ...rest, voice_id: default_voice_id, cloned_voice_id })
 }
