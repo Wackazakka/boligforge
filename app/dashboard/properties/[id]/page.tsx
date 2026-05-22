@@ -84,6 +84,7 @@ export default function PropertyDetailPage() {
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [noCreditsModal, setNoCreditsModal] = useState(false)
+  const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string }[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -100,6 +101,9 @@ export default function PropertyDetailPage() {
     })
     fetch('/api/music').then(r => r.json()).then(d => {
       if (Array.isArray(d.files)) setMusicFiles(d.files)
+    })
+    fetch(`/api/properties/videos?propertyId=${id}`).then(r => r.json()).then(d => {
+      if (Array.isArray(d)) setPastVideos(d)
     })
   }, [id])
 
@@ -294,6 +298,9 @@ export default function PropertyDetailPage() {
           setActiveJobId(null)
           setStatusMsg('')
           setVideoUrl(data.videoUrl)
+          if (data.videoUrl) {
+            setPastVideos(prev => [{ id: jobId, video_url: data.videoUrl, created_at: new Date().toISOString() }, ...prev])
+          }
         } else if (data.status === 'failed') {
           clearInterval(pollRef.current!)
           pollRef.current = null
@@ -914,18 +921,38 @@ export default function PropertyDetailPage() {
           </button>
         </div>
 
-        {/* Video result */}
+        {/* Video result — ny video */}
         {videoUrl && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
             <h2 className="font-semibold text-gray-900">Ferdig video</h2>
             <video src={videoUrl} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
-            <a
-              href={videoUrl}
-              download
-              className="inline-block text-sm text-blue-600 hover:underline"
-            >
+            <a href={videoUrl} download className="inline-block text-sm text-blue-600 hover:underline">
               Last ned video
             </a>
+          </div>
+        )}
+
+        {/* Videohistorikk */}
+        {pastVideos.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <h2 className="font-semibold text-gray-900">
+              Tidligere videoer
+              <span className="ml-2 text-xs font-normal text-gray-400">{pastVideos.length} stk</span>
+            </h2>
+            <div className="space-y-3">
+              {pastVideos.map((v, i) => (
+                <div key={v.id} className="space-y-1.5">
+                  <p className="text-xs text-gray-400">
+                    {i === 0 && !videoUrl ? 'Siste' : `#${pastVideos.length - i}`} —{' '}
+                    {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <video src={v.video_url} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
+                  <a href={v.video_url} download className="inline-block text-sm text-blue-600 hover:underline">
+                    Last ned
+                  </a>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
