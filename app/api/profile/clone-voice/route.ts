@@ -1,18 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 export const maxDuration = 60
 
-const USER_ID = '00000000-0000-0000-0000-000000000001'
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
-
 export async function POST(request: Request) {
   try {
+    const user = await getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
     const formData = await request.formData()
     const audio = formData.get('audio') as File | null
     const name = (formData.get('name') as string) || 'Meglers stemme'
@@ -50,10 +44,11 @@ export async function POST(request: Request) {
     }
 
     // Save voice_id to agent profile
-    const { error: dbError } = await getSupabase()
+    const supabase = await createSupabaseServerClient()
+    const { error: dbError } = await supabase
       .from('agent_profiles')
       .upsert(
-        { user_id: USER_ID, default_voice_id: voiceId, cloned_voice_id: voiceId },
+        { user_id: user.id, default_voice_id: voiceId, cloned_voice_id: voiceId },
         { onConflict: 'user_id' }
       )
 

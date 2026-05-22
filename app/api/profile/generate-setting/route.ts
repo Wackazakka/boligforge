@@ -44,7 +44,8 @@ export async function POST(request: Request) {
         return Response.json({ error: 'Mangler propertyImageUrl for property_front' }, { status: 400 })
       }
 
-      // Ideogram Character: face from portrait, property as visual reference in prompt
+      // Ideogram Character: only portrait as reference — house described in prompt, not as ref image
+      // (Using house as ref image causes Ideogram to place person at realistic distance from building)
       falRes = await fetch('https://fal.run/fal-ai/ideogram/character', {
         method: 'POST',
         headers: {
@@ -52,8 +53,8 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reference_image_urls: [portraitUrl, propertyImageUrl],
-          prompt: customPrompt || 'Close-up portrait of a professional Norwegian real estate agent standing outdoors. The agent dominates the frame, shown from chest to top of head, face sharp and prominent. The property from the reference image is softly blurred in the background. Natural daylight, editorial real estate photography style.',
+          reference_image_urls: [portraitUrl],
+          prompt: customPrompt || 'Professional portrait photo of a Norwegian real estate agent. Upper body and face fill most of the frame. Shot from waist up, face large and sharp. A beautiful Norwegian house with garden is softly blurred in the background behind them. Outdoor natural daylight, editorial real estate photography.',
           negative_prompt: 'full body, tiny person, small figure, distant, far away, wide shot, whole body visible, blurry face, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon',
           rendering_speed: 'QUALITY',
           style: 'REALISTIC',

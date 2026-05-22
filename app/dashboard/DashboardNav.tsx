@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
 
 const LINKS = [
   { href: '/dashboard/properties', label: 'Eiendommer' },
@@ -10,6 +11,15 @@ const LINKS = [
 
 export default function DashboardNav() {
   const pathname = usePathname()
+
+  async function handleLogout() {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-0 flex items-center gap-1 h-12">
@@ -30,6 +40,12 @@ export default function DashboardNav() {
           </Link>
         )
       })}
+      <button
+        onClick={handleLogout}
+        className="ml-auto text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
+      >
+        Logg ut
+      </button>
     </nav>
   )
 }

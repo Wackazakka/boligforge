@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 function getR2() {
   return new S3Client({
@@ -13,15 +13,11 @@ function getR2() {
   })
 }
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
-
 export async function POST(request: Request) {
   try {
+    const user = await getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const type = formData.get('type') as string
@@ -32,7 +28,7 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const ext = file.name.split('.').pop() || 'jpg'
-    const key = `boligforge/agent/${type}.${ext}`
+    const key = `boligforge/agent/${user.id}/${type}.${ext}`
     const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 
     await getR2().send(
@@ -42,8 +38,9 @@ export async function POST(request: Request) {
     const url = `${process.env.R2_PUBLIC_URL}/${key}`
     const updateField = type === 'logo' ? { logo_url: url } : { portrait_url: url }
 
-    await getSupabase().from('agent_profiles').upsert(
-      { user_id: '00000000-0000-0000-0000-000000000001', ...updateField },
+    const supabase = await createSupabaseServerClient()
+    await supabase.from('agent_profiles').upsert(
+      { user_id: user.id, ...updateField },
       { onConflict: 'user_id' }
     )
 
