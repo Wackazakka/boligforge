@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
-import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+import { getUser } from '../../../../lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 const WORKER_URL = 'http://139.59.212.218:3003'
+
+function getServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error(`Supabase env mangler: url=${!!url} key=${!!key}`)
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
+}
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Mangler voiceId eller avatarImageUrl' }, { status: 400 })
     }
 
-    const supabase = await createSupabaseServerClient()
+    const supabase = getServiceClient()
 
     // ── Credit check ────────────────────────────────────────────────────────
     let { data: credits } = await supabase
