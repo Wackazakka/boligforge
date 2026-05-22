@@ -19,11 +19,11 @@ export async function GET(request: Request) {
   if (!propertyId) return NextResponse.json({ error: 'Mangler propertyId' }, { status: 400 })
 
   const { data, error } = await getServiceClient()
-    .from('production_jobs')
-    .select('id, video_url, created_at, status')
+    .from('property_videos')
+    .select('id, video_url, created_at')
     .eq('property_id', propertyId)
-    .eq('status', 'done')
     .not('video_url', 'is', null)
+    .neq('video_url', '')
     .order('created_at', { ascending: false })
     .limit(10)
 

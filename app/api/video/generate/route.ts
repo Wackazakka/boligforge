@@ -68,14 +68,14 @@ export async function POST(request: Request) {
     const jobId = randomUUID()
     const scriptText = useSegments ? segments.map((s: { text: string }) => s.text).join(' ') : script
 
-    // Create a pending job record
+    // Create a pending job record in property_videos
     if (propertyId) {
-      supabase.from('production_jobs').insert({
+      supabase.from('property_videos').insert({
         id: jobId,
         property_id: propertyId,
-        script: scriptText,
-        status: 'queued',
-      }).then(({ error: insertErr }) => { if (insertErr) console.warn('[video/generate] production_jobs insert:', insertErr.message) })
+        user_id: user.id,
+        video_url: '',
+      }).then(({ error: insertErr }) => { if (insertErr) console.warn('[video/generate] property_videos insert:', insertErr.message) })
     }
 
     // Dispatch to droplet worker
