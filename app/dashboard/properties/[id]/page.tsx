@@ -576,7 +576,7 @@ export default function PropertyDetailPage() {
                               src={img}
                               alt=""
                               onClick={() => updateSegment(i, { imageUrl: img })}
-                              className={`w-28 h-20 object-cover rounded-lg cursor-pointer border-2 transition-all ${seg.imageUrl === img ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                              className={`w-36 h-24 object-cover rounded-lg cursor-pointer border-2 transition-all ${seg.imageUrl === img ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'}`}
                             />
                             <button
                               onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
@@ -621,7 +621,7 @@ export default function PropertyDetailPage() {
                           }))}
                           className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all group ${selected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
                         >
-                          <img src={img} alt="" className="w-28 h-20 object-cover" />
+                          <img src={img} alt="" className="w-36 h-24 object-cover" />
                           {selected && (
                             <div className="absolute top-1 right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
                               <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -867,7 +867,7 @@ export default function PropertyDetailPage() {
                     }}
                     className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${isSelected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
                   >
-                    <img src={img} alt="" className="w-28 h-20 object-cover" />
+                    <img src={img} alt="" className="w-36 h-24 object-cover" />
                     {isSelected && (
                       <div className="absolute top-1 right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
