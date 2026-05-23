@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   // Opprett org
   const { data: org, error: orgError } = await supabase
     .from('organizations')
-    .insert({ name, slug, plan: 'free' })
+    .insert({ name, slug, plan: 'free', owner_id: user.id })
     .select('id')
     .single()
 
