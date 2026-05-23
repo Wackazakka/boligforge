@@ -44,7 +44,8 @@ export async function POST(request: Request) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const org = profile?.organizations as {
+  const orgRaw = profile?.organizations
+  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as {
     id: string
     slug: string
     stripe_customer_id?: string
