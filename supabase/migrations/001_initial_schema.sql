@@ -13,10 +13,10 @@ CREATE TABLE IF NOT EXISTS organizations (
   name                   text NOT NULL,
   slug                   text UNIQUE NOT NULL,
   logo_url               text,
-  plan                   text NOT NULL DEFAULT 'starter'
-                           CHECK (plan IN ('starter', 'pro', 'office')),
+  plan                   text NOT NULL DEFAULT 'free',
   stripe_customer_id     text,
   stripe_subscription_id text,
+  trial_ends_at          timestamptz,
   created_at             timestamptz NOT NULL DEFAULT now()
 );
 

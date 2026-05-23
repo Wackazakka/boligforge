@@ -22,10 +22,21 @@ export default async function DashboardPage() {
     .eq('organization_id', profile.organization_id)
     .maybeSingle()
 
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('trial_ends_at')
+    .eq('id', profile.organization_id)
+    .maybeSingle()
+
   const remaining  = credits ? credits.total - credits.used : 0
   const total      = credits?.total ?? 0
   const firstName  = profile.full_name?.split(' ')[0] ?? 'der'
   const usedPct    = total > 0 ? Math.round(((credits?.used ?? 0) / total) * 100) : 0
+
+  const trialDaysLeft = org?.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(org.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null
+  const isInTrial = trialDaysLeft !== null && trialDaysLeft > 0
 
   return (
     <div className="p-6">
@@ -40,6 +51,38 @@ export default async function DashboardPage() {
             Klar til å lage en ny visningsvideo?
           </p>
         </div>
+
+        {/* Trial-banner */}
+        {isInTrial && (
+          <div style={{
+            background: '#fffbeb',
+            border: '1px solid #fcd34d',
+            borderRadius: '10px',
+            padding: '14px 20px',
+            marginBottom: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <p style={{ fontSize: '14px', color: '#92400e', margin: 0 }}>
+              ⏳ Du har <strong>{trialDaysLeft} dag{trialDaysLeft === 1 ? '' : 'er'} igjen</strong> av din gratis prøveperiode.
+            </p>
+            <Link
+              href="/dashboard/billing"
+              style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#2563eb',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Legg til betalingsinfo →
+            </Link>
+          </div>
+        )}
 
         {/* Stats-rad */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '40px' }}>

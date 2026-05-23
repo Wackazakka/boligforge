@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 const PLANS = [
@@ -62,11 +63,12 @@ function StepDots({ current }: { current: number }) {
 }
 
 export default function OnboardingPage() {
+  const router = useRouter()
   const [step, setStep]           = useState(1)
   const [orgName, setOrgName]     = useState('')
   const [agentCount, setAgentCount] = useState(3)
   const [loading, setLoading]     = useState(false)
-  const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null)
+  const [activatingPlan, setActivatingPlan] = useState<string | null>(null)
   const [error, setError]         = useState('')
 
   async function handleCreateOrg(e: React.FormEvent) {
@@ -90,24 +92,24 @@ export default function OnboardingPage() {
   }
 
   async function handleSelectPlan(planId: string) {
-    setCheckoutPlan(planId)
+    setActivatingPlan(planId)
     setError('')
 
-    const res = await fetch('/api/stripe/checkout', {
+    const res = await fetch('/api/onboarding/activate-trial', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        plan: planId,
+        plan:     planId,
         quantity: planId === 'office' ? agentCount : 1,
       }),
     })
     const data = await res.json()
 
-    if (!res.ok || !data.url) {
-      setCheckoutPlan(null)
-      setError(data.error || 'Kunne ikke starte betaling')
+    if (!res.ok) {
+      setActivatingPlan(null)
+      setError(data.error || 'Noe gikk galt')
     } else {
-      window.location.href = data.url
+      router.push('/dashboard')
     }
   }
 
@@ -161,7 +163,7 @@ export default function OnboardingPage() {
             Velg plan
           </h1>
           <p style={{ fontSize: '14px', color: '#737373', marginBottom: '36px', textAlign: 'center' }}>
-            14 dager gratis prøveperiode. Ingen kortinfo nødvendig.
+            Start gratis i 14 dager — ingen kortinfo nødvendig.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
@@ -218,11 +220,11 @@ export default function OnboardingPage() {
 
                 <button
                   onClick={() => handleSelectPlan(plan.id)}
-                  disabled={checkoutPlan !== null}
+                  disabled={activatingPlan !== null}
                   className={plan.featured ? 'app-btn-primary w-full' : 'app-btn-secondary w-full'}
                   style={{ marginTop: 'auto' }}
                 >
-                  {checkoutPlan === plan.id ? 'Venter…' : 'Velg plan'}
+                  {activatingPlan === plan.id ? 'Starter prøveperiode…' : 'Start gratis prøveperiode'}
                 </button>
               </div>
             ))}
