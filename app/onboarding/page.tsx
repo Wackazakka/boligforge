@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useActionState } from 'react'
 import Link from 'next/link'
+import { createOrgAction } from './actions'
 
 function Logo() {
   return (
@@ -13,32 +14,7 @@ function Logo() {
 }
 
 export default function OnboardingPage() {
-  const [orgName, setOrgName] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    const res  = await fetch('/api/onboarding/create-org', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name: orgName }),
-    })
-    const data = await res.json()
-
-    if (!res.ok) {
-      setLoading(false)
-      setError(data.error || 'Noe gikk galt')
-      return
-    }
-
-    // Hard navigasjon — bypasser Next.js RSC router-cache
-    // slik at dashboard alltid leser fersk profil fra databasen
-    window.location.href = '/dashboard'
-  }
+  const [error, formAction, isPending] = useActionState(createOrgAction, null)
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
@@ -54,26 +30,28 @@ export default function OnboardingPage() {
           Dette vises på videoer og i kundekommunikasjon.
         </p>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label className="app-label">Firmanavn</label>
+            <label className="app-label" htmlFor="orgName">Firmanavn</label>
             <input
+              id="orgName"
+              name="orgName"
               type="text"
               required
-              value={orgName}
-              onChange={e => setOrgName(e.target.value)}
               className="app-input"
               placeholder="Nordvik Eiendom AS"
               autoFocus
             />
           </div>
+
           {error && <p className="app-error">{error}</p>}
+
           <button
             type="submit"
-            disabled={loading || !orgName.trim()}
+            disabled={isPending}
             className="app-btn-primary w-full"
           >
-            {loading ? 'Starter…' : 'Start gratis prøveperiode →'}
+            {isPending ? 'Starter…' : 'Start gratis prøveperiode →'}
           </button>
         </form>
 

@@ -1,14 +1,26 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
+// Service-role client for data reads — brukes etter at bruker er verifisert
+// via createSupabaseServerClient().auth.getUser(). Bypasser RLS-problematikk
+// med den nye sb_publishable-nøkkelformatet.
+const serviceSupabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
+
 export default async function DashboardPage() {
+  // Brukeridentitet verifiseres alltid med SSR-klienten (cookie-session)
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
 
-  const { data: profile } = await supabase
+  // Data leses med service role for å unngå RLS-problemer med ny nøkkelformat
+  const { data: profile } = await serviceSupabase
     .from('profiles')
     .select('full_name, organization_id')
     .eq('id', user.id)
@@ -16,13 +28,13 @@ export default async function DashboardPage() {
 
   if (!profile?.organization_id) redirect('/onboarding')
 
-  const { data: credits } = await supabase
+  const { data: credits } = await serviceSupabase
     .from('credits')
     .select('total, used')
     .eq('organization_id', profile.organization_id)
     .maybeSingle()
 
-  const { data: org } = await supabase
+  const { data: org } = await serviceSupabase
     .from('organizations')
     .select('trial_ends_at')
     .eq('id', profile.organization_id)
