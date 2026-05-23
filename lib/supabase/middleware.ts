@@ -25,8 +25,9 @@ export async function updateSession(request: NextRequest) {
 
   const isProtected = request.nextUrl.pathname.startsWith('/dashboard')
   const isLogin = request.nextUrl.pathname.startsWith('/login')
+  const isDev = process.env.NODE_ENV === 'development'
 
-  if (isProtected && !user) {
+  if (isProtected && !user && !isDev) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

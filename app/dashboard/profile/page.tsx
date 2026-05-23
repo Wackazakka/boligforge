@@ -189,7 +189,6 @@ export default function ProfilePage() {
     if (res.ok) {
       const { url } = await res.json()
       setProfile(p => ({ ...p, [`${type}_url`]: url }))
-      // Auto-generate all 4 settings sequentially after portrait upload
       if (type === 'portrait') {
         ;(async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id, url) })()
       }
@@ -198,7 +197,7 @@ export default function ProfilePage() {
     }
   }
 
-async function handleGenerateSetting(settingId: string, portraitOverride?: string) {
+  async function handleGenerateSetting(settingId: string, portraitOverride?: string) {
     const portraitUrl = portraitOverride || profile.portrait_url
     if (!portraitUrl) { alert('Last opp et portrettbilde først'); return }
 
@@ -206,8 +205,6 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
-      // Single server-side call: sync fal.ai (~14s) + R2 upload + Supabase insert.
-      // Server route has maxDuration=120, so no timeout. No client polling needed.
       const res = await fetch('/api/profile/generate-setting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,7 +235,6 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
 
   async function handleSelectSettingImage(url: string) {
     setSelectedSetting(url)
-    // Store selected avatar separately — do NOT overwrite portrait_url
     await fetch('/api/profile/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -248,16 +244,23 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <div>
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Meglerprofil</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Konfigurer din profil og avatar</p>
+          <h1
+            className="text-xl font-semibold"
+            style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}
+          >
+            Meglerprofil
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>Konfigurer din profil og avatar</p>
         </div>
 
         {/* Basic info */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-5">Grunnleggende info</h2>
+        <section className="app-card">
+          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Grunnleggende info
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {([
               ['name', 'Navn', 'text', 'Ola Nordmann'],
@@ -267,13 +270,13 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
               ['website', 'Nettside', 'url', 'https://meglerkontor.no'],
             ] as [keyof Profile, string, string, string][]).map(([key, label, type, placeholder]) => (
               <div key={key} className={key === 'website' || key === 'email' ? 'sm:col-span-2' : ''}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <label className="app-label">{label}</label>
                 <input
                   type={type}
                   value={profile[key] || ''}
                   onChange={e => set(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="app-input"
                 />
               </div>
             ))}
@@ -281,13 +284,14 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
         </section>
 
         {/* Voice + tone */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-5">Stemme og tone</h2>
-          <div className="space-y-4">
+        <section className="app-card">
+          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Stemme og tone
+          </h2>
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Foretrukket stemme</label>
+              <label className="app-label mb-3">Foretrukket stemme</label>
               <div className="grid grid-cols-1 gap-2">
-                {/* Cloned voice — always visible once set */}
                 {profile.cloned_voice_id && (
                   <button
                     type="button"
@@ -299,14 +303,12 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                         body: JSON.stringify({ ...profile, voice_id: profile.cloned_voice_id }),
                       })
                     }}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
-                      profile.voice_id === profile.cloned_voice_id
-                        ? 'border-blue-500 bg-blue-50 text-blue-800 font-medium'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
+                    className={`app-voice-row${profile.voice_id === profile.cloned_voice_id ? ' active' : ''}`}
                   >
                     <span>🎙 Din klonede stemme</span>
-                    {profile.voice_id === profile.cloned_voice_id && <span className="text-xs text-blue-500">Aktiv</span>}
+                    {profile.voice_id === profile.cloned_voice_id && (
+                      <span className="text-xs" style={{ color: 'var(--gold)' }}>Aktiv</span>
+                    )}
                   </button>
                 )}
                 {VOICES.map(v => (
@@ -321,31 +323,30 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                         body: JSON.stringify({ ...profile, voice_id: v.id }),
                       })
                     }}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
-                      profile.voice_id === v.id
-                        ? 'border-blue-500 bg-blue-50 text-blue-800 font-medium'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
+                    className={`app-voice-row${profile.voice_id === v.id ? ' active' : ''}`}
                   >
                     <span>{v.name}</span>
                     <span
                       onClick={e => { e.stopPropagation(); new Audio(v.preview).play() }}
-                      className="ml-2 text-gray-400 hover:text-blue-600 text-xs px-2 py-0.5 rounded hover:bg-blue-100"
+                      className="text-xs px-2 py-0.5 rounded"
+                      style={{ color: 'var(--muted)' }}
                       title="Hør forhåndsvisning"
-                    >▶ Hør</span>
+                    >
+                      ▶ Hør
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
+
             {/* Voice cloning */}
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <p className="text-sm font-medium text-gray-700 mb-1">Klon din stemme</p>
-              <p className="text-xs text-gray-500 mb-3">
+            <div className="app-card-inner">
+              <p className="text-sm font-medium mb-1" style={{ color: 'var(--ink-2)' }}>Klon din stemme</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
                 Ta opp minst 2 minutter, eller last opp en eksisterende lydfil. Jo mer lyd, desto bedre resultat.
               </p>
 
-              {/* Reading text */}
-              <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600 mb-4 leading-relaxed max-h-48 overflow-y-auto">
+              <div className="app-reading-block mb-4">
                 <p className="mb-2">Velkommen til visning av denne flotte boligen. Jeg er glad for å kunne presentere et hjem som kombinerer moderne komfort med et rolig og barnevennlig nabolag. Her har du alt du trenger innen kort rekkevidde – skoler, barnehager, dagligvarebutikker og gode kollektivforbindelser.</p>
                 <p className="mb-2">La oss starte med å se på stuen, som er boligens naturlige samlingspunkt. Her er det god takhøyde, store vinduer som slipper inn rikelig med naturlig lys, og en åpen planløsning som gjør rommet luftig og innbydende. Peisen gir varme og stemning på kalde høst- og vinterkvelder.</p>
                 <p className="mb-2">Kjøkkenet er nyoppusset og utstyrt med integrerte hvitevarer av høy kvalitet. Benkeplaten er i laminat, og det er god lagringsplass i skuffer og skap. Her kan hele familien samles til middag eller frokost i helgene.</p>
@@ -353,19 +354,19 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                 <p>Uteplassen er en av boligens store kvaliteter. En romslig terrasse med sørvestlig orientering gir sol store deler av dagen, og hagen er lav i vedlikehold. Alt i alt er dette en bolig som passer perfekt for en familie som ønsker å bo godt, med plass til både hverdagsliv og festlige anledninger.</p>
               </div>
 
-              {/* Record controls */}
               {(voiceRecordState === 'idle' || voiceRecordState === 'error') && (
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={startRecording}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                    style={{ background: '#8b2020', color: 'var(--ink)' }}
                   >
-                    <span className="w-2 h-2 rounded-full bg-white inline-block" /> Start opptak
+                    <span className="w-2 h-2 rounded-full bg-[#e88888] inline-block" /> Start opptak
                   </button>
-                  <span className="text-xs text-gray-400">eller</span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>eller</span>
                   <button
                     onClick={() => voiceFileRef.current?.click()}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 hover:bg-white"
+                    className="app-btn-secondary"
                   >
                     Last opp lydfil
                   </button>
@@ -380,20 +381,20 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
               )}
               {voiceRecordState === 'recording' && (
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-2 text-sm text-red-600 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse inline-block" />
+                  <span className="flex items-center gap-2 text-sm font-medium" style={{ color: '#e88888' }}>
+                    <span className="w-2 h-2 rounded-full inline-block animate-pulse" style={{ background: '#e88888' }} />
                     Tar opp… {recordSeconds}s {recordSeconds < 60 ? `(anbefalt: 120s+)` : ''}
                   </span>
                   <button
                     onClick={stopAndClone}
-                    className="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900"
+                    className="app-btn-secondary"
                   >
                     ■ Stopp og klon
                   </button>
                 </div>
               )}
               {voiceRecordState === 'cloning' && (
-                <p className="text-sm text-blue-600 flex items-center gap-2">
+                <p className="text-sm flex items-center gap-2" style={{ color: 'var(--gold)' }}>
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -403,56 +404,73 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
               )}
               {voiceRecordState === 'done' && (
                 <div className="flex items-center gap-3">
-                  <p className="text-sm text-green-600 font-medium">✓ Stemme klonet og lagret!</p>
-                  <button onClick={() => { setVoiceRecordState('idle'); setRecordSeconds(0) }} className="text-xs text-gray-400 hover:text-gray-600 underline">Gjør om igjen</button>
+                  <p className="text-sm font-medium" style={{ color: '#7ec880' }}>✓ Stemme klonet og lagret!</p>
+                  <button
+                    onClick={() => { setVoiceRecordState('idle'); setRecordSeconds(0) }}
+                    className="app-btn-ghost text-xs"
+                  >
+                    Gjør om igjen
+                  </button>
                 </div>
               )}
               {voiceRecordState === 'error' && (
-                <p className="text-sm text-red-600 mt-2">{voiceRecordError}</p>
+                <p className="text-sm mt-2" style={{ color: '#e88888' }}>{voiceRecordError}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tone of voice</label>
+              <label className="app-label">Tone of voice</label>
               <textarea
                 rows={3}
                 value={profile.tone_of_voice || ''}
                 onChange={e => set('tone_of_voice', e.target.value)}
                 placeholder="F.eks: Varm og profesjonell. Snakker klart og tydelig om boligens fordeler. Unngår salgssjargong og er ærlig."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="app-textarea"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Standard hashtags</label>
+              <label className="app-label">Standard hashtags</label>
               <input
                 type="text"
                 value={profile.hashtags || ''}
                 onChange={e => set('hashtags', e.target.value)}
                 placeholder="#eiendom #boligforsalg #megler"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="app-input"
               />
             </div>
           </div>
         </section>
 
         {/* Logo upload */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-5">Logo</h2>
+        <section className="app-card">
+          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Logo
+          </h2>
           <div className="flex items-center gap-4">
             {profile.logo_url ? (
-              <img src={profile.logo_url} alt="Logo" className="w-20 h-20 object-contain rounded-lg border border-gray-200 bg-gray-50" />
+              <img
+                src={profile.logo_url}
+                alt="Logo"
+                className="w-20 h-20 object-contain rounded-lg"
+                style={{ border: '1px solid var(--line)', background: 'var(--surface-2)' }}
+              />
             ) : (
-              <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs">Ingen logo</div>
+              <div
+                className="w-20 h-20 rounded-lg flex items-center justify-center text-xs text-center px-2"
+                style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}
+              >
+                Ingen logo
+              </div>
             )}
             <div>
               <button
                 onClick={() => logoRef.current?.click()}
                 disabled={uploadingLogo}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 disabled:opacity-50"
+                className="app-btn-secondary"
               >
                 {uploadingLogo ? 'Laster opp...' : 'Last opp logo'}
               </button>
-              <p className="text-xs text-gray-500 mt-1">PNG eller SVG anbefalt</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>PNG eller SVG anbefalt</p>
             </div>
             <input
               ref={logoRef}
@@ -465,25 +483,39 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
         </section>
 
         {/* Portrait + AI settings */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-1">Portrettbilde og setting</h2>
-          <p className="text-sm text-gray-500 mb-5">Last opp et portrettbilde, deretter generer en profesjonell setting med AI. Ansiktet ditt bevares i alle settings.</p>
+        <section className="app-card">
+          <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Portrettbilde og setting
+          </h2>
+          <p className="text-sm mb-5" style={{ color: 'var(--muted)' }}>
+            Last opp et portrettbilde, deretter generer en profesjonell setting med AI. Ansiktet ditt bevares i alle settings.
+          </p>
 
           <div className="flex items-center gap-4 mb-6">
             {profile.portrait_url ? (
-              <img src={profile.portrait_url} alt="Portrett" className="w-24 h-24 object-cover rounded-xl border border-gray-200" />
+              <img
+                src={profile.portrait_url}
+                alt="Portrett"
+                className="w-24 h-24 object-cover rounded-xl"
+                style={{ border: '1px solid var(--line)' }}
+              />
             ) : (
-              <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs text-center px-2">Ingen bilde</div>
+              <div
+                className="w-24 h-24 rounded-xl flex items-center justify-center text-xs text-center px-2"
+                style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}
+              >
+                Ingen bilde
+              </div>
             )}
             <div>
               <button
                 onClick={() => portraitRef.current?.click()}
                 disabled={uploadingPortrait}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 disabled:opacity-50"
+                className="app-btn-secondary"
               >
                 {uploadingPortrait ? 'Laster opp...' : 'Last opp portrett'}
               </button>
-              <p className="text-xs text-gray-500 mt-1">Bruk et godt, klart ansiktsbilde</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Bruk et godt, klart ansiktsbilde</p>
             </div>
             <input
               ref={portraitRef}
@@ -495,20 +527,21 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
           </div>
 
           {/* Setting generator */}
-          <div className="border-t border-gray-100 pt-5">
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: '20px' }}>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-semibold text-gray-700">Settings-bibliotek</h3>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--ink-2)' }}>Settings-bibliotek</h3>
               {profile.portrait_url && (
                 <button
                   onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
                   disabled={Object.values(generatingSettings).some(Boolean)}
-                  className="text-xs text-blue-600 hover:underline disabled:opacity-50"
+                  className="app-btn-ghost text-xs"
+                  style={{ color: 'var(--gold)' }}
                 >
                   ↺ Generer alle på nytt
                 </button>
               )}
             </div>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
               {profile.portrait_url
                 ? 'Klikk ↺ på et bilde for å regenerere det. Disse settingsene er tilgjengelige på alle eiendomssider.'
                 : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
@@ -520,19 +553,29 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                 const err = settingErrors[s.id]
                 return (
                   <div key={s.id} className="space-y-1">
-                    <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-video">
+                    <div
+                      className="relative rounded-lg overflow-hidden aspect-video"
+                      style={{ background: 'var(--surface-2)' }}
+                    >
                       {isGenerating ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                          <svg className="animate-spin h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-6 w-6" style={{ color: 'var(--gold)' }} fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          <span className="text-xs text-blue-400">Genererer...</span>
+                          <span className="text-xs" style={{ color: 'var(--gold)' }}>Genererer...</span>
                         </div>
                       ) : err ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-2">
-                          <span className="text-xs text-center text-red-400">{err}</span>
-                          <button onClick={() => handleGenerateSetting(s.id)} disabled={!profile.portrait_url} className="text-xs text-blue-500 hover:underline disabled:opacity-50">↺ Prøv igjen</button>
+                          <span className="text-xs text-center" style={{ color: '#e88888' }}>{err}</span>
+                          <button
+                            onClick={() => handleGenerateSetting(s.id)}
+                            disabled={!profile.portrait_url}
+                            className="text-xs"
+                            style={{ color: 'var(--gold)' }}
+                          >
+                            ↺ Prøv igjen
+                          </button>
                         </div>
                       ) : existing ? (
                         <>
@@ -542,13 +585,16 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                             className="w-full h-full object-cover cursor-zoom-in"
                             onClick={() => setLightbox(existing.image_url)}
                           />
-                          <span className="absolute bottom-1 left-1 text-[10px] text-white/70 bg-black/40 rounded px-1">
+                          <span
+                            className="absolute bottom-1 left-1 text-[10px] px-1 rounded"
+                            style={{ color: 'rgba(244,236,220,0.7)', background: 'rgba(13,11,8,0.5)' }}
+                          >
                             {new Date(existing.created_at).toLocaleTimeString('no', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xs text-gray-400 text-center px-2">Ikke generert</span>
+                          <span className="text-xs text-center px-2" style={{ color: 'var(--muted)' }}>Ikke generert</span>
                         </div>
                       )}
                       {existing && !isGenerating && !err && (
@@ -556,17 +602,19 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                           onClick={() => handleGenerateSetting(s.id)}
                           disabled={!profile.portrait_url}
                           title="Generer nytt"
-                          className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white text-sm disabled:opacity-50"
+                          className="absolute top-1 right-1 w-7 h-7 rounded-full flex items-center justify-center text-sm"
+                          style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
                         >
                           ↺
                         </button>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 leading-tight">{s.label}</p>
+                    <p className="text-xs leading-tight" style={{ color: 'var(--muted)' }}>{s.label}</p>
                     <button
                       type="button"
                       onClick={() => setShowPrompt(p => ({ ...p, [s.id]: !p[s.id] }))}
-                      className="text-xs text-blue-500 hover:underline text-left"
+                      className="text-xs"
+                      style={{ color: 'var(--gold)', opacity: 0.7 }}
                     >
                       {showPrompt[s.id] ? '▲ Skjul prompt' : '✎ Rediger prompt'}
                     </button>
@@ -575,7 +623,8 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
                         rows={5}
                         value={customPrompts[s.id] || ''}
                         onChange={e => setCustomPrompts(p => ({ ...p, [s.id]: e.target.value }))}
-                        className="w-full text-[11px] border border-gray-200 rounded-md px-2 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-y bg-gray-50"
+                        className="app-textarea"
+                        style={{ fontSize: '11px' }}
                       />
                     )}
                   </div>
@@ -584,37 +633,40 @@ async function handleGenerateSetting(settingId: string, portraitOverride?: strin
             </div>
           </div>
 
-            {loadingImages && <p className="text-sm text-gray-400 mt-3">Laster bilder...</p>}
+          {loadingImages && <p className="text-sm mt-3" style={{ color: 'var(--muted)' }}>Laster bilder...</p>}
         </section>
 
         {/* Save button */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 pb-8">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm disabled:opacity-50"
+            className="app-btn-primary"
           >
             {saving ? 'Lagrer...' : 'Lagre profil'}
           </button>
-          {savedMsg && <span className="text-sm text-green-600 font-medium">{savedMsg}</span>}
-          {saveError && <span className="text-sm text-red-600">{saveError}</span>}
+          {savedMsg && <span className="text-sm font-medium" style={{ color: '#7ec880' }}>{savedMsg}</span>}
+          {saveError && <span className="text-sm" style={{ color: '#e88888' }}>{saveError}</span>}
         </div>
       </div>
 
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.85)' }}
           onClick={() => setLightbox(null)}
         >
           <img
             src={lightbox}
             alt="Forstørret"
-            className="max-w-full max-h-full rounded-xl shadow-2xl"
+            className="max-w-full max-h-full rounded-xl"
+            style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}
             onClick={e => e.stopPropagation()}
           />
           <button
             onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-9 h-9 flex items-center justify-center text-lg"
+            className="absolute top-4 right-4 rounded-full w-9 h-9 flex items-center justify-center text-lg"
+            style={{ background: 'rgba(13,11,8,0.7)', color: 'var(--ink)', border: '1px solid var(--line-2)' }}
           >
             ✕
           </button>

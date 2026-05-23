@@ -53,8 +53,10 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-lg" />)}
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-16 rounded-lg animate-pulse" style={{ background: 'var(--surface)' }} />
+          ))}
         </div>
       </div>
     )
@@ -63,7 +65,7 @@ export default function AdminPage() {
   if (error) {
     return (
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">{error}</div>
+        <div className="app-error">{error}</div>
       </div>
     )
   }
@@ -72,49 +74,61 @@ export default function AdminPage() {
     <div className="max-w-3xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Meglere</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{members.length} megler{members.length !== 1 ? 'e' : ''}</p>
+          <h1
+            className="text-xl font-semibold"
+            style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}
+          >
+            Meglere
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+            {members.length} megler{members.length !== 1 ? 'e' : ''}
+          </p>
         </div>
-        <Link
-          href="/dashboard/admin/invite"
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        >
+        <Link href="/dashboard/admin/invite" className="app-btn-primary" style={{ padding: '8px 16px', fontSize: '13px', textDecoration: 'none', display: 'inline-block' }}>
           + Inviter megler
         </Link>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {members.map(member => (
           <div
             key={member.id}
-            className="flex items-center gap-4 bg-white border border-gray-200 rounded-lg px-4 py-3"
+            className="flex items-center gap-4"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: '10px',
+              padding: '12px 16px',
+            }}
           >
             {member.profile?.portrait_url ? (
               <img
                 src={member.profile.portrait_url}
                 alt=""
                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                style={{ border: '1px solid var(--line-2)' }}
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-gray-400 text-sm font-medium">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--line)' }}
+              >
+                <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>
                   {member.profile?.name?.[0]?.toUpperCase() ?? '?'}
                 </span>
               </div>
             )}
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>
                 {member.profile?.name ?? 'Ikke satt opp ennå'}
               </p>
-              <p className="text-xs text-gray-500 truncate">{member.profile?.email ?? '—'}</p>
+              <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>
+                {member.profile?.email ?? '—'}
+              </p>
             </div>
 
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-              member.role === 'admin'
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-gray-100 text-gray-600'
-            }`}>
+            <span className={member.role === 'admin' ? 'app-badge-gold' : 'app-badge-muted'}>
               {member.role === 'admin' ? 'Admin' : 'Megler'}
             </span>
 
@@ -122,7 +136,7 @@ export default function AdminPage() {
               <button
                 onClick={() => removeMember(member.id)}
                 disabled={removing === member.id}
-                className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors disabled:opacity-40"
+                className="app-btn-danger"
               >
                 {removing === member.id ? '...' : 'Fjern'}
               </button>

@@ -36,28 +36,24 @@ export default function DashboardNav() {
   }
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-0 flex items-center gap-1 h-12">
-      <span className="text-sm font-bold text-gray-900 mr-4">BoligForge</span>
+    <nav className="app-nav">
+      <Link href="/" className="app-nav-logo">
+        <span className="mark">R</span>
+        <span>Reel<span style={{ color: 'var(--muted)' }}>Home</span></span>
+      </Link>
       {links.map(link => {
         const active = pathname.startsWith(link.href)
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              active
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-            }`}
+            className={`app-nav-link${active ? ' active' : ''}`}
           >
             {link.label}
           </Link>
         )
       })}
-      <button
-        onClick={handleLogout}
-        className="ml-auto text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
-      >
+      <button onClick={handleLogout} className="app-btn-ghost ml-auto text-xs">
         Logg ut
       </button>
     </nav>

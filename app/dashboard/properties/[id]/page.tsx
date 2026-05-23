@@ -200,7 +200,6 @@ export default function PropertyDetailPage() {
   }
 
   async function handleSaveAvatar() {
-    // Image is already saved to library by composite-avatar route
     setAvatarSaved(true)
     setTimeout(() => setAvatarSaved(false), 3000)
   }
@@ -239,9 +238,7 @@ export default function PropertyDetailPage() {
     setAvatarSaved(false)
     setError('')
     try {
-      // Use selected avatar (has shoulders) or fall back to portrait
       const agentSourceUrl = selectedAvatarUrl || profile.portrait_url
-      // Invalidate cutout cache if source image changed
       const reuseCutout = cachedCutoutUrl && cutoutSourceUrl === agentSourceUrl ? cachedCutoutUrl : null
 
       const res = await fetch('/api/profile/composite-avatar', {
@@ -261,7 +258,6 @@ export default function PropertyDetailPage() {
         setCachedCutoutUrl(data.cutoutUrl)
         setCutoutSourceUrl(agentSourceUrl ?? null)
       }
-      // Already saved to Supabase by the route — add to local list
       if (data.id) {
         setSettingImages(prev => [...prev, { id: data.id, setting_type: 'property_front', image_url: data.url }])
       }
@@ -383,30 +379,39 @@ export default function PropertyDetailPage() {
     return new Intl.NumberFormat('nb-NO').format(p) + ' kr'
   }
 
-  if (!property) return <div className="p-8 text-gray-400">Laster...</div>
+  if (!property) {
+    return (
+      <div className="p-8 text-sm" style={{ color: 'var(--muted)' }}>Laster...</div>
+    )
+  }
+
+  const thumbBorder = (active: boolean) => ({
+    border: `2px solid ${active ? 'var(--gold)' : 'transparent'}`,
+    opacity: active ? 1 : 0.6,
+  })
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="p-6">
       {/* No credits modal */}
       {noCreditsModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center">
+        <div className="app-modal-backdrop">
+          <div className="app-modal">
             <div className="text-4xl mb-3">🎬</div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Ingen videokreditter igjen</h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
+              Ingen videokreditter igjen
+            </h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
               Du har brukt opp alle inkluderte videoer denne måneden. Kredittene nullstilles 1. i neste måned.
             </p>
             <div className="flex flex-col gap-2">
               <a
                 href="/dashboard/billing"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                className="app-btn-primary block w-full text-center"
+                style={{ textDecoration: 'none' }}
               >
                 Se fakturering
               </a>
-              <button
-                onClick={() => setNoCreditsModal(false)}
-                className="w-full text-sm text-gray-400 hover:text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50"
-              >
+              <button onClick={() => setNoCreditsModal(false)} className="app-btn-ghost w-full text-sm">
                 Lukk
               </button>
             </div>
@@ -416,20 +421,24 @@ export default function PropertyDetailPage() {
 
       {lightboxUrl && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.85)' }}
           onClick={() => setLightboxUrl(null)}
         >
-          <img src={lightboxUrl} alt="" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" />
+          <img src={lightboxUrl} alt="" className="max-w-full max-h-full rounded-xl object-contain" style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }} />
         </div>
       )}
-      <div className="max-w-4xl mx-auto space-y-8">
+
+      <div className="max-w-4xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="text-sm text-gray-400 hover:text-gray-700">← Tilbake</button>
+          <button onClick={() => router.back()} className="app-btn-ghost text-sm px-0">← Tilbake</button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{property.title || property.address}</h1>
-            <p className="text-sm text-gray-500">{property.address}</p>
+            <h1 className="text-xl font-bold" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
+              {property.title || property.address}
+            </h1>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>{property.address}</p>
           </div>
         </div>
 
@@ -444,7 +453,8 @@ export default function PropertyDetailPage() {
                   src={img}
                   alt=""
                   onClick={() => setSelectedImageIdx(i)}
-                  className={`w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 border-2 transition-colors ${i === selectedImageIdx ? 'border-blue-500' : 'border-transparent'}`}
+                  className="w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 transition-all"
+                  style={thumbBorder(i === selectedImageIdx)}
                 />
               ))}
             </div>
@@ -463,9 +473,13 @@ export default function PropertyDetailPage() {
             { label: 'Eierform', value: property.ownership_type ?? '—' },
             { label: 'Energimerke', value: property.energy_label ?? '—' },
           ].map(f => (
-            <div key={f.label} className="bg-white rounded-lg border border-gray-200 p-3">
-              <p className="text-xs text-gray-400">{f.label}</p>
-              <p className="font-semibold text-gray-900 text-sm">{String(f.value)}</p>
+            <div
+              key={f.label}
+              className="rounded-lg p-3"
+              style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+            >
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>{f.label}</p>
+              <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>{String(f.value)}</p>
             </div>
           ))}
         </div>
@@ -474,28 +488,26 @@ export default function PropertyDetailPage() {
         {property.facilities?.length ? (
           <div className="flex flex-wrap gap-2">
             {property.facilities.map(f => (
-              <span key={f} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{f}</span>
+              <span key={f} className="app-badge-muted">{f}</span>
             ))}
           </div>
         ) : null}
 
         {/* Script section */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <div className="app-card space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Presentasjonsmanus</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Presentasjonsmanus</h2>
             <div className="flex gap-2">
               {script && (
-                <button
-                  onClick={handleSplitSegments}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                >
+                <button onClick={handleSplitSegments} className="app-btn-secondary text-sm">
                   Del opp i segmenter
                 </button>
               )}
               <button
                 onClick={handleGenerateScript}
                 disabled={generatingScript}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="app-btn-primary text-sm"
+                style={{ padding: '8px 16px' }}
               >
                 {generatingScript ? 'Genererer...' : script ? 'Regenerer' : 'Generer manus'}
               </button>
@@ -506,52 +518,69 @@ export default function PropertyDetailPage() {
             onChange={e => { setScript(e.target.value); setSegments([]) }}
             placeholder="Trykk «Generer manus» for å lage et AI-generert presentasjonsmanus basert på boligdataene..."
             rows={8}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="app-textarea"
           />
           {script && (
-            <p className="text-xs text-gray-400">{script.split(/\s+/).length} ord · ca. {Math.round(script.split(/\s+/).length / 2.5)} sek</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              {script.split(/\s+/).length} ord · ca. {Math.round(script.split(/\s+/).length / 2.5)} sek
+            </p>
           )}
         </div>
 
         {/* Segment editor */}
         {segments.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="app-card space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-gray-900">Segmenter</h2>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Segmenter</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                   {segments.filter(s => s.type === 'avatar').length} avatar · {segments.filter(s => s.type === 'image').length} bilde
                 </p>
               </div>
-              <button onClick={() => setSegments([])} className="text-xs text-gray-400 hover:text-gray-700">Fjern segmentering</button>
+              <button onClick={() => setSegments([])} className="app-btn-ghost text-xs">Fjern segmentering</button>
             </div>
             <div className="space-y-3">
               {segments.map((seg, i) => (
-                <div key={seg.id} className="border border-gray-100 rounded-lg p-4 space-y-3">
+                <div
+                  key={seg.id}
+                  className="rounded-lg p-4 space-y-3"
+                  style={{ border: '1px solid var(--line)', background: 'var(--surface-2)' }}
+                >
                   <div className="flex items-start gap-2">
-                    <span className="text-xs text-gray-400 mt-2 w-5 shrink-0">{i + 1}.</span>
+                    <span className="text-xs mt-2 w-5 shrink-0" style={{ color: 'var(--muted)' }}>{i + 1}.</span>
                     <textarea
                       value={seg.text}
                       onChange={e => updateSegment(i, { text: e.target.value })}
                       rows={2}
-                      className="flex-1 text-sm text-gray-700 leading-relaxed rounded border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+                      className="app-textarea flex-1"
+                      style={{ fontSize: '13px' }}
                     />
                     <button
                       onClick={() => setSegments(prev => prev.filter((_, j) => j !== i))}
                       title="Fjern segment"
-                      className="mt-1.5 text-gray-300 hover:text-red-500 transition-colors text-sm px-1"
+                      className="mt-1.5 app-btn-ghost text-sm px-1"
                     >✕</button>
                   </div>
                   <div className="flex gap-2 flex-wrap items-center">
                     <button
                       onClick={() => updateSegment(i, { type: 'avatar', imageUrl: undefined })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${seg.type === 'avatar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      style={{
+                        background: seg.type === 'avatar' ? 'var(--gold)' : 'var(--surface)',
+                        color: seg.type === 'avatar' ? '#fff' : 'var(--muted)',
+                        border: `1px solid ${seg.type === 'avatar' ? 'var(--gold)' : 'var(--line)'}`,
+                      }}
                     >
                       Avatarvideo
                     </button>
                     <button
                       onClick={() => updateSegment(i, { type: 'image' })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${seg.type === 'image' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      style={{
+                        background: seg.type === 'image' ? 'var(--gold)' : 'var(--surface)',
+                        color: seg.type === 'image' ? '#fff' : 'var(--muted)',
+                        border: `1px solid ${seg.type === 'image' ? 'var(--gold)' : 'var(--line)'}`,
+                      }}
                     >
                       Boligbilde
                     </button>
@@ -559,7 +588,8 @@ export default function PropertyDetailPage() {
                       <button
                         onClick={() => handlePlaySegmentAudio(i)}
                         disabled={seg.previewingAudio || !profile.voice_id}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors"
+                        className="app-btn-secondary text-xs"
+                        style={{ padding: '6px 12px' }}
                       >
                         {seg.previewingAudio ? '...' : '▶ Hør lyd'}
                       </button>
@@ -567,7 +597,8 @@ export default function PropertyDetailPage() {
                         onClick={() => handleRegenSegmentAudio(i)}
                         disabled={seg.previewingAudio || !profile.voice_id}
                         title="Generer ny versjon av lyden"
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors"
+                        className="app-btn-secondary text-xs"
+                        style={{ padding: '6px 12px' }}
                       >
                         ⟳ Regenerer
                       </button>
@@ -575,7 +606,7 @@ export default function PropertyDetailPage() {
                   </div>
                   {seg.type === 'image' && (
                     <div className="space-y-1.5">
-                      <p className="text-xs text-gray-400">Velg bilde for dette segmentet:</p>
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>Velg bilde for dette segmentet:</p>
                       <div className="flex gap-2 overflow-x-auto pb-1">
                         {(property?.images || []).map((img, j) => (
                           <div key={j} className="relative flex-shrink-0 group">
@@ -583,17 +614,22 @@ export default function PropertyDetailPage() {
                               src={img}
                               alt=""
                               onClick={() => updateSegment(i, { imageUrl: img })}
-                              className={`w-36 h-24 object-cover rounded-lg cursor-pointer border-2 transition-all ${seg.imageUrl === img ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                              className="w-36 h-24 object-cover rounded-lg cursor-pointer transition-all"
+                              style={{
+                                border: `2px solid ${seg.imageUrl === img ? 'var(--gold)' : 'transparent'}`,
+                                opacity: seg.imageUrl === img ? 1 : 0.5,
+                              }}
                             />
                             <button
                               onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
-                              className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded bg-black/60 hover:bg-blue-600 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
+                              className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
+                              style={{ background: 'rgba(13,11,8,0.7)' }}
                             >⤢</button>
                           </div>
                         ))}
                       </div>
                       {!seg.imageUrl && (
-                        <p className="text-xs text-amber-600">Velg et bilde over</p>
+                        <p className="text-xs" style={{ color: 'var(--gold-deep)' }}>Velg et bilde over</p>
                       )}
                     </div>
                   )}
@@ -603,15 +639,17 @@ export default function PropertyDetailPage() {
           </div>
         )}
 
-        {/* Outro editor — only when segments are active */}
+        {/* Outro editor */}
         {segments.length > 0 && (() => {
           const usedUrls = new Set(segments.filter(s => s.type === 'image' && s.imageUrl).map(s => s.imageUrl!))
           const unused = (property?.images || []).filter(img => !usedUrls.has(img))
           return (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="app-card space-y-4">
               <div>
-                <h2 className="font-semibold text-gray-900">Outro — gjenværende bilder</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{unused.length} bilder ikke brukt i segmentene. Velg hvilke som skal vises etter talen med musikk under.</p>
+                <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Outro — gjenværende bilder</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                  {unused.length} bilder ikke brukt i segmentene. Velg hvilke som skal vises etter talen med musikk under.
+                </p>
               </div>
 
               {unused.length > 0 && (
@@ -626,52 +664,59 @@ export default function PropertyDetailPage() {
                             ...o,
                             images: selected ? o.images.filter(u => u !== img) : [...o.images, img],
                           }))}
-                          className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all group ${selected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
+                          className="relative cursor-pointer rounded-lg overflow-hidden group"
+                          style={{
+                            border: `2px solid ${selected ? 'var(--gold)' : 'transparent'}`,
+                            opacity: selected ? 1 : 0.4,
+                          }}
                         >
                           <img src={img} alt="" className="w-36 h-24 object-cover" />
                           {selected && (
-                            <div className="absolute top-1 right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
-                              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <div
+                              className="absolute top-1 right-1 rounded-full w-4 h-4 flex items-center justify-center"
+                              style={{ background: 'var(--gold)' }}
+                            >
+                              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
                             </div>
                           )}
                           <button
                             onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
-                            className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded bg-black/60 hover:bg-blue-600 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
+                            className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
+                            style={{ background: 'rgba(13,11,8,0.7)' }}
                           >⤢</button>
                         </div>
                       )
                     })}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setOutro(o => ({ ...o, images: unused }))} className="text-xs text-blue-600 hover:underline">Velg alle</button>
-                    <span className="text-gray-300">|</span>
-                    <button onClick={() => setOutro(o => ({ ...o, images: [] }))} className="text-xs text-gray-400 hover:underline">Fjern alle</button>
-                    <span className="text-gray-400 text-xs ml-2">{outro.images.length} valgt</span>
+                    <button onClick={() => setOutro(o => ({ ...o, images: unused }))} className="text-xs" style={{ color: 'var(--gold)' }}>Velg alle</button>
+                    <span style={{ color: 'var(--line-2)' }}>|</span>
+                    <button onClick={() => setOutro(o => ({ ...o, images: [] }))} className="app-btn-ghost text-xs px-0">Fjern alle</button>
+                    <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>{outro.images.length} valgt</span>
                   </div>
                 </div>
               )}
 
-              {/* Varighet — kun når outro-bilder er valgt */}
               {outro.images.length > 0 && (
-                <div className="flex items-center gap-3 border-t border-gray-100 pt-3">
-                  <label className="text-xs text-gray-600 w-36 shrink-0">Varighet per bilde</label>
+                <div className="flex items-center gap-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                  <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Varighet per bilde</label>
                   <input
                     type="range" min={2} max={10} step={1}
                     value={outro.durationPerImage}
                     onChange={e => setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) }))}
                     className="flex-1"
                   />
-                  <span className="text-xs text-gray-600 w-12 text-right">{outro.durationPerImage} sek</span>
+                  <span className="text-xs w-12 text-right" style={{ color: 'var(--ink-2)' }}>{outro.durationPerImage} sek</span>
                 </div>
               )}
 
-              {/* Musikk — vises alltid når segmenter er aktive */}
-              <div className="space-y-2 border-t border-gray-100 pt-3">
+              {/* Musikk */}
+              <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-gray-600">Bakgrunnsmusikk (valgfritt)</label>
-                  <label className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${uploadingMusic ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                  <label className="text-xs" style={{ color: 'var(--muted)' }}>Bakgrunnsmusikk (valgfritt)</label>
+                  <label className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${uploadingMusic ? 'opacity-40' : ''} app-btn-secondary`}>
                     {uploadingMusic ? 'Laster opp...' : '+ Last opp MP3'}
                     <input type="file" accept="audio/*" className="hidden" onChange={handleMusicUpload} disabled={uploadingMusic} />
                   </label>
@@ -682,14 +727,14 @@ export default function PropertyDetailPage() {
                     {musicFiles.map(f => (
                       <div
                         key={f.id}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${outro.musicUrl === f.url ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                        className={`app-music-row${outro.musicUrl === f.url ? ' active' : ''}`}
                         onClick={() => setOutro(o => ({ ...o, musicUrl: outro.musicUrl === f.url ? '' : f.url }))}
                       >
                         <span className="text-sm">{outro.musicUrl === f.url ? '♪' : '○'}</span>
-                        <span className="text-sm text-gray-700 flex-1 truncate">{f.name}</span>
+                        <span className="text-sm flex-1 truncate">{f.name}</span>
                         <button
                           onClick={e => { e.stopPropagation(); handleDeleteMusic(f.id, f.url) }}
-                          className="text-gray-300 hover:text-red-500 text-xs px-1 transition-colors"
+                          className="app-btn-ghost text-xs px-1"
                         >✕</button>
                       </div>
                     ))}
@@ -697,7 +742,7 @@ export default function PropertyDetailPage() {
                 )}
 
                 {musicFiles.length === 0 && !uploadingMusic && (
-                  <p className="text-xs text-gray-400">Ingen musikk lastet opp ennå. Last opp en MP3 — den loopes og fades ut.</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>Ingen musikk lastet opp ennå. Last opp en MP3 — den loopes og fades ut.</p>
                 )}
               </div>
             </div>
@@ -705,18 +750,23 @@ export default function PropertyDetailPage() {
         })()}
 
         {/* Avatar picker */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-          <h2 className="font-semibold text-gray-900">Velg avatar-bilde</h2>
+        <div className="app-card space-y-5">
+          <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Velg avatar-bilde</h2>
 
-          {/* Library: saved settings from profile */}
           {settingImages.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Fra profilen din</p>
+              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
+                Fra profilen din
+              </p>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {settingImages.map(s => (
                   <div
                     key={s.image_url}
-                    className={`relative flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === s.image_url ? 'border-blue-500' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                    className="relative flex-shrink-0 rounded-lg overflow-hidden"
+                    style={{
+                      border: `2px solid ${selectedAvatarUrl === s.image_url ? 'var(--gold)' : 'transparent'}`,
+                      opacity: selectedAvatarUrl === s.image_url ? 1 : 0.6,
+                    }}
                   >
                     <img
                       src={s.image_url}
@@ -727,30 +777,30 @@ export default function PropertyDetailPage() {
                     <button
                       onClick={() => handleDeleteSettingImage(s)}
                       title="Slett bilde"
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-red-600 flex items-center justify-center text-white text-xs transition-colors"
-                    >
-                      ✕
-                    </button>
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                      style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
+                    >✕</button>
                     <button
                       onClick={e => { e.stopPropagation(); setLightboxUrl(s.image_url) }}
                       title="Forstørr"
-                      className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-blue-600 flex items-center justify-center text-white text-xs transition-colors"
-                    >
-                      ⤢
-                    </button>
+                      className="absolute bottom-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                      style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
+                    >⤢</button>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Generate avatar in front of this property */}
           {property.images?.length > 0 && (
-            <div className="space-y-3 border-t border-gray-100 pt-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Foran denne boligen</p>
-              <p className="text-xs text-gray-400">Velg hvilke boligbilde du vil stå foran, og generer et nytt avatarbilde.</p>
+            <div className="space-y-3 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
+                Foran denne boligen
+              </p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Velg hvilke boligbilde du vil stå foran, og generer et nytt avatarbilde.
+              </p>
 
-              {/* Property image selector — reuses selectedImageIdx from gallery */}
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {property.images.map((img, i) => (
                   <img
@@ -758,16 +808,18 @@ export default function PropertyDetailPage() {
                     src={img}
                     alt=""
                     onClick={() => setSelectedImageIdx(i)}
-                    className={`w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 border-2 transition-colors ${i === selectedImageIdx ? 'border-blue-500' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                    className="w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 transition-all"
+                    style={thumbBorder(i === selectedImageIdx)}
                   />
                 ))}
               </div>
 
               {(selectedAvatarUrl || profile.portrait_url) && (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
                   <img
                     src={selectedAvatarUrl || profile.portrait_url}
-                    className="w-8 h-10 object-cover rounded border border-gray-200"
+                    className="w-8 h-10 object-cover rounded"
+                    style={{ border: '1px solid var(--line)' }}
                     alt="Kilde"
                   />
                   <span>
@@ -781,7 +833,8 @@ export default function PropertyDetailPage() {
                 <button
                   onClick={handleGenerateAvatar}
                   disabled={generatingAvatar || (!profile.portrait_url && !selectedAvatarUrl)}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  className="app-btn-primary flex items-center gap-2"
+                  style={{ padding: '8px 16px', fontSize: '13px' }}
                 >
                   {generatingAvatar && (
                     <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -792,26 +845,27 @@ export default function PropertyDetailPage() {
                   {generatingAvatar ? 'Genererer (~20 sek)...' : generatedAvatarUrl ? '↺ Regenerer' : 'Generer foran denne boligen'}
                 </button>
                 {!profile.portrait_url && !selectedAvatarUrl && (
-                  <p className="text-xs text-gray-400">Last opp portrett i profilen din først</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>Last opp portrett i profilen din først</p>
                 )}
               </div>
 
-              {/* Show generated result + select + save */}
               {generatedAvatarUrl && (
                 <div className="flex items-end gap-3">
                   <div
                     onClick={() => setSelectedAvatarUrl(generatedAvatarUrl)}
-                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${selectedAvatarUrl === generatedAvatarUrl ? 'border-blue-500' : 'border-gray-200 opacity-80 hover:opacity-100'}`}
+                    className="relative cursor-pointer rounded-lg overflow-hidden"
+                    style={{
+                      border: `2px solid ${selectedAvatarUrl === generatedAvatarUrl ? 'var(--gold)' : 'var(--line)'}`,
+                    }}
                   >
                     <img src={generatedAvatarUrl} alt="Generert avatar" className="w-48 h-32 object-cover" />
                     <button
                       onClick={e => { e.stopPropagation(); setLightboxUrl(generatedAvatarUrl) }}
                       title="Forstørr"
-                      className="absolute bottom-6 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-blue-600 flex items-center justify-center text-white text-xs transition-colors"
-                    >
-                      ⤢
-                    </button>
-                    <p className="text-xs text-center text-gray-500 py-1">
+                      className="absolute bottom-6 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                      style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
+                    >⤢</button>
+                    <p className="text-xs text-center py-1" style={{ color: 'var(--muted)' }}>
                       {selectedAvatarUrl === generatedAvatarUrl ? '✓ Valgt' : 'Klikk for å velge'}
                     </p>
                   </div>
@@ -819,7 +873,8 @@ export default function PropertyDetailPage() {
                     <button
                       onClick={handleSaveAvatar}
                       disabled={savingAvatar}
-                      className="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 transition-colors"
+                      className="app-btn-secondary text-xs"
+                      style={{ padding: '6px 12px' }}
                     >
                       {savingAvatar ? 'Lagrer...' : avatarSaved ? '✓ Lagret' : 'Lagre til bibliotek'}
                     </button>
@@ -830,32 +885,26 @@ export default function PropertyDetailPage() {
           )}
 
           {settingImages.length === 0 && !property.images?.length && (
-            <p className="text-sm text-gray-400">Gå til Profil for å generere setting-bilder.</p>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>Gå til Profil for å generere setting-bilder.</p>
           )}
         </div>
 
-        {/* Property image picker for video — hidden when segment editor is active */}
+        {/* Property image picker for video */}
         {segments.length === 0 && property.images?.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+          <div className="app-card space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-gray-900">Velg bilder til video</h2>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Velg bilder til video</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                   {selectedVideoImages.length} av {property.images.length} valgt · Klikk for å velge/fjerne
                 </p>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedVideoImages(property.images)}
-                  className="text-xs text-blue-600 hover:underline"
-                >
+                <button onClick={() => setSelectedVideoImages(property.images)} className="text-xs" style={{ color: 'var(--gold)' }}>
                   Velg alle
                 </button>
-                <span className="text-gray-300">|</span>
-                <button
-                  onClick={() => setSelectedVideoImages([])}
-                  className="text-xs text-gray-400 hover:underline"
-                >
+                <span style={{ color: 'var(--line-2)' }}>|</span>
+                <button onClick={() => setSelectedVideoImages([])} className="app-btn-ghost text-xs px-0">
                   Fjern alle
                 </button>
               </div>
@@ -873,12 +922,19 @@ export default function PropertyDetailPage() {
                         setSelectedVideoImages(prev => [...prev, img])
                       }
                     }}
-                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${isSelected ? 'border-blue-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'}`}
+                    className="relative cursor-pointer rounded-lg overflow-hidden"
+                    style={{
+                      border: `2px solid ${isSelected ? 'var(--gold)' : 'transparent'}`,
+                      opacity: isSelected ? 1 : 0.4,
+                    }}
                   >
                     <img src={img} alt="" className="w-36 h-24 object-cover" />
                     {isSelected && (
-                      <div className="absolute top-1 right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <div
+                        className="absolute top-1 right-1 rounded-full w-4 h-4 flex items-center justify-center"
+                        style={{ background: 'var(--gold)' }}
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
@@ -892,41 +948,40 @@ export default function PropertyDetailPage() {
 
         {/* Generate video button */}
         <div className="space-y-3">
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">{error}</p>
-          )}
+          {error && <div className="app-error">{error}</div>}
           {generatingVideo && (
             <div className="space-y-2">
-              <div className="flex items-center gap-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-                <svg className="animate-spin h-4 w-4 text-blue-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <div className="app-info">
+                <svg className="animate-spin h-4 w-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
                 <span>{statusMsg || 'Jobber...'}</span>
               </div>
               {activeJobId && (
-                <p className="text-xs text-gray-400 text-center">Jobb-ID: {activeJobId}</p>
+                <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>Jobb-ID: {activeJobId}</p>
               )}
             </div>
           )}
           {!generatingVideo && statusMsg && (
-            <p className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5">{statusMsg}</p>
+            <div className="app-info">{statusMsg}</div>
           )}
           <button
             onClick={handleGenerateVideo}
             disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
-            className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="app-btn-primary w-full"
+            style={{ padding: '14px', fontSize: '15px', borderRadius: '12px' }}
           >
             {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}
           </button>
         </div>
 
-        {/* Video result — ny video */}
+        {/* Video result */}
         {videoUrl && (
-          <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
-            <h2 className="font-semibold text-gray-900">Ferdig video</h2>
+          <div className="app-card space-y-3" style={{ border: '1px solid var(--gold-deep)' }}>
+            <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Ferdig video</h2>
             <video src={videoUrl} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
-            <a href={videoUrl} download className="inline-block text-sm text-blue-600 hover:underline">
+            <a href={videoUrl} download className="text-sm" style={{ color: 'var(--gold)' }}>
               Last ned video
             </a>
           </div>
@@ -934,20 +989,20 @@ export default function PropertyDetailPage() {
 
         {/* Videohistorikk */}
         {pastVideos.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-            <h2 className="font-semibold text-gray-900">
+          <div className="app-card space-y-3">
+            <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>
               Tidligere videoer
-              <span className="ml-2 text-xs font-normal text-gray-400">{pastVideos.length} stk</span>
+              <span className="ml-2 text-xs font-normal" style={{ color: 'var(--muted)' }}>{pastVideos.length} stk</span>
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {pastVideos.map((v, i) => (
                 <div key={v.id} className="space-y-1.5">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
                     {i === 0 && !videoUrl ? 'Siste' : `#${pastVideos.length - i}`} —{' '}
                     {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                   <video src={v.video_url} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
-                  <a href={v.video_url} download className="inline-block text-sm text-blue-600 hover:underline">
+                  <a href={v.video_url} download className="text-sm" style={{ color: 'var(--gold)' }}>
                     Last ned
                   </a>
                 </div>

@@ -45,11 +45,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+      <div className="app-card w-full max-w-sm" style={{ padding: '32px' }}>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">BoligForge</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', marginBottom: '20px' }}>
+            <span style={{ width: '22px', height: '22px', borderRadius: '5px', background: 'var(--ink)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 }}>R</span>
+            <span style={{ fontSize: '15px', fontWeight: 550, color: 'var(--ink)', letterSpacing: '-0.015em' }}>
+              Reel<span style={{ color: 'var(--muted)' }}>Home</span>
+            </span>
+          </a>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
             {mode === 'login' ? 'Logg inn på din konto' : 'Tilbakestill passord'}
           </p>
         </div>
@@ -57,38 +62,34 @@ export default function LoginPage() {
         {mode === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">E-post</label>
+              <label className="app-label">E-post</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="app-input"
                 placeholder="din@epost.no"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Passord</label>
+              <label className="app-label">Passord</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="app-input"
               />
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-            >
+            {error && <p className="app-error">{error}</p>}
+            <button type="submit" disabled={loading} className="app-btn-primary w-full">
               {loading ? 'Logger inn…' : 'Logg inn'}
             </button>
             <button
               type="button"
               onClick={() => { setMode('reset'); setError('') }}
-              className="w-full text-xs text-gray-400 hover:text-gray-600 text-center"
+              className="app-btn-ghost w-full text-xs text-center"
             >
               Glemt passord?
             </button>
@@ -96,29 +97,25 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={handleReset} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">E-post</label>
+              <label className="app-label">E-post</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="app-input"
                 placeholder="din@epost.no"
               />
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            {message && <p className="text-sm text-green-600">{message}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-            >
+            {error && <p className="app-error">{error}</p>}
+            {message && <p className="app-success">{message}</p>}
+            <button type="submit" disabled={loading} className="app-btn-primary w-full">
               {loading ? 'Sender…' : 'Send tilbakestillingslenke'}
             </button>
             <button
               type="button"
               onClick={() => { setMode('login'); setError(''); setMessage('') }}
-              className="w-full text-xs text-gray-400 hover:text-gray-600 text-center"
+              className="app-btn-ghost w-full text-xs text-center"
             >
               ← Tilbake til innlogging
             </button>
