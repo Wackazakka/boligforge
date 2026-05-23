@@ -23,19 +23,19 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isProtected = request.nextUrl.pathname.startsWith('/dashboard')
-  const isLogin = request.nextUrl.pathname.startsWith('/login')
-  const isDev = process.env.NODE_ENV === 'development'
+  const { pathname } = request.nextUrl
+  const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')
+  const isAuthPage  = pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup')
 
-  if (isProtected && !user && !isDev) {
+  if (isProtected && !user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/auth/login'
     return NextResponse.redirect(url)
   }
 
-  if (isLogin && user) {
+  if (isAuthPage && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard/profile'
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

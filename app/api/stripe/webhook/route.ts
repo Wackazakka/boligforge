@@ -72,7 +72,21 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
         }
 
-        console.log(`Org ${organizationId} oppgradert til plan "${plan}"`)
+        // Opprett/oppdater credits basert på plan
+        const videosByPlan: Record<string, number> = { starter: 3, pro: 10, office: 7 }
+        const quantity   = parseInt(session.metadata?.quantity ?? '1', 10)
+        const baseVideos = videosByPlan[plan] ?? 0
+        const total      = plan === 'office' ? baseVideos * quantity : baseVideos
+        const resetAt    = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+        await supabase
+          .from('credits')
+          .upsert(
+            { organization_id: organizationId, total, used: 0, reset_at: resetAt, updated_at: new Date().toISOString() },
+            { onConflict: 'organization_id' }
+          )
+
+        console.log(`Org ${organizationId} oppgradert til "${plan}", ${total} kreditter tildelt`)
         break
       }
 

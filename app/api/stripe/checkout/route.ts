@@ -65,6 +65,7 @@ export async function POST(request: Request) {
     cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?cancelled=1`,
     metadata: {
       plan,
+      quantity:        String(plan === 'office' ? quantity : 1),
       user_id:         user.id,
       organization_id: org?.id ?? '',
     },
