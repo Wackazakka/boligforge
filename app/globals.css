@@ -464,6 +464,7 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 .plan.featured .for, .plan.featured .desc { color: rgba(255,255,255,.6); }
 .plan.featured .price { border-color: rgba(255,255,255,.14); }
 .plan.featured .v { color: #fff; }
+.plan.featured .price .v { color: #fff; }
 .plan.featured .cur { color: rgba(255,255,255,.5); }
 .plan.featured li { color: rgba(255,255,255,.85); }
 .plan.featured li b { color: #fff; }

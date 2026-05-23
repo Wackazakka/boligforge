@@ -522,7 +522,7 @@ export default function Home() {
                 <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
                 <li><CheckIcon /> Analyse av seeradferd</li>
               </ul>
-              <a href="#" className="btn btn-blue">Velg Pro <ArrowIcon /></a>
+              <Link href="/auth/signup" className="btn btn-blue">Velg Pro <ArrowIcon /></Link>
             </div>
 
             {/* Kontor */}
