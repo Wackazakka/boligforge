@@ -359,9 +359,9 @@ export default function ProfilePage() {
                   <button
                     onClick={startRecording}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{ background: '#8b2020', color: 'var(--ink)' }}
+                    style={{ background: '#8b2020', color: '#fff' }}
                   >
-                    <span className="w-2 h-2 rounded-full bg-[#e88888] inline-block" /> Start opptak
+                    <span className="w-2 h-2 rounded-full bg-white inline-block opacity-80" /> Start opptak
                   </button>
                   <span className="text-xs" style={{ color: 'var(--muted)' }}>eller</span>
                   <button
