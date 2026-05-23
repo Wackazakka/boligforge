@@ -88,6 +88,8 @@
 .landing *, .landing *::before, .landing *::after { box-sizing: border-box; margin: 0; padding: 0; }
 .landing ::selection { background: var(--blue); color: #fff; }
 .landing a { color: inherit; text-decoration: none; }
+.landing a.btn-primary { color: #fff; }
+.landing a.btn-blue { color: #fff; }
 .landing button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 .landing img, .landing svg { display: block; max-width: 100%; }
 
