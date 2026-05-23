@@ -63,7 +63,10 @@ export default function SignupPage() {
         </Link>
 
         <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#0f0f0f', marginBottom: '6px' }}>Opprett konto</h1>
-        <p style={{ fontSize: '14px', color: '#737373', marginBottom: '28px' }}>
+        <p style={{ fontSize: '14px', color: '#737373', marginBottom: '4px' }}>
+          Kom i gang gratis — ingen kortinfo nødvendig.
+        </p>
+        <p style={{ fontSize: '13px', color: '#a3a3a3', marginBottom: '24px' }}>
           Har du allerede konto?{' '}
           <Link href="/auth/login" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
             Logg inn

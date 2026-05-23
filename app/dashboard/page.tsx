@@ -79,7 +79,7 @@ export default async function DashboardPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              Legg til betalingsinfo →
+              Velg plan for å fortsette etter trialen →
             </Link>
           </div>
         )}
