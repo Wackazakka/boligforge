@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 function Logo() {
@@ -14,7 +13,6 @@ function Logo() {
 }
 
 export default function OnboardingPage() {
-  const router  = useRouter()
   const [orgName, setOrgName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
@@ -24,35 +22,22 @@ export default function OnboardingPage() {
     setLoading(true)
     setError('')
 
-    // 1. Opprett organisasjon
-    const orgRes = await fetch('/api/onboarding/create-org', {
+    const res  = await fetch('/api/onboarding/create-org', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name: orgName }),
     })
-    const orgData = await orgRes.json()
+    const data = await res.json()
 
-    if (!orgRes.ok) {
+    if (!res.ok) {
       setLoading(false)
-      setError(orgData.error || 'Noe gikk galt')
+      setError(data.error || 'Noe gikk galt')
       return
     }
 
-    // 2. Aktiver Pro-trial
-    const trialRes = await fetch('/api/onboarding/activate-trial', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ plan: 'pro' }),
-    })
-    const trialData = await trialRes.json()
-
-    if (!trialRes.ok) {
-      setLoading(false)
-      setError(trialData.error || 'Noe gikk galt ved aktivering')
-      return
-    }
-
-    router.push('/dashboard')
+    // Hard navigasjon — bypasser Next.js RSC router-cache
+    // slik at dashboard alltid leser fersk profil fra databasen
+    window.location.href = '/dashboard'
   }
 
   return (
