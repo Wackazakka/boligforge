@@ -36,13 +36,7 @@ export default function LoginPage() {
           <span style={{ fontSize: '15px', fontWeight: 550, color: '#0f0f0f' }}>Reel<span style={{ color: '#737373' }}>Home</span></span>
         </Link>
 
-        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#0f0f0f', marginBottom: '6px' }}>Logg inn</h1>
-        <p style={{ fontSize: '14px', color: '#737373', marginBottom: '28px' }}>
-          Ny bruker?{' '}
-          <Link href="/auth/signup" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
-            Opprett konto
-          </Link>
-        </p>
+        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#0f0f0f', marginBottom: '28px' }}>Logg inn</h1>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
@@ -73,6 +67,15 @@ export default function LoginPage() {
             {loading ? 'Logger inn…' : 'Logg inn'}
           </button>
         </form>
+
+        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <Link href="/auth/forgot-password" style={{ fontSize: '13px', color: '#737373', textDecoration: 'none' }}>
+            Glemt passord?
+          </Link>
+          <Link href="/auth/signup" style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
+            Har du ikke konto? Registrer deg →
+          </Link>
+        </div>
       </div>
     </div>
   )

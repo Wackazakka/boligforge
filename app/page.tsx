@@ -38,8 +38,8 @@ export default function Home() {
             <a href="#">Dokumentasjon</a>
           </div>
           <div className="nav-cta">
-            <Link href="/login" className="btn btn-text">Logg inn</Link>
-            <a href="#priser" className="btn btn-primary">Kom i gang <span className="kbd">↵</span></a>
+            <Link href="/auth/login" className="btn btn-text">Logg inn</Link>
+            <Link href="/auth/signup" className="btn btn-primary">Kom i gang <span className="kbd">↵</span></Link>
           </div>
         </div>
       </nav>
@@ -55,9 +55,9 @@ export default function Home() {
               Last opp boligen, motta filmen klar til Finn, Reels og TikTok.
             </p>
             <div className="hero-cta">
-              <a href="#priser" className="btn btn-primary">
+              <Link href="/auth/signup" className="btn btn-primary">
                 Start gratis prøveperiode <ArrowIcon />
-              </a>
+              </Link>
               <a href="#hvordan" className="btn btn-ghost">
                 Se hvordan <span className="kbd">D</span>
               </a>
@@ -504,7 +504,7 @@ export default function Home() {
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendring (~5 min)</li>
               </ul>
-              <a href="#" className="btn btn-ghost">Start gratis prøveperiode</a>
+              <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
             </div>
 
             {/* Pro */}
@@ -675,7 +675,7 @@ export default function Home() {
           </h2>
           <p>Ingen kortinformasjon. Ingen forpliktelser. Last opp én bolig, se hva ReelHome gjør med den.</p>
           <div className="hero-cta" style={{ justifyContent: "center" }}>
-            <a href="#" className="btn btn-primary">Start gratis prøveperiode <ArrowIcon /></a>
+            <Link href="/auth/signup" className="btn btn-primary">Start gratis prøveperiode <ArrowIcon /></Link>
             <a href="#" className="btn btn-ghost">Book demo</a>
           </div>
         </div>
