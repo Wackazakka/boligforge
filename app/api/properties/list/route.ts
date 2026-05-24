@@ -8,7 +8,7 @@ export async function GET() {
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('properties')
-    .select('id, finn_id, address, price, size_bra, rooms, images, finn_url')
+    .select('id, finn_id, address, price, size_bra, rooms, images, finn_url, status, sold_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
