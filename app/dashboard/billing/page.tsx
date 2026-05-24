@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import AccountTabs from '../profile/AccountTabs'
 
 interface Credits {
   plan: string
@@ -17,14 +18,14 @@ const PLANS = [
   {
     id:       'starter',
     name:     'Starter',
-    price:    '499 kr/mnd',
+    price:    '1 047 kr/mnd',
     videos:   '3 videoer per måned',
     desc:     'For enkeltmeglere som vil komme i gang',
   },
   {
     id:       'pro',
     name:     'Pro',
-    price:    '999 kr/mnd',
+    price:    '1 990 kr/mnd',
     videos:   '10 videoer per måned',
     desc:     'For aktive meglere med høyt volum',
     featured: true,
@@ -32,26 +33,37 @@ const PLANS = [
   {
     id:       'office',
     name:     'Kontor',
-    price:    '699 kr/megler/mnd',
+    price:    '999 kr/megler/mnd',
     videos:   '7 videoer per megler',
     desc:     'For hele meglerhuset med quantity-prising',
   },
 ]
 
 const PLAN_LABELS: Record<string, { label: string; price: string }> = {
-  starter: { label: 'Starter',       price: 'kr 499/mnd' },
-  pro:     { label: 'Pro',           price: 'kr 999/mnd' },
-  office:  { label: 'Kontor',        price: 'kr 699/mnd per megler' },
+  starter: { label: 'Starter',       price: 'kr 1 047/mnd' },
+  pro:     { label: 'Pro',           price: 'kr 1 990/mnd' },
+  office:  { label: 'Kontor',        price: 'kr 999/mnd per megler' },
   trial:   { label: 'Prøveperiode',  price: '14 dager gratis' },
   free:    { label: 'Prøveperiode',  price: '14 dager gratis' },
 }
 
+// Plan-spesifikke topup-pakker (fast antall, fast pris)
+const TOPUP_PACKAGES: Record<string, { qty: number; pricePerUnit: number; total: number }> = {
+  starter: { qty: 3, pricePerUnit: 299, total: 897 },
+  pro:     { qty: 5, pricePerUnit: 249, total: 1245 },
+  office:  { qty: 5, pricePerUnit: 249, total: 1245 },
+  trial:   { qty: 3, pricePerUnit: 299, total: 897 },
+  free:    { qty: 3, pricePerUnit: 299, total: 897 },
+}
+
 export default function BillingPage() {
-  const [credits,      setCredits]      = useState<Credits | null>(null)
+  const [credits,        setCredits]        = useState<Credits | null>(null)
   const [creditsLoading, setCreditsLoading] = useState(true)
-  const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null)
-  const [agentCount,   setAgentCount]   = useState(3)
-  const [checkoutError, setCheckoutError] = useState('')
+  const [checkoutPlan,   setCheckoutPlan]   = useState<string | null>(null)
+  const [agentCount,     setAgentCount]     = useState(3)
+  const [checkoutError,  setCheckoutError]  = useState('')
+  const [buyingCredits,  setBuyingCredits]  = useState(false)
+  const [buyError,       setBuyError]       = useState('')
 
   useEffect(() => {
     fetch('/api/video/credits')
@@ -82,6 +94,23 @@ export default function BillingPage() {
     }
   }
 
+  async function handleBuyCredits() {
+    setBuyingCredits(true)
+    setBuyError('')
+    const res = await fetch('/api/stripe/buy-credits', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({}),   // qty determined server-side by plan
+    })
+    const data = await res.json()
+    if (!res.ok || !data.url) {
+      setBuyingCredits(false)
+      setBuyError(data.error || 'Kunne ikke starte betaling')
+    } else {
+      window.location.href = data.url
+    }
+  }
+
   const planInfo   = credits ? (PLAN_LABELS[credits.plan] ?? PLAN_LABELS.trial) : null
   const usedPct    = credits ? Math.min(100, Math.round((credits.used_this_month / credits.included_per_month) * 100)) : 0
   const resetDate  = credits ? new Date(credits.reset_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' }) : ''
@@ -89,6 +118,7 @@ export default function BillingPage() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
+      <AccountTabs />
 
       {/* ── Plan selection ── */}
       <div style={{ marginBottom: '48px' }}>
@@ -213,6 +243,50 @@ export default function BillingPage() {
                 </p>
               </div>
             </div>
+
+            {/* ── Kjøp ekstra videoer ── */}
+            {(() => {
+              const plan = credits?.plan ?? 'starter'
+              const pkg  = TOPUP_PACKAGES[plan] ?? TOPUP_PACKAGES.starter
+              return (
+                <div className="app-card" id="extra-credits" style={{ padding: '24px', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                    Kjøp ekstra videoer
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>
+                    Engangskjøp — kreditten utløper ikke og brukes opp før månedlige kreditter.
+                  </p>
+
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    flexWrap: 'wrap', gap: '16px',
+                    padding: '16px 20px', borderRadius: '10px',
+                    border: '2px solid var(--line)', background: 'var(--surface)',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)' }}>
+                        {pkg.qty} videoer
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
+                        {pkg.pricePerUnit} kr per video · totalt {pkg.total} kr
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleBuyCredits}
+                      disabled={buyingCredits}
+                      className="app-btn-primary"
+                    >
+                      {buyingCredits ? 'Venter…' : `Kjøp for ${pkg.total} kr`}
+                    </button>
+                  </div>
+
+                  {buyError && (
+                    <p className="app-error" style={{ marginTop: '10px' }}>{buyError}</p>
+                  )}
+                </div>
+              )
+            })()}
 
             <p style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center' }}>
               Spørsmål?{' '}

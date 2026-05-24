@@ -26,8 +26,8 @@ export default function Home() {
       <nav className="top">
         <div className="wrap">
           <a href="#" className="logo">
-            <span className="mark">R</span>
-            <span className="brand">Reel<span style={{ color: "var(--muted)" }}>Home</span></span>
+            { /* eslint-disable-next-line @next/next/no-img-element */ }
+            <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '72px', width: 'auto' }} />
             <span className="ver mono">v2.0</span>
           </a>
           <div className="nav-links">
@@ -495,7 +495,7 @@ export default function Home() {
             <div className="plan">
               <div className="nm">Starter</div>
               <div className="for">For meglere som tester</div>
-              <div className="price"><span className="v">499</span><span className="cur">kr / mnd</span></div>
+              <div className="price"><span className="v">1 047</span><span className="cur">kr / mnd</span></div>
               <div className="desc">3 ferdig produserte videoer hver måned, full tilgang til avatarbiblioteket.</div>
               <ul>
                 <li><CheckIcon /> <span><b>3 videoer</b> per måned</span></li>
@@ -512,7 +512,7 @@ export default function Home() {
               <span className="badge">Mest populær</span>
               <div className="nm">Pro</div>
               <div className="for">For aktive meglere</div>
-              <div className="price"><span className="v">999</span><span className="cur">kr / mnd</span></div>
+              <div className="price"><span className="v">1 990</span><span className="cur">kr / mnd</span></div>
               <div className="desc">10 videoer i måneden, din egen stemmeklone og kontorprofil i hver film.</div>
               <ul>
                 <li><CheckIcon /> <span><b>10 videoer</b> per måned</span></li>
@@ -529,7 +529,7 @@ export default function Home() {
             <div className="plan">
               <div className="nm">Kontor</div>
               <div className="for">For hele meglerhuset</div>
-              <div className="price"><span className="v">699</span><span className="cur">kr / megler · mnd</span></div>
+              <div className="price"><span className="v">999</span><span className="cur">kr / megler · mnd</span></div>
               <div className="desc">7 videoer per megler hver måned, sentralisert merkevareprofil og dedikert oppfølging.</div>
               <ul>
                 <li><CheckIcon /> <span><b>7 videoer</b> per megler · mnd</span></li>
@@ -687,8 +687,8 @@ export default function Home() {
           <div className="foot-top">
             <div className="foot-brand">
               <a href="#" className="logo">
-                <span className="mark">R</span>
-                <span className="brand">Reel<span style={{ color: "var(--muted)" }}>Home</span></span>
+                { /* eslint-disable-next-line @next/next/no-img-element */ }
+              <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '40px', width: 'auto' }} />
               </a>
               <p>AI-drevet videoproduksjon for norske eiendomsmeglere. Bygget i Oslo.</p>
               <div className="foot-status"><span className="dot" />Alle systemer operative</div>

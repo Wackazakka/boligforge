@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 
 type Property = {
   id: string
@@ -32,6 +33,7 @@ type AgentProfile = {
   voice_id?: string
   tone_of_voice?: string
   portrait_url?: string
+  logo_url?: string
 }
 
 type Segment = {
@@ -84,7 +86,20 @@ export default function PropertyDetailPage() {
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [noCreditsModal, setNoCreditsModal] = useState(false)
-  const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string }[]>([])
+  const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; collection_ids: string[] }[]>([])
+  const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
+  const [folderPanelVideoId, setFolderPanelVideoId] = useState<string | null>(null)
+  const [activeAvatar, setActiveAvatar] = useState<TemplateAvatar | null>(null)
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
+
+  // True only if the user has uploaded/generated their own portrait (not a template placeholder)
+  const hasOwnAvatar = !!profile.portrait_url &&
+    !TEMPLATE_AVATARS.some(av => av.portraitUrl === profile.portrait_url)
+
+  // Effective values — template avatar overrides own profile when selected
+  const effectiveVoiceId   = activeAvatar?.voiceId     ?? profile.voice_id    ?? ''
+  const effectivePortrait  = activeAvatar?.portraitUrl  ?? profile.portrait_url ?? ''
+  const effectiveAgentName = activeAvatar?.name         ?? profile.name         ?? 'megler'
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -104,6 +119,9 @@ export default function PropertyDetailPage() {
     })
     fetch(`/api/properties/videos?propertyId=${id}`).then(r => r.json()).then(d => {
       if (Array.isArray(d)) setPastVideos(d)
+    })
+    fetch('/api/collections').then(r => r.json()).then(d => {
+      if (Array.isArray(d)) setCollections(d)
     })
   }, [id])
 
@@ -136,13 +154,13 @@ export default function PropertyDetailPage() {
   }
 
   async function generateSegmentAudio(idx: number): Promise<string | null> {
-    if (!profile.voice_id) { setError('Ingen stemme valgt i profilen'); return null }
+    if (!effectiveVoiceId) { setError('Ingen stemme valgt i profilen'); return null }
     updateSegment(idx, { previewingAudio: true })
     try {
       const res = await fetch('/api/profile/tts-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: segments[idx].text, voiceId: profile.voice_id }),
+        body: JSON.stringify({ text: segments[idx].text, voiceId: effectiveVoiceId }),
       })
       if (!res.ok) {
         const msg = await res.text()
@@ -215,6 +233,43 @@ export default function PropertyDetailPage() {
     if (selectedAvatarUrl === img.image_url) setSelectedAvatarUrl('')
   }
 
+  async function playVoiceSample(voiceId: string) {
+    if (playingVoiceId === voiceId) return
+    setPlayingVoiceId(voiceId)
+    try {
+      const res = await fetch('/api/profile/tts-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Hei, jeg er glad for å presentere denne flotte boligen for deg i dag.', voiceId }),
+      })
+      if (!res.ok) throw new Error('tts failed')
+      const blob = await res.blob()
+      const audioUrl = URL.createObjectURL(blob)
+      const audio = new Audio(audioUrl)
+      audio.onended = () => { setPlayingVoiceId(null); URL.revokeObjectURL(audioUrl) }
+      audio.onerror = () => { setPlayingVoiceId(null); URL.revokeObjectURL(audioUrl) }
+      await audio.play()
+    } catch {
+      setPlayingVoiceId(null)
+    }
+  }
+
+  async function downloadVideo(url: string, filename = 'presentasjon.mp4') {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(a.href)
+    } catch {
+      window.open(url, '_blank')
+    }
+  }
+
   async function handleGenerateScript() {
     if (!property) return
     setGeneratingScript(true)
@@ -222,7 +277,7 @@ export default function PropertyDetailPage() {
     const res = await fetch('/api/properties/generate-script', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ property, agentProfile: profile }),
+      body: JSON.stringify({ property, agentProfile: { ...profile, name: effectiveAgentName } }),
     })
     const data = await res.json()
     setGeneratingScript(false)
@@ -231,14 +286,14 @@ export default function PropertyDetailPage() {
   }
 
   async function handleGenerateAvatar() {
-    if (!profile.portrait_url) { setError('Last opp et portrettbilde i profilen din først'); return }
+    if (!effectivePortrait) { setError('Last opp et portrettbilde i profilen din først'); return }
     if (!property?.images?.length) { setError('Ingen boligbilder tilgjengelig'); return }
     const propertyImg = property.images[selectedImageIdx]
     setGeneratingAvatar(true)
     setAvatarSaved(false)
     setError('')
     try {
-      const agentSourceUrl = selectedAvatarUrl || profile.portrait_url
+      const agentSourceUrl = selectedAvatarUrl || effectivePortrait
       const reuseCutout = cachedCutoutUrl && cutoutSourceUrl === agentSourceUrl ? cachedCutoutUrl : null
 
       const res = await fetch('/api/profile/composite-avatar', {
@@ -295,7 +350,10 @@ export default function PropertyDetailPage() {
           setStatusMsg('')
           setVideoUrl(data.videoUrl)
           if (data.videoUrl) {
-            setPastVideos(prev => [{ id: jobId, video_url: data.videoUrl, created_at: new Date().toISOString() }, ...prev])
+            // Re-fetch from DB to avoid duplicates (video already saved server-side)
+            fetch(`/api/properties/videos?propertyId=${id}`)
+              .then(r => r.json())
+              .then(d => { if (Array.isArray(d)) setPastVideos(d) })
           }
         } else if (data.status === 'failed') {
           clearInterval(pollRef.current!)
@@ -312,11 +370,11 @@ export default function PropertyDetailPage() {
   }
 
   async function handleGenerateVideo() {
-    if (!script || !profile.voice_id) {
+    if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
     }
-    if (!selectedAvatarUrl && !profile.portrait_url) {
+    if (!selectedAvatarUrl && !effectivePortrait) {
       setError('Last opp et portrettbilde i profilen din for å generere video')
       return
     }
@@ -344,10 +402,20 @@ export default function PropertyDetailPage() {
     const tickerText = outro.images.length > 0
       ? (tickerParts.length > 0 ? tickerParts.join('  ·  ') : property?.title || property?.address || 'Se mer om denne boligen')
       : undefined
-    const outroPayload = outro.images.length > 0 ? { ...outro, tickerText } : undefined
+    const logoUrl = profile.logo_url || undefined
+    const outroPayload = (outro.images.length > 0 || logoUrl)
+      ? { ...outro, tickerText, ...(logoUrl ? { logoUrl } : {}) }
+      : undefined
+
+    // Prepend a 1.5s still shot of the property's first image before avatar speaks
+    const introSegment = (segments.length > 0 && property?.images?.[0])
+      ? [{ type: 'still' as const, imageUrl: property.images[0], duration: 1.5 }]
+      : []
+    const segmentsWithIntro = [...introSegment, ...segments]
+
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl || profile.portrait_url, portraitUrl: profile.portrait_url, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments, outro: outroPayload }
-      : { propertyId: id, script, voiceId: profile.voice_id, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload }
+      : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages }
 
     const res = await fetch('/api/video/generate', {
       method: 'POST',
@@ -405,8 +473,15 @@ export default function PropertyDetailPage() {
             </p>
             <div className="flex flex-col gap-2">
               <a
-                href="/dashboard/billing"
+                href="/dashboard/billing#extra-credits"
                 className="app-btn-primary block w-full text-center"
+                style={{ textDecoration: 'none' }}
+              >
+                Kjøp enkeltvideoer
+              </a>
+              <a
+                href="/dashboard/billing"
+                className="app-btn-secondary block w-full text-center"
                 style={{ textDecoration: 'none' }}
               >
                 Se fakturering
@@ -446,7 +521,7 @@ export default function PropertyDetailPage() {
         {property.images?.length > 0 && (
           <div className="space-y-2">
             <img src={property.images[selectedImageIdx]} alt="" className="w-full h-64 object-cover rounded-xl" />
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
               {property.images.map((img, i) => (
                 <img
                   key={i}
@@ -492,6 +567,93 @@ export default function PropertyDetailPage() {
             ))}
           </div>
         ) : null}
+
+        {/* ── Presenter / avatar selector ── */}
+        <div className="app-card" style={{ padding: '16px 20px' }}>
+          <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '14px', fontSize: '15px' }}>Velg presenter</h2>
+          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', overscrollBehaviorX: 'contain' }}>
+            {/* Own profile — or link to create one */}
+            {hasOwnAvatar ? (
+              <button
+                onClick={() => { setActiveAvatar(null); setGeneratedAvatarUrl(null) }}
+                style={{
+                  flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                  background: activeAvatar === null ? '#eff6ff' : 'var(--surface-2)',
+                  border: `2px solid ${activeAvatar === null ? '#2563eb' : 'var(--line)'}`,
+                  borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
+                }}
+              >
+                <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', background: 'var(--line)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={profile.portrait_url} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar === null ? '#2563eb' : 'var(--ink)' }}>
+                  Din avatar
+                </span>
+                {profile.name && (
+                  <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{profile.name.split(' ')[0]}</span>
+                )}
+                {profile.voice_id && (
+                  <button
+                    onClick={e => { e.stopPropagation(); playVoiceSample(profile.voice_id!) }}
+                    style={{ fontSize: '10px', color: playingVoiceId === profile.voice_id ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0', marginTop: '2px' }}
+                  >
+                    {playingVoiceId === profile.voice_id ? '■ Spiller...' : '▶ Hør'}
+                  </button>
+                )}
+              </button>
+            ) : (
+              <a
+                href="/dashboard/profile"
+                style={{
+                  flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                  background: 'var(--surface-2)', border: '2px dashed var(--line)',
+                  borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
+                  textDecoration: 'none',
+                }}
+              >
+                <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '22px' }}>＋</span>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--blue)', textAlign: 'center', lineHeight: 1.3 }}>
+                  Lag din<br />avatar →
+                </span>
+              </a>
+            )}
+
+            {/* Divider */}
+            <div style={{ width: '1px', background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
+
+            {/* Template avatars */}
+            {TEMPLATE_AVATARS.map(av => (
+              <button
+                key={av.id}
+                onClick={() => { setActiveAvatar(av); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
+                style={{
+                  flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                  background: activeAvatar?.id === av.id ? '#eff6ff' : 'var(--surface-2)',
+                  border: `2px solid ${activeAvatar?.id === av.id ? '#2563eb' : 'var(--line)'}`,
+                  borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
+                }}
+              >
+                <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={av.portraitUrl} alt={av.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar?.id === av.id ? '#2563eb' : 'var(--ink)' }}>
+                  {av.name}
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{av.desc}</span>
+                <button
+                  onClick={e => { e.stopPropagation(); playVoiceSample(av.voiceId) }}
+                  style={{ fontSize: '10px', color: playingVoiceId === av.voiceId ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0', marginTop: '2px' }}
+                >
+                  {playingVoiceId === av.voiceId ? '■ Spiller...' : '▶ Hør'}
+                </button>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Script section */}
         <div className="app-card space-y-4">
@@ -587,7 +749,7 @@ export default function PropertyDetailPage() {
                     <div className="ml-auto flex gap-1.5">
                       <button
                         onClick={() => handlePlaySegmentAudio(i)}
-                        disabled={seg.previewingAudio || !profile.voice_id}
+                        disabled={seg.previewingAudio || !effectiveVoiceId}
                         className="app-btn-secondary text-xs"
                         style={{ padding: '6px 12px' }}
                       >
@@ -595,7 +757,7 @@ export default function PropertyDetailPage() {
                       </button>
                       <button
                         onClick={() => handleRegenSegmentAudio(i)}
-                        disabled={seg.previewingAudio || !profile.voice_id}
+                        disabled={seg.previewingAudio || !effectiveVoiceId}
                         title="Generer ny versjon av lyden"
                         className="app-btn-secondary text-xs"
                         style={{ padding: '6px 12px' }}
@@ -607,7 +769,7 @@ export default function PropertyDetailPage() {
                   {seg.type === 'image' && (
                     <div className="space-y-1.5">
                       <p className="text-xs" style={{ color: 'var(--muted)' }}>Velg bilde for dette segmentet:</p>
-                      <div className="flex gap-2 overflow-x-auto pb-1">
+                      <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
                         {(property?.images || []).map((img, j) => (
                           <div key={j} className="relative flex-shrink-0 group">
                             <img
@@ -749,16 +911,23 @@ export default function PropertyDetailPage() {
           )
         })()}
 
-        {/* Avatar picker */}
+        {/* Avatar image section */}
         <div className="app-card space-y-5">
-          <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Velg avatar-bilde</h2>
+          <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>
+            Velg avatar-bilde
+            {activeAvatar && (
+              <span style={{ marginLeft: '8px', fontSize: '13px', fontWeight: 400, color: '#2563eb' }}>
+                — {activeAvatar.name}
+              </span>
+            )}
+          </h2>
 
-          {settingImages.length > 0 && (
+          {settingImages.length > 0 && !activeAvatar && (
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
                 Fra profilen din
               </p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="flex gap-3 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
                 {settingImages.map(s => (
                   <div
                     key={s.image_url}
@@ -801,7 +970,7 @@ export default function PropertyDetailPage() {
                 Velg hvilke boligbilde du vil stå foran, og generer et nytt avatarbilde.
               </p>
 
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
                 {property.images.map((img, i) => (
                   <img
                     key={i}
@@ -814,10 +983,10 @@ export default function PropertyDetailPage() {
                 ))}
               </div>
 
-              {(selectedAvatarUrl || profile.portrait_url) && (
+              {(selectedAvatarUrl || effectivePortrait) && (
                 <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
                   <img
-                    src={selectedAvatarUrl || profile.portrait_url}
+                    src={selectedAvatarUrl || effectivePortrait}
                     className="w-8 h-10 object-cover rounded"
                     style={{ border: '1px solid var(--line)' }}
                     alt="Kilde"
@@ -832,7 +1001,7 @@ export default function PropertyDetailPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleGenerateAvatar}
-                  disabled={generatingAvatar || (!profile.portrait_url && !selectedAvatarUrl)}
+                  disabled={generatingAvatar || (!effectivePortrait && !selectedAvatarUrl)}
                   className="app-btn-primary flex items-center gap-2"
                   style={{ padding: '8px 16px', fontSize: '13px' }}
                 >
@@ -844,7 +1013,7 @@ export default function PropertyDetailPage() {
                   )}
                   {generatingAvatar ? 'Genererer (~20 sek)...' : generatedAvatarUrl ? '↺ Regenerer' : 'Generer foran denne boligen'}
                 </button>
-                {!profile.portrait_url && !selectedAvatarUrl && (
+                {!effectivePortrait && !selectedAvatarUrl && (
                   <p className="text-xs" style={{ color: 'var(--muted)' }}>Last opp portrett i profilen din først</p>
                 )}
               </div>
@@ -958,9 +1127,6 @@ export default function PropertyDetailPage() {
                 </svg>
                 <span>{statusMsg || 'Jobber...'}</span>
               </div>
-              {activeJobId && (
-                <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>Jobb-ID: {activeJobId}</p>
-              )}
             </div>
           )}
           {!generatingVideo && statusMsg && (
@@ -978,38 +1144,134 @@ export default function PropertyDetailPage() {
 
         {/* Video result */}
         {videoUrl && (
-          <div className="app-card space-y-3" style={{ border: '1px solid var(--gold-deep)' }}>
-            <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Ferdig video</h2>
+          <div className="app-card space-y-4" style={{ border: '1px solid var(--gold-deep)' }}>
+            <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Ferdig video ✓</h2>
             <video src={videoUrl} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
-            <a href={videoUrl} download className="text-sm" style={{ color: 'var(--gold)' }}>
-              Last ned video
-            </a>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                onClick={() => downloadVideo(videoUrl)}
+                className="app-btn-primary"
+                style={{ fontSize: '13px', padding: '8px 18px' }}
+              >
+                ⬇ Last ned video
+              </button>
+              <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                Legg den i en mappe med 📁-knappen — da forsvinner den fra historikken her.
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Videohistorikk */}
-        {pastVideos.length > 0 && (
+        {/* Videohistorikk — bare videoer som ikke er lagt i mappe */}
+        {(() => {
+          const unfiledVideos = pastVideos.filter(v => v.collection_ids.length === 0)
+          if (unfiledVideos.length === 0) return null
+          return (
           <div className="app-card space-y-3">
             <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>
               Tidligere videoer
-              <span className="ml-2 text-xs font-normal" style={{ color: 'var(--muted)' }}>{pastVideos.length} stk</span>
+              <span className="ml-2 text-xs font-normal" style={{ color: 'var(--muted)' }}>{unfiledVideos.length} stk</span>
             </h2>
             <div className="space-y-4">
-              {pastVideos.map((v, i) => (
+              {unfiledVideos.map((v, i) => (
                 <div key={v.id} className="space-y-1.5">
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                    {i === 0 && !videoUrl ? 'Siste' : `#${pastVideos.length - i}`} —{' '}
-                    {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                      #{pastVideos.length - i} —{' '}
+                      {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+                      {/* Folder button */}
+                      <button
+                        onClick={() => setFolderPanelVideoId(folderPanelVideoId === v.id ? null : v.id)}
+                        style={{ fontSize: '11px', color: v.collection_ids.length ? 'var(--blue)' : 'var(--muted)', background: 'none', border: '1px solid var(--line)', borderRadius: '6px', cursor: 'pointer', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        📁 {v.collection_ids.length > 0 ? `${v.collection_ids.length} mappe${v.collection_ids.length > 1 ? 'r' : ''}` : 'Legg i mappe'}
+                      </button>
+
+                      {/* Folder panel */}
+                      {folderPanelVideoId === v.id && (
+                        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '4px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px', padding: '12px', zIndex: 50, minWidth: '220px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Velg mapper</p>
+                          {collections.length === 0 && (
+                            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '8px' }}>Ingen mapper ennå</p>
+                          )}
+                          {collections.map(c => {
+                            const checked = v.collection_ids.includes(c.id)
+                            return (
+                              <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={async () => {
+                                    await fetch('/api/collections/assign', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ videoId: v.id, collectionId: c.id, add: !checked }),
+                                    })
+                                    setPastVideos(prev => prev.map(x => x.id !== v.id ? x : {
+                                      ...x,
+                                      collection_ids: checked
+                                        ? x.collection_ids.filter(id => id !== c.id)
+                                        : [...x.collection_ids, c.id],
+                                    }))
+                                  }}
+                                />
+                                {c.is_org ? '🏢' : '📁'} {c.name}
+                              </label>
+                            )
+                          })}
+                          <button
+                            onClick={async () => {
+                              const name = prompt('Navn på ny mappe:')?.trim()
+                              if (!name) return
+                              const res = await fetch('/api/collections', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name }),
+                              })
+                              const newCol = await res.json()
+                              if (!newCol.id) return
+                              setCollections(prev => [...prev, { id: newCol.id, name: newCol.name, is_org: false }])
+                              await fetch('/api/collections/assign', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ videoId: v.id, collectionId: newCol.id, add: true }),
+                              })
+                              setPastVideos(prev => prev.map(x => x.id !== v.id ? x : { ...x, collection_ids: [...x.collection_ids, newCol.id] }))
+                            }}
+                            style={{ marginTop: '8px', width: '100%', fontSize: '12px', color: 'var(--blue)', background: 'none', border: '1px dashed var(--line)', borderRadius: '6px', padding: '5px', cursor: 'pointer' }}
+                          >
+                            + Ny mappe
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Slette denne videoen?')) return
+                          await fetch('/api/properties/videos', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ videoId: v.id }),
+                          })
+                          setPastVideos(prev => prev.filter(x => x.id !== v.id))
+                        }}
+                        style={{ fontSize: '11px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                      >
+                        Slett
+                      </button>
+                    </div>
+                  </div>
                   <video src={v.video_url} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
-                  <a href={v.video_url} download className="text-sm" style={{ color: 'var(--gold)' }}>
-                    Last ned
-                  </a>
+                  <button onClick={() => downloadVideo(v.video_url)} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                    ⬇ Last ned
+                  </button>
                 </div>
               ))}
             </div>
           </div>
-        )}
+          )
+        })()}
 
       </div>
     </div>

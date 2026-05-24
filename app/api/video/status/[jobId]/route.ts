@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const WORKER_URL = 'http://139.59.212.218:3003'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jvnavubholyvihvytqkn.supabase.co'
+
+function getServiceClient() {
+  return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 // Worker-genererte feilmeldinger som er kryptiske for sluttbruker oversettes til
 // noe forståelig. Disse feilene stammer fra video-workeren på dropleten
@@ -29,6 +37,17 @@ export async function GET(
     if (data && typeof data === 'object' && 'error' in data) {
       return NextResponse.json({ ...data, error: translateWorkerError(data.error) })
     }
+
+    // When done, persist the video URL to property_videos so history shows it
+    if (data?.status === 'done' && data?.videoUrl) {
+      getServiceClient()
+        .from('property_videos')
+        .update({ video_url: data.videoUrl })
+        .eq('id', jobId)
+        .eq('video_url', '')   // only update if still empty (idempotent)
+        .then(({ error }) => { if (error) console.warn('[status] property_videos update:', error.message) })
+    }
+
     return NextResponse.json(data)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

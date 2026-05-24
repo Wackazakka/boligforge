@@ -38,10 +38,47 @@ export async function POST(request: Request) {
     switch (event.type) {
 
       // ----------------------------------------------------------------
-      // Checkout fullført → oppdater org med kunde-ID, abonnement og plan
+      // Checkout fullført → sjekk type (extra_credits eller subscription)
       // ----------------------------------------------------------------
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+
+        // ── Ekstra videokreditter (engangskjøp) ──────────────────────
+        if (session.metadata?.type === 'extra_credits') {
+          const userId  = session.metadata.user_id
+          const credits = parseInt(session.metadata.credits_purchased ?? '0', 10)
+
+          if (!userId || !credits) {
+            console.warn('Webhook: extra_credits mangler user_id eller credits_purchased', session.id)
+            break
+          }
+
+          // Les nåværende extra_credits, inkrementer
+          const { data: row } = await supabase
+            .from('video_credits')
+            .select('extra_credits')
+            .eq('user_id', userId)
+            .maybeSingle()
+
+          const current = row?.extra_credits ?? 0
+
+          const { error } = await supabase
+            .from('video_credits')
+            .upsert(
+              { user_id: userId, extra_credits: current + credits },
+              { onConflict: 'user_id' }
+            )
+
+          if (error) {
+            console.error('Supabase update failed (extra_credits):', error)
+            return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+          }
+
+          console.log(`Bruker ${userId}: +${credits} ekstra videokreditter (nå ${current + credits})`)
+          break
+        }
+
+        // ── Abonnement ───────────────────────────────────────────────
         const organizationId = session.metadata?.organization_id
         const plan           = session.metadata?.plan
 
