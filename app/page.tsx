@@ -332,14 +332,11 @@ export default function Home() {
               <div className="head"><span className="num">02</span><span className="time">~60 sek</span></div>
               <div className="vis">
                 <div className="v2-grid">
-                  <div className="v2-tile s1" />
-                  <div className="v2-tile s2 on" />
-                  <div className="v2-tile s3" />
-                  <div className="v2-tile s4" />
-                  <div className="v2-tile s5" />
-                  <div className="v2-tile s6" />
-                  <div className="v2-tile s7" />
-                  <div className="v2-tile s8" />
+                  {AVATARS.map((av, i) => (
+                    <div key={av.id} className={`v2-tile${i === 1 ? ' on' : ''}`}>
+                      <img src={`${R2}/${av.id}.jpg`} alt={av.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top',display:'block'}} />
+                    </div>
+                  ))}
                 </div>
               </div>
               <h3>Velg vert og stemme</h3>
