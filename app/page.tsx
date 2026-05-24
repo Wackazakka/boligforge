@@ -1,5 +1,15 @@
 import Link from "next/link";
 
+const R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
+const AVATARS = [
+  { id: 'sofia',  name: 'Sofia',  desc: 'Varm og profesjonell', lang: 'NO·BM' },
+  { id: 'marius', name: 'Marius', desc: 'Klar og selvsikker',   lang: 'NO·BM' },
+  { id: 'ingrid', name: 'Ingrid', desc: 'Nordisk og elegant',   lang: 'NO·NN' },
+  { id: 'even',   name: 'Even',   desc: 'Rolig og trygg',       lang: 'NO·BM' },
+  { id: 'hanna',  name: 'Hanna',  desc: 'Engasjert og moderne', lang: 'NO·BM' },
+  { id: 'erik',   name: 'Erik',   desc: 'Erfaren og grundig',   lang: 'NO·NN' },
+]
+
 const CheckIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="20 6 9 17 4 12" />
@@ -241,12 +251,12 @@ export default function Home() {
                 <div className="rp-section">
                   <div className="lbl">Vert <button>Bytt →</button></div>
                   <div className="rp-avatars">
-                    <div className="av-tile active"><span className="ph s1" /><span className="n">Sofia</span></div>
-                    <div className="av-tile"><span className="ph s2" /><span className="n">Marius</span></div>
-                    <div className="av-tile"><span className="ph s3" /><span className="n">Ingrid</span></div>
-                    <div className="av-tile"><span className="ph s4" /><span className="n">Even</span></div>
-                    <div className="av-tile"><span className="ph s5" /><span className="n">Hanna</span></div>
-                    <div className="av-tile"><span className="ph s6" /><span className="n">Erik</span></div>
+                    {AVATARS.map((av, i) => (
+                      <div key={av.id} className={`av-tile${i === 0 ? ' active' : ''}`}>
+                        <img src={`${R2}/${av.id}.jpg`} alt={av.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}} />
+                        <span className="n">{av.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -372,12 +382,14 @@ export default function Home() {
               </div>
               <div className="feat-vis">
                 <div className="av-grid">
-                  <div className="av"><span className="ph s1" /><span className="l">NO·BM</span><span className="n">Sofia</span></div>
-                  <div className="av on"><span className="ph s2" /><span className="l">NO·BM</span><span className="n">Marius</span></div>
-                  <div className="av"><span className="ph s3" /><span className="l">NO·NN</span><span className="n">Ingrid</span></div>
-                  <div className="av"><span className="ph s4" /><span className="l">NO·BM</span><span className="n">Even</span></div>
-                  <div className="av"><span className="ph s5" /><span className="l">NO·BM</span><span className="n">Hanna</span></div>
-                  <div className="av"><span className="ph s6" /><span className="l">NO·NN</span><span className="n">Erik</span></div>
+                  {AVATARS.map((av, i) => (
+                    <div key={av.id} className={`av${i === 1 ? ' on' : ''}`}>
+                      <img src={`${R2}/${av.id}.jpg`} alt={av.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}} />
+                      <span className="l">{av.lang}</span>
+                      <span className="n">{av.name}</span>
+                      <span className="d">{av.desc}</span>
+                    </div>
+                  ))}
                   <div className="av"><span className="ph s7" /><span className="l">SE</span><span className="n">Astrid</span></div>
                   <div className="av"><span className="ph s8" /><span className="l">EN</span><span className="n">James</span></div>
                   <div className="av"><span className="ph s9" /><span className="l">NO·BM</span><span className="n">Tor</span></div>

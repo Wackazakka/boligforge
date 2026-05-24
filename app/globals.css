@@ -421,8 +421,13 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 .av-grid .av .ph.s10 { background: linear-gradient(135deg, #fb7185, #9f1239); }
 .av-grid .av .ph.s11 { background: linear-gradient(135deg, #84cc16, #3f6212); }
 .av-grid .av .ph.s12 { background: linear-gradient(135deg, #c084fc, #581c87); }
-.av-grid .av .n { position: absolute; bottom: 5px; left: 6px; right: 6px; font-size: 10px; color: #fff; font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
-.av-grid .av .l { position: absolute; top: 6px; left: 6px; font-family: var(--mono); font-size: 8.5px; color: rgba(255,255,255,.85); background: rgba(0,0,0,.3); padding: 1px 5px; border-radius: 3px; letter-spacing: 0; }
+.av-grid .av .n { position: absolute; bottom: 18px; left: 6px; right: 6px; font-size: 10px; color: #fff; font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,.6); z-index: 2; }
+.av-grid .av .d { position: absolute; bottom: 5px; left: 6px; right: 6px; font-size: 8px; color: rgba(255,255,255,.8); text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+.av-grid .av .l { position: absolute; top: 6px; left: 6px; font-family: var(--mono); font-size: 8.5px; color: rgba(255,255,255,.85); background: rgba(0,0,0,.3); padding: 1px 5px; border-radius: 3px; letter-spacing: 0; z-index: 2; }
+.av-tile .n { z-index: 2; position: relative; }
+/* gradient scrim so name/desc text stays legible over real photos */
+.av-grid .av::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 55%; background: linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 100%); pointer-events: none; z-index: 1; }
+.av-tile::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%); pointer-events: none; z-index: 1; }
 
 .voice-vis { width: 100%; display: flex; align-items: center; gap: 12px; }
 .voice-vis .label { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,.55); letter-spacing: -0.005em; text-transform: uppercase; width: 42px; flex-shrink: 0; }
@@ -561,7 +566,8 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 52px;
+  height: 72px;
+  position: relative;
 }
 
 .app-nav-logo {
