@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import AccountTabs from '../../profile/AccountTabs'
 
@@ -18,7 +18,7 @@ const PLATFORM_META: Record<string, { label: string; color: string; icon: string
   linkedin: { label: 'LinkedIn',  color: '#0A66C2', icon: 'in' },
 }
 
-export default function SocialSettingsPage() {
+function SocialSettingsContent() {
   const searchParams   = useSearchParams()
   const [connections, setConnections] = useState<Connection[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -198,5 +198,13 @@ export default function SocialSettingsPage() {
         Facebook-tilkoblinger varer 60 dager · LinkedIn-tilkoblinger varer ~60 dager
       </p>
     </div>
+  )
+}
+
+export default function SocialSettingsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px 24px' }}><AccountTabs /></div>}>
+      <SocialSettingsContent />
+    </Suspense>
   )
 }
