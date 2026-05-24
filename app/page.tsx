@@ -373,8 +373,8 @@ export default function Home() {
             {/* Avatars — spans 4 cols */}
             <div className="feat feat-1">
               <div>
-                <span className="eyebrow"><span className="dot" />Avatarbibliotek · 12 stk</span>
-                <h3>Tolv profesjonelle AI-verter på norsk.</h3>
+                <span className="eyebrow"><span className="dot" />Avatarbibliotek · 6 stk</span>
+                <h3>Seks profesjonelle AI-verter på norsk.</h3>
                 <p className="desc">Innspilt med skuespillere i Oslo. Naturlig leppesynk, intonasjon og pauser — både bokmål og nynorsk.</p>
               </div>
               <div className="feat-vis">
@@ -387,12 +387,6 @@ export default function Home() {
                       <span className="d">{av.desc}</span>
                     </div>
                   ))}
-                  <div className="av"><span className="ph s7" /><span className="l">SE</span><span className="n">Astrid</span></div>
-                  <div className="av"><span className="ph s8" /><span className="l">EN</span><span className="n">James</span></div>
-                  <div className="av"><span className="ph s9" /><span className="l">NO·BM</span><span className="n">Tor</span></div>
-                  <div className="av"><span className="ph s10" /><span className="l">NO·BM</span><span className="n">Linnea</span></div>
-                  <div className="av"><span className="ph s11" /><span className="l">NO·NN</span><span className="n">Sigrid</span></div>
-                  <div className="av"><span className="ph s12" /><span className="l">DA</span><span className="n">Frederik</span></div>
                 </div>
               </div>
             </div>
