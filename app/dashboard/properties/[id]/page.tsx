@@ -690,10 +690,6 @@ export default function PropertyDetailPage() {
           {/* — Bakgrunn row — always visible once an avatar is active or images exist — */}
           {(activeAvatar || hasOwnAvatar || property.images?.length > 0) && (
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
-              <p className="text-xs font-medium uppercase tracking-wide"
-                style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', marginBottom: '10px' }}>
-                Velg bakgrunn
-              </p>
 
               <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center', overscrollBehaviorX: 'contain' }}>
 
