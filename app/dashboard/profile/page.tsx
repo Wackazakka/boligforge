@@ -99,13 +99,17 @@ export default function ProfilePage() {
     loadSettingImages()
   }, [])
 
-  function loadSettingImages() {
+  async function loadSettingImages() {
     setLoadingImages(true)
-    fetch('/api/profile/settings-images')
-      .then(r => r.json())
-      .then(d => setSettingImages(Array.isArray(d) ? d : []))
-      .catch(console.error)
-      .finally(() => setLoadingImages(false))
+    try {
+      const r = await fetch('/api/profile/settings-images')
+      const d = await r.json()
+      setSettingImages(Array.isArray(d) ? d : [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingImages(false)
+    }
   }
 
   function set(key: keyof Profile, val: string) {
@@ -234,7 +238,7 @@ export default function ProfilePage() {
         setSettingErrors(prev => ({ ...prev, [settingId]: data.error || `HTTP ${res.status}` }))
         return
       }
-      loadSettingImages()
+      await loadSettingImages()
     } catch (err) {
       setSettingErrors(prev => ({ ...prev, [settingId]: String(err) }))
     } finally {
