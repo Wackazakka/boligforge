@@ -551,7 +551,7 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 .ea-card .eyebrow { color: rgba(255,255,255,0.6); position: relative; }
 .ea-card .eyebrow .dot { background: var(--blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.25); }
 .ea-card h2 { color: #fff; font-size: clamp(36px, 5vw, 64px); margin: 16px 0 22px; position: relative; }
-.ea-sub { font-size: 17px; max-width: 520px; margin: 0 auto 52px; color: rgba(255,255,255,0.75); line-height: 1.55; position: relative; }
+.ea-sub { font-size: 17px; max-width: 520px; margin: 0 auto 52px; color: rgba(255,255,255,0.88); line-height: 1.55; position: relative; }
 .ea-perks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-bottom: 52px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 44px; text-align: left; position: relative; }
 .ea-num { font-family: var(--mono); font-size: 11px; color: var(--blue); letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 500; }
 .ea-perk h4 { font-size: 17px; color: #fff; margin-bottom: 8px; font-weight: 500; letter-spacing: -0.015em; }
