@@ -42,7 +42,8 @@ type Segment = {
   type: 'avatar' | 'image'
   imageUrl?: string
   previewingAudio?: boolean
-  previewAudioUrl?: string
+  previewAudioUrl?: string   // blob URL for local playback
+  audioUrl?: string          // persistent R2 URL — reused by worker to skip TTS
 }
 
 type Outro = {
@@ -216,10 +217,20 @@ export default function PropertyDetailPage() {
         const msg = await res.text()
         throw new Error(msg || `HTTP ${res.status}`)
       }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      updateSegment(idx, { previewAudioUrl: url })
-      return url
+      const contentType = res.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        // New path: API returns { audioUrl, audioBase64 }
+        const data = await res.json()
+        const blobUrl = `data:audio/mpeg;base64,${data.audioBase64}`
+        updateSegment(idx, { previewAudioUrl: blobUrl, audioUrl: data.audioUrl })
+        return blobUrl
+      } else {
+        // Fallback: raw audio binary (R2 upload failed server-side)
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        updateSegment(idx, { previewAudioUrl: url })
+        return url
+      }
     } catch (e) {
       setError(`TTS-feil: ${String(e)}`)
       return null
