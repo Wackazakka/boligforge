@@ -238,7 +238,20 @@ export default function ProfilePage() {
         setSettingErrors(prev => ({ ...prev, [settingId]: data.error || `HTTP ${res.status}` }))
         return
       }
-      await loadSettingImages()
+      // Legg til bildet direkte i state — samme synkrone blokk som setGeneratingSettings(false)
+      // slik at React batcher dem og viser bilde og skrur av spinner i én og samme render
+      setSettingImages(prev => [
+        ...prev,
+        {
+          id: `temp-${settingId}-${Date.now()}`,
+          setting_type: settingId,
+          image_url: data.url,
+          created_at: new Date().toISOString(),
+          portrait_url: portraitUrl,
+        },
+      ])
+      // Synkroniser med server i bakgrunnen (ublokerende)
+      void loadSettingImages()
     } catch (err) {
       setSettingErrors(prev => ({ ...prev, [settingId]: String(err) }))
     } finally {
