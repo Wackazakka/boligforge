@@ -625,9 +625,10 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
 @media (max-width: 640px) {
   .landing section { padding: 48px 0; }
   .cta-final { padding: 48px 0; }
-  .hero { padding: 36px 0 20px; }
+  .hero { padding: 28px 0 20px; }
+  .hero h1 { font-size: clamp(32px, 9vw, 48px); }
   .sec-head { margin-bottom: 36px; }
-  .hero-sub { font-size: 16px; }
+  .hero-sub { font-size: 15px; }
   .hero-cta .meta { display: none; }
   .ea-card { padding: 36px 20px; }
   .ea-sub { font-size: 15px; }
@@ -637,6 +638,24 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   .plan { padding: 24px 20px; }
   .step { padding: 20px; }
   .foot-top { padding-bottom: 32px; }
+
+  /* ── Nav: shrink logo to fit narrow screens ── */
+  nav.top .wrap { height: 64px; }
+  .rh-lockup img { width: 36px !important; height: 36px !important; }
+  .rh-wm { font-size: 22px !important; }
+  /* Hide "Logg inn" text link to save space — only keep CTA button */
+  .nav-cta .btn-text { display: none; }
+
+  /* ── Step 01 browser chrome: remove fixed min-width ── */
+  .pf-chrome .url-inner { min-width: 0; flex: 1; }
+
+  /* ── Logo bar: stack label above partner row ── */
+  .logos .inner { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .logos .label { max-width: none; }
+  .logos .row { gap: 28px; }
+
+  /* ── CTA final: smaller heading ── */
+  .cta-final h2 { font-size: clamp(32px, 8vw, 52px); }
 }
 
 /* ─── App (Dashboard) Component Styles ─── */
