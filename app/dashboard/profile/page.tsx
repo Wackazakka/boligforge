@@ -36,6 +36,16 @@ const STANDARD_AVATARS = [
   { id: 'erik',   name: 'Erik' },
 ]
 
+const PRESETS_BASE = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/presets'
+const AVATAR_PRESETS: Record<string, Record<string, string>> = {
+  sofia:  { modern_home: `${PRESETS_BASE}/sofia_modern_home.png`,  office: `${PRESETS_BASE}/sofia_office.png`,  studio: `${PRESETS_BASE}/sofia_studio.png`,  neighborhood: `${PRESETS_BASE}/sofia_neighborhood.png`  },
+  marius: { modern_home: `${PRESETS_BASE}/marius_modern_home.png`, office: `${PRESETS_BASE}/marius_office.png`, studio: `${PRESETS_BASE}/marius_studio.png`, neighborhood: `${PRESETS_BASE}/marius_neighborhood.png` },
+  ingrid: { modern_home: `${PRESETS_BASE}/ingrid_modern_home.png`, office: `${PRESETS_BASE}/ingrid_office.png`, studio: `${PRESETS_BASE}/ingrid_studio.png`, neighborhood: `${PRESETS_BASE}/ingrid_neighborhood.png` },
+  even:   { modern_home: `${PRESETS_BASE}/even_modern_home.png`,   office: `${PRESETS_BASE}/even_office.png`,   studio: `${PRESETS_BASE}/even_studio.png`,   neighborhood: `${PRESETS_BASE}/even_neighborhood.png`   },
+  hanna:  { modern_home: `${PRESETS_BASE}/hanna_modern_home.png`,  office: `${PRESETS_BASE}/hanna_office.png`,  studio: `${PRESETS_BASE}/hanna_studio.png`,  neighborhood: `${PRESETS_BASE}/hanna_neighborhood.png`  },
+  erik:   { modern_home: `${PRESETS_BASE}/erik_modern_home.png`,   office: `${PRESETS_BASE}/erik_office.png`,   studio: `${PRESETS_BASE}/erik_studio.png`,   neighborhood: `${PRESETS_BASE}/erik_neighborhood.png`   },
+}
+
 type Profile = {
   name?: string
   title?: string
@@ -57,6 +67,7 @@ type SettingImage = {
   image_url: string
   created_at: string
   portrait_url?: string
+  is_preset?: boolean
 }
 
 export default function ProfilePage() {
@@ -84,12 +95,29 @@ export default function ProfilePage() {
   const voiceFileRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Show only images for the currently active portrait.
-  // If no portrait is selected, fall back to images without portrait_url (old records).
+  // Show images for the currently active portrait.
   const activePortrait = profile.portrait_url
-  const visibleSettingImages = activePortrait
+  const activeAvatarId = STANDARD_AVATARS.find(a => `${AVATAR_R2}/${a.id}.jpg` === activePortrait)?.id
+
+  // Pre-generated preset images for standard avatars
+  const presetImages: SettingImage[] = activeAvatarId
+    ? Object.entries(AVATAR_PRESETS[activeAvatarId] ?? {}).map(([settingType, imageUrl]) => ({
+        id: `preset-${activeAvatarId}-${settingType}`,
+        setting_type: settingType,
+        image_url: imageUrl,
+        created_at: '',
+        portrait_url: activePortrait,
+        is_preset: true,
+      }))
+    : []
+
+  // User's own generated images for this portrait
+  const userImages = activePortrait
     ? settingImages.filter(i => i.portrait_url === activePortrait)
     : settingImages.filter(i => !i.portrait_url)
+
+  // User images first, presets appended after (so presets are last in the strip)
+  const visibleSettingImages = [...userImages, ...presetImages]
 
   useEffect(() => {
     fetch('/api/profile/get')
@@ -626,11 +654,13 @@ export default function ProfilePage() {
               )}
             </div>
             <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
-              {profile.portrait_url
-                ? 'Disse bildene velger du fra når du lager en video. Slett de du ikke vil beholde.'
-                : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
+              {activeAvatarId
+                ? 'Preset-bilder er klare til bruk. Klikk for å velge aktivt bilde, eller generer din egen versjon.'
+                : profile.portrait_url
+                  ? 'Disse bildene velger du fra når du lager en video. Slett de du ikke vil beholde.'
+                  : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
             </p>
-            {profile.portrait_url && visibleSettingImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
+            {profile.portrait_url && !activeAvatarId && userImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
               <button
                 onClick={async () => { void Promise.all(SETTINGS.map(s => handleGenerateSetting(s.id))) }}
                 className="app-btn-secondary mb-4"
@@ -707,6 +737,15 @@ export default function ProfilePage() {
                               ✓ Aktiv
                             </span>
                           )}
+                          {/* Preset badge */}
+                          {img.is_preset && profile.selected_avatar_url !== img.image_url && (
+                            <span
+                              className="absolute top-1 left-1 text-[9px] px-1.5 py-0.5 rounded pointer-events-none"
+                              style={{ background: 'rgba(13,11,8,0.55)', color: 'rgba(244,236,220,0.7)' }}
+                            >
+                              Preset
+                            </span>
+                          )}
                           {/* Overlay buttons — visible on hover */}
                           <div
                             className="absolute inset-0 flex items-end justify-between p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -718,12 +757,14 @@ export default function ProfilePage() {
                               className="w-6 h-6 flex items-center justify-center rounded text-[11px]"
                               style={{ background: 'rgba(13,11,8,0.6)', color: 'rgba(244,236,220,0.85)' }}
                             >⤢</button>
-                            <button
-                              onClick={e => { e.stopPropagation(); handleDeleteSettingImage(img.id, img.image_url) }}
-                              title="Slett dette bildet"
-                              className="w-6 h-6 flex items-center justify-center rounded text-[11px]"
-                              style={{ background: 'rgba(180,30,30,0.7)', color: '#fff' }}
-                            >✕</button>
+                            {!img.is_preset && (
+                              <button
+                                onClick={e => { e.stopPropagation(); handleDeleteSettingImage(img.id, img.image_url) }}
+                                title="Slett dette bildet"
+                                className="w-6 h-6 flex items-center justify-center rounded text-[11px]"
+                                style={{ background: 'rgba(180,30,30,0.7)', color: '#fff' }}
+                              >✕</button>
+                            )}
                           </div>
                         </div>
                       ))}
