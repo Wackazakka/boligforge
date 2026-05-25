@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 export const maxDuration = 120
 
@@ -22,15 +22,11 @@ function getR2() {
   })
 }
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
-
 export async function POST(request: Request) {
   try {
+    const user = await getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { setting, portraitUrl, propertyImageUrl, prompt: customPrompt } = await request.json()
 
     if (!setting || !portraitUrl) {
@@ -131,9 +127,11 @@ export async function POST(request: Request) {
       url = `${process.env.R2_PUBLIC_URL}/${key}`
     }
 
-    await getSupabase().from('agent_settings_images').insert({
+    const supabase = await createSupabaseServerClient()
+    await supabase.from('agent_settings_images').insert({
       setting_type: setting,
       image_url: url,
+      user_id: user.id,
     })
 
     return Response.json({ url, setting })

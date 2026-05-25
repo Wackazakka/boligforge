@@ -26,6 +26,16 @@ const SETTINGS = [
   { id: 'neighborhood', label: 'Utendørs i boligfelt' },
 ]
 
+const AVATAR_R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
+const STANDARD_AVATARS = [
+  { id: 'sofia',  name: 'Sofia' },
+  { id: 'marius', name: 'Marius' },
+  { id: 'ingrid', name: 'Ingrid' },
+  { id: 'even',   name: 'Even' },
+  { id: 'hanna',  name: 'Hanna' },
+  { id: 'erik',   name: 'Erik' },
+]
+
 type Profile = {
   name?: string
   title?: string
@@ -63,6 +73,7 @@ export default function ProfilePage() {
   const [customPrompts, setCustomPrompts] = useState<Record<string, string>>(SETTING_PROMPTS)
   const [showPrompt, setShowPrompt] = useState<Record<string, boolean>>({})
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [avatarSource, setAvatarSource] = useState<'own' | 'standard'>('own')
   const [voiceRecordState, setVoiceRecordState] = useState<'idle' | 'recording' | 'cloning' | 'done' | 'error'>('idle')
   const [voiceRecordError, setVoiceRecordError] = useState('')
   const [recordSeconds, setRecordSeconds] = useState(0)
@@ -487,136 +498,245 @@ export default function ProfilePage() {
         {/* Portrait + AI settings */}
         <section className="app-card">
           <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Portrettbilde og setting
+            Avatar og setting
           </h2>
-          <p className="text-sm mb-5" style={{ color: 'var(--muted)' }}>
-            Last opp et portrettbilde, deretter generer en profesjonell setting med AI. Ansiktet ditt bevares i alle settings.
+          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
+            Velg din digitale tvilling — last opp ditt eget bilde, eller bruk én av våre ferdige avatarer. AI genererer deg i fire profesjonelle settings.
           </p>
 
-          <div className="flex items-center gap-4 mb-6">
-            {profile.portrait_url ? (
-              <img
-                src={profile.portrait_url}
-                alt="Portrett"
-                className="w-24 h-24 object-cover rounded-xl"
-                style={{ border: '1px solid var(--line)' }}
-              />
-            ) : (
-              <div
-                className="w-24 h-24 rounded-xl flex items-center justify-center text-xs text-center px-2"
-                style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}
-              >
-                Ingen bilde
-              </div>
-            )}
-            <div>
-              <button
-                onClick={() => portraitRef.current?.click()}
-                disabled={uploadingPortrait}
-                className="app-btn-secondary"
-              >
-                {uploadingPortrait ? 'Laster opp...' : 'Last opp portrett'}
-              </button>
-              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Bruk et godt, klart ansiktsbilde</p>
-            </div>
-            <input
-              ref={portraitRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], 'portrait')}
-            />
+          {/* Source toggle */}
+          <div className="flex gap-2 mb-5">
+            <button
+              onClick={() => setAvatarSource('own')}
+              className="app-btn-secondary text-xs"
+              style={avatarSource === 'own' ? { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)' } : {}}
+            >
+              Min digitale tvilling
+            </button>
+            <button
+              onClick={() => setAvatarSource('standard')}
+              className="app-btn-secondary text-xs"
+              style={avatarSource === 'standard' ? { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)' } : {}}
+            >
+              Bruk standard avatar
+            </button>
           </div>
+
+          {avatarSource === 'own' ? (
+            <div className="flex items-center gap-4 mb-6">
+              {profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)) ? (
+                <img
+                  src={profile.portrait_url}
+                  alt="Portrett"
+                  className="w-24 h-24 object-cover rounded-xl"
+                  style={{ border: '1px solid var(--line)' }}
+                />
+              ) : (
+                <div
+                  className="w-24 h-24 rounded-xl flex items-center justify-center text-xs text-center px-2"
+                  style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}
+                >
+                  Ingen bilde
+                </div>
+              )}
+              <div>
+                <button
+                  onClick={() => portraitRef.current?.click()}
+                  disabled={uploadingPortrait}
+                  className="app-btn-secondary"
+                >
+                  {uploadingPortrait ? 'Laster opp...' : 'Last opp portrett'}
+                </button>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Bruk et godt, klart ansiktsbilde</p>
+              </div>
+              <input
+                ref={portraitRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], 'portrait')}
+              />
+            </div>
+          ) : (
+            <div className="mb-6">
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+                Velg en avatar — AI plasserer den i fire profesjonelle settings for deg.
+              </p>
+              <div className="grid grid-cols-6 gap-2">
+                {STANDARD_AVATARS.map(av => {
+                  const avatarUrl = `${AVATAR_R2}/${av.id}.jpg`
+                  const isSelected = profile.portrait_url === avatarUrl
+                  return (
+                    <button
+                      key={av.id}
+                      onClick={async () => {
+                        setProfile(p => ({ ...p, portrait_url: avatarUrl }))
+                        await fetch('/api/profile/save', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ...profile, portrait_url: avatarUrl }),
+                        })
+                        for (const s of SETTINGS) await handleGenerateSetting(s.id, avatarUrl)
+                      }}
+                      className="flex flex-col items-center gap-1"
+                      title={av.name}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={avatarUrl}
+                        alt={av.name}
+                        className="w-full aspect-square object-cover object-top rounded-lg"
+                        style={{
+                          border: isSelected ? '2px solid var(--blue)' : '2px solid transparent',
+                          boxShadow: isSelected ? '0 0 0 2px rgba(37,99,235,0.2)' : 'none',
+                        }}
+                      />
+                      <span className="text-xs" style={{ color: isSelected ? 'var(--blue)' : 'var(--muted)' }}>
+                        {av.name}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Setting generator */}
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: '20px' }}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-semibold" style={{ color: 'var(--ink-2)' }}>Settings-bibliotek</h3>
-              {profile.portrait_url && (
+              {settingImages.length > 0 && profile.portrait_url && (
                 <button
                   onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
                   disabled={Object.values(generatingSettings).some(Boolean)}
                   className="app-btn-ghost text-xs"
-                  style={{ color: 'var(--gold)' }}
+                  style={{ color: 'var(--muted)' }}
+                  title="Erstatter alle 4 bilder med nye versjoner"
                 >
-                  ↺ Generer alle på nytt
+                  ↺ Regenerer alle
                 </button>
               )}
             </div>
             <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
               {profile.portrait_url
-                ? 'Klikk ↺ på et bilde for å regenerere det. Disse settingsene er tilgjengelige på alle eiendomssider.'
+                ? 'Alle lagrede bilder er tilgjengelige som bakgrunn når du lager en video. Slett bilder du ikke vil beholde.'
                 : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {profile.portrait_url && settingImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
+              <button
+                onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
+                className="app-btn-secondary mb-4"
+                style={{ fontSize: '13px' }}
+              >
+                Generer alle 4 settings
+              </button>
+            )}
+            <div className="space-y-5">
               {SETTINGS.map(s => {
-                const existing = settingImages.find(i => i.setting_type === s.id)
+                const allForType = settingImages.filter(i => i.setting_type === s.id)
                 const isGenerating = generatingSettings[s.id]
                 const err = settingErrors[s.id]
                 return (
-                  <div key={s.id} className="space-y-1">
-                    <div
-                      className="relative rounded-lg overflow-hidden aspect-video"
-                      style={{ background: 'var(--surface-2)' }}
-                    >
-                      {isGenerating ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                          <svg className="animate-spin h-6 w-6" style={{ color: 'var(--gold)' }} fill="none" viewBox="0 0 24 24">
+                  <div key={s.id} className="space-y-2">
+                    {/* Row header */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium" style={{ color: 'var(--ink-2)' }}>{s.label}</p>
+                      <div className="flex items-center gap-3">
+                        {err && (
+                          <span className="text-xs" style={{ color: '#e88888' }}>{err}</span>
+                        )}
+                        <button
+                          onClick={() => handleGenerateSetting(s.id)}
+                          disabled={!profile.portrait_url || isGenerating}
+                          className="text-xs"
+                          style={{ color: isGenerating ? 'var(--muted)' : 'var(--gold)', opacity: profile.portrait_url ? 1 : 0.4 }}
+                          title="Generer nytt bilde for denne settingen"
+                        >
+                          {isGenerating ? '...' : '+ Generer nytt'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Image strip */}
+                    <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
+                      {/* Generating placeholder */}
+                      {isGenerating && (
+                        <div
+                          className="flex-shrink-0 rounded-lg flex flex-col items-center justify-center gap-2"
+                          style={{ width: '160px', height: '90px', background: 'var(--surface-2)', border: '1px solid var(--line)' }}
+                        >
+                          <svg className="animate-spin h-5 w-5" style={{ color: 'var(--gold)' }} fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          <span className="text-xs" style={{ color: 'var(--gold)' }}>Genererer...</span>
-                        </div>
-                      ) : err ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-2">
-                          <span className="text-xs text-center" style={{ color: '#e88888' }}>{err}</span>
-                          <button
-                            onClick={() => handleGenerateSetting(s.id)}
-                            disabled={!profile.portrait_url}
-                            className="text-xs"
-                            style={{ color: 'var(--gold)' }}
-                          >
-                            ↺ Prøv igjen
-                          </button>
-                        </div>
-                      ) : existing ? (
-                        <>
-                          <img
-                            src={existing.image_url}
-                            alt={s.label}
-                            className="w-full h-full object-cover cursor-zoom-in"
-                            onClick={() => setLightbox(existing.image_url)}
-                          />
-                          <span
-                            className="absolute bottom-1 left-1 text-[10px] px-1 rounded"
-                            style={{ color: 'rgba(244,236,220,0.7)', background: 'rgba(13,11,8,0.5)' }}
-                          >
-                            {new Date(existing.created_at).toLocaleTimeString('no', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xs text-center px-2" style={{ color: 'var(--muted)' }}>Ikke generert</span>
+                          <span className="text-[10px]" style={{ color: 'var(--gold)' }}>Genererer…</span>
                         </div>
                       )}
-                      {existing && !isGenerating && !err && (
-                        <button
-                          onClick={() => handleGenerateSetting(s.id)}
-                          disabled={!profile.portrait_url}
-                          title="Generer nytt"
-                          className="absolute top-1 right-1 w-7 h-7 rounded-full flex items-center justify-center text-sm"
-                          style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
+
+                      {/* Existing images — newest first */}
+                      {[...allForType].reverse().map(img => (
+                        <div
+                          key={img.id}
+                          className="relative flex-shrink-0 rounded-lg overflow-hidden group"
+                          style={{
+                            width: '160px', height: '90px',
+                            border: `2px solid ${profile.selected_avatar_url === img.image_url ? '#4ade80' : 'transparent'}`,
+                          }}
                         >
-                          ↺
-                        </button>
+                          <img
+                            src={img.image_url}
+                            alt={s.label}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => handleSelectSettingImage(img.image_url)}
+                            title="Klikk for å merke som aktiv"
+                          />
+                          {/* Active badge */}
+                          {profile.selected_avatar_url === img.image_url && (
+                            <span
+                              className="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded pointer-events-none"
+                              style={{ background: '#4ade80', color: '#052e16' }}
+                            >
+                              ✓ Aktiv
+                            </span>
+                          )}
+                          {/* Overlay buttons — visible on hover */}
+                          <div
+                            className="absolute inset-0 flex items-end justify-between p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)' }}
+                          >
+                            <button
+                              onClick={e => { e.stopPropagation(); setLightbox(img.image_url) }}
+                              title="Forstørr"
+                              className="w-6 h-6 flex items-center justify-center rounded text-[11px]"
+                              style={{ background: 'rgba(13,11,8,0.6)', color: 'rgba(244,236,220,0.85)' }}
+                            >⤢</button>
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDeleteSettingImage(img.id, img.image_url) }}
+                              title="Slett dette bildet"
+                              className="w-6 h-6 flex items-center justify-center rounded text-[11px]"
+                              style={{ background: 'rgba(180,30,30,0.7)', color: '#fff' }}
+                            >✕</button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Empty state */}
+                      {allForType.length === 0 && !isGenerating && (
+                        <div
+                          className="flex-shrink-0 rounded-lg flex items-center justify-center"
+                          style={{ width: '160px', height: '90px', background: 'var(--surface-2)', border: '2px dashed var(--line-2)' }}
+                        >
+                          <span className="text-xs text-center px-3" style={{ color: 'var(--muted)' }}>Ikke generert</span>
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs leading-tight" style={{ color: 'var(--muted)' }}>{s.label}</p>
+
+                    {/* Prompt editor */}
                     <button
                       type="button"
                       onClick={() => setShowPrompt(p => ({ ...p, [s.id]: !p[s.id] }))}
                       className="text-xs"
-                      style={{ color: 'var(--gold)', opacity: 0.7 }}
+                      style={{ color: 'var(--gold)', opacity: 0.6 }}
                     >
                       {showPrompt[s.id] ? '▲ Skjul prompt' : '✎ Rediger prompt'}
                     </button>

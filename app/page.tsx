@@ -1,4 +1,5 @@
 import Link from "next/link";
+import VideoHero from "./VideoHero";
 
 const R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
 const AVATARS = [
@@ -59,7 +60,7 @@ export default function Home() {
         <div className="hero-inner">
           <div className="hero-head">
             <span className="eyebrow"><span className="dot" />Tilgjengelig nå · For norske meglerhus</span>
-            <h1>Profesjonelle visningsvideoer.<br /><span className="blue">På fem minutter.</span></h1>
+            <h1>Profesjonelle visningsvideoer.<br /><span className="blue">På ti minutter.</span></h1>
             <p className="hero-sub">
               ReelHome genererer ferdige listingsvideoer automatisk — med AI-vert, klonet stemme og kuratert musikk.
               Last opp boligen, motta filmen klar til Finn, Reels og TikTok.
@@ -86,262 +87,94 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="editor">
-
-              {/* left sidebar */}
-              <div className="ed-side">
-                <div className="section">Prosjekter</div>
-                <div className="ed-item active">
-                  <span className="ico"><HomeIcon /></span>
-                  <span>Bygdøy allé 24</span>
-                  <span className="badge">2:04</span>
-                </div>
-                <div className="ed-item">
-                  <span className="ico"><HomeIcon /></span>
-                  <span>Stabekkveien 12</span>
-                  <span className="badge">draft</span>
-                </div>
-                <div className="ed-item">
-                  <span className="ico"><HomeIcon /></span>
-                  <span>Markveien 51 B</span>
-                </div>
-                <div className="ed-item">
-                  <span className="ico"><HomeIcon /></span>
-                  <span>Sandøsund 8</span>
-                </div>
-
-                <div className="divider" />
-
-                <div className="section">Bibliotek</div>
-                <div className="ed-item">
-                  <span className="ico">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                      <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-                    </svg>
-                  </span>
-                  <span>Avatarer</span>
-                  <span className="badge">12</span>
-                </div>
-                <div className="ed-item">
-                  <span className="ico">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                      <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
-                    </svg>
-                  </span>
-                  <span>Musikk</span>
-                  <span className="badge">400+</span>
-                </div>
-                <div className="ed-item">
-                  <span className="ico">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                      <path d="M3 5h18M3 12h18M3 19h18" />
-                    </svg>
-                  </span>
-                  <span>Maler</span>
-                </div>
-
-                <div className="upgrade">
-                  <div className="t">Pro-plan</div>
-                  <div className="d">Lås opp stemmekloning og 4K-rendring.</div>
-                  <button>Oppgrader →</button>
-                </div>
-              </div>
-
-              {/* main canvas */}
-              <div className="ed-main">
-                <div className="ed-toolbar">
-                  <div className="tb-tabs">
-                    <span className="tb-tab active">Editor</span>
-                    <span className="tb-tab">Manus</span>
-                    <span className="tb-tab">Analyse</span>
-                  </div>
-                  <div className="tb-right">
-                    <span>1080p · 30fps</span>
-                    <span>·</span>
-                    <span>9:16</span>
-                    <span className="render"><span className="pulse" />Render 62%</span>
-                  </div>
-                </div>
-
-                <div className="ed-canvas">
-                  <div className="ed-preview">
-                    <div className="ep-scene">
-                      <svg viewBox="0 0 280 498" preserveAspectRatio="xMidYMid slice">
-                        <defs>
-                          <linearGradient id="sk" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0" stopColor="#7ba9d8" />
-                            <stop offset=".4" stopColor="#3d6fa3" />
-                            <stop offset="1" stopColor="#0a1424" />
-                          </linearGradient>
-                        </defs>
-                        <rect width="280" height="498" fill="url(#sk)" />
-                        <path d="M0 290 L60 230 L120 270 L180 220 L240 260 L280 235 L280 380 L0 380 Z" fill="#1a3553" opacity=".7" />
-                        <path d="M0 320 L80 290 L160 310 L240 280 L280 300 L280 380 L0 380 Z" fill="#0a1424" opacity=".85" />
-                        <g transform="translate(50 260)">
-                          <polygon points="0,30 90,-10 180,30" fill="#0a1424" />
-                          <rect x="0" y="30" width="180" height="130" fill="#1a2a3e" />
-                          <rect x="18" y="50" width="30" height="40" fill="#ffd591" opacity=".85" />
-                          <rect x="62" y="50" width="30" height="40" fill="#ffd591" opacity=".5" />
-                          <rect x="106" y="50" width="30" height="40" fill="#ffd591" opacity=".9" />
-                          <rect x="150" y="50" width="20" height="40" fill="#ffd591" opacity=".4" />
-                          <rect x="80" y="100" width="32" height="60" fill="#050810" />
-                          <rect x="84" y="104" width="24" height="52" fill="#1a2a3e" />
-                        </g>
-                        <rect y="420" width="280" height="78" fill="#050810" />
-                      </svg>
-                    </div>
-                    <div className="ep-overlay" />
-                    <div className="ep-cap">«En sjelden mulighet i hjertet av Frogner...»</div>
-                    <div className="ep-host">
-                      <span className="av">S</span>
-                      <span className="n">Sofia</span>
-                    </div>
-                    <div className="ep-info">
-                      <div className="p">14 900 000 kr</div>
-                      <div className="a">Bygdøy allé 24, Oslo</div>
-                    </div>
-                    <div className="ep-time"><span className="fill" /></div>
-                  </div>
-                </div>
-
-                {/* timeline */}
-                <div className="ed-timeline">
-                  <div className="tl-ruler">
-                    <span>0:00</span><span>0:15</span><span>0:30</span><span>0:45</span>
-                    <span>1:00</span><span>1:15</span><span>1:30</span><span>1:45</span><span>2:00</span>
-                  </div>
-                  <div className="tl-track">
-                    <span className="lbl"><span className="d" />Video</span>
-                    <div className="row">
-                      <span className="tl-clip" style={{ width: "24%" }}>intro.mp4</span>
-                      <span className="tl-clip" style={{ width: "30%" }}>stue · 4k</span>
-                      <span className="tl-clip" style={{ width: "22%" }}>kjøkken</span>
-                      <span className="tl-clip" style={{ width: "18%" }}>utsikt</span>
-                    </div>
-                  </div>
-                  <div className="tl-track t-host">
-                    <span className="lbl"><span className="d" />Vert</span>
-                    <div className="row">
-                      <span className="tl-clip purple" style={{ width: "96%" }}>sofia · bokmål · skript v3</span>
-                      <span className="tl-playhead" />
-                    </div>
-                  </div>
-                  <div className="tl-track t-music">
-                    <span className="lbl"><span className="d" />Musikk</span>
-                    <div className="row">
-                      <span className="tl-clip green" style={{ width: "96%" }}>nordlys.wav · 0db</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* right panel */}
-              <div className="ed-right">
-                <div className="rp-section">
-                  <div className="lbl">Bolig</div>
-                  <div className="rp-prop">
-                    <div className="p">14 900 000 kr</div>
-                    <div className="a">Bygdøy allé 24, 0265 Oslo</div>
-                    <div className="specs">
-                      <span>187 m²</span><span>4 sov</span><span>1894</span><span>P-rom</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rp-section">
-                  <div className="lbl">Innstillinger</div>
-                  <div className="rp-row"><span className="k">Språk</span><span className="v">Bokmål</span></div>
-                  <div className="rp-row"><span className="k">Stemme</span><span className="v">Sofia <span className="pill">AI</span></span></div>
-                  <div className="rp-row"><span className="k">Tone</span><span className="v">Luksus</span></div>
-                  <div className="rp-row"><span className="k">Lengde</span><span className="v">0:42</span></div>
-                  <div className="rp-row"><span className="k">Format</span><span className="v">9:16</span></div>
-                </div>
-
-                <div className="rp-render">
-                  <div className="t">Rendering pågår</div>
-                  <div className="b"><span /></div>
-                  <div className="m">62% · ca. 1:18 igjen</div>
-                </div>
-              </div>
-
-            </div>
+            <VideoHero />
           </div>
         </div>
       </header>
-
-      {/* ─────────────────────────────────── LOGO BAR */}
-      <section className="logos" style={{ padding: "48px 0", marginTop: 0 }}>
-        <div className="wrap inner">
-          <span className="label">Brukt daglig av meglere ved 340+ kontorer i Norge</span>
-          <div className="row">
-            <span className="l">Nordvik</span>
-            <span className="l sm">DNB Eiendom</span>
-            <span className="l">PrivatMegleren</span>
-            <span className="l sm">EM 1</span>
-            <span className="l">Krogsveen</span>
-            <span className="l sm">Aktiv</span>
-          </div>
-        </div>
-      </section>
 
       {/* ─────────────────────────────────── HOW IT WORKS */}
       <section id="hvordan">
         <div className="wrap">
           <div className="sec-head">
             <span className="eyebrow"><span className="dot" />Slik fungerer det</span>
-            <h2>Fra prospekt til ferdig film.<br /><span style={{ color: "var(--muted)" }}>Tre steg, fem minutter.</span></h2>
+            <h2>Fra prospekt til ferdig film.<br /><span style={{ color: "var(--muted)" }}>Tre steg, ti minutter.</span></h2>
           </div>
 
           <div className="steps">
             <div className="step">
-              <div className="head"><span className="num">01</span><span className="time">~45 sek</span></div>
+              <div className="head"><span className="num">01</span><span className="time">~1 min</span></div>
               <div className="vis">
-                <div className="v1-drop">
-                  <span className="ico">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
+                <div className="v1-url">
+                  <div className="v1-url-bar">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.4,flexShrink:0}}>
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                     </svg>
-                  </span>
-                  <span className="t">Slipp filer her</span>
-                  <span className="s">.jpg · .pdf · .mp4</span>
-                </div>
-                <div className="v1-files">
-                  <div className="f"><span className="dot" />prospekt.pdf</div>
-                  <div className="f"><span className="dot" />foto-stue.jpg</div>
+                    <span className="v1-url-text">finn.no/realestate/homes/ad.html?finnkode=123456</span>
+                    <button className="v1-url-btn">Hent</button>
+                  </div>
+                  <div className="v1-parsed">
+                    <div className="v1-row"><span className="v1-check">✓</span><span className="v1-key">Adresse</span><span className="v1-val">Bygdøy allé 24, Oslo</span></div>
+                    <div className="v1-row"><span className="v1-check">✓</span><span className="v1-key">Pris</span><span className="v1-val">7 200 000 kr</span></div>
+                    <div className="v1-row"><span className="v1-check">✓</span><span className="v1-key">BRA</span><span className="v1-val">112 m²</span></div>
+                    <div className="v1-row"><span className="v1-check">✓</span><span className="v1-key">Bilder</span><span className="v1-val">18 hentet</span></div>
+                  </div>
                 </div>
               </div>
-              <h3>Last opp boligen</h3>
-              <p>Bilder, salgsoppgave og nøkkeldata. Vi parser pris, adresse og takst automatisk fra prospektet.</p>
+              <h3>Lim inn Finn-lenken</h3>
+              <p>Vi henter bilder, pris, adresse og nøkkeldata automatisk. Ingen opplasting — bare en URL.</p>
             </div>
 
             <div className="step">
               <div className="head"><span className="num">02</span><span className="time">~60 sek</span></div>
               <div className="vis">
-                <div className="v2-grid">
-                  {AVATARS.map((av, i) => (
-                    <div key={av.id} className={`v2-tile${i === 1 ? ' on' : ''}`}>
-                      <img src={`${R2}/${av.id}.jpg`} alt={av.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top',display:'block'}} />
+                <div className="v2-wrap">
+                  <div className="v2-grid">
+                    {AVATARS.map((av, i) => (
+                      <div key={av.id} className={`v2-tile${i === 1 ? ' on' : ''}`}>
+                        <img src={`${R2}/${av.id}.jpg`} alt={av.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center 15%',display:'block'}} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="v2-music">
+                    <span className="v2-play">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </span>
+                    <div className="v2-music-info">
+                      <span className="v2-music-name">Nordlys</span>
+                      <span className="v2-music-meta">Ambient · Strykere · 80 BPM</span>
                     </div>
-                  ))}
+                    <span className="v2-music-dur">02:42</span>
+                  </div>
                 </div>
               </div>
-              <h3>Velg vert og stemme</h3>
-              <p>Tolv AI-avatarer, eller din egen stemmeklone. Manus genereres tilpasset boligens segment.</p>
+              <h3>Velg vert, stemme og musikk</h3>
+              <p>Seks AI-avatarer eller din egen stemmeklone. Velg musikk kuratert for norske boliger.</p>
             </div>
 
             <div className="step">
-              <div className="head"><span className="num">03</span><span className="time">~3 min</span></div>
-              <div className="vis">
-                <div className="v3-formats">
-                  <div className="v3-fmt vf-1 on" data-r="9:16">▾</div>
-                  <div className="v3-fmt vf-2" data-r="16:9">▾</div>
-                  <div className="v3-fmt vf-3" data-r="1:1">▾</div>
+              <div className="head"><span className="num">03</span><span className="time">~8 min</span></div>
+              <div className="vis v3-vis">
+                <div className="v3-thumb">
+                  <span className="v3-play-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </span>
+                  <span className="v3-ratio-tag">16:9</span>
+                </div>
+                <div className="v3-footer">
+                  <div className="v3-file-info">
+                    <span className="v3-file-name">bygdoy-alle-24.mp4</span>
+                    <span className="v3-file-meta">1080p · 248 MB</span>
+                  </div>
+                  <a className="v3-dl">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </a>
                 </div>
               </div>
-              <h3>Render og publiser</h3>
-              <p>Ferdig film i alle formater, med kontorets logo og farger. Send rett til Finn, Instagram og TikTok.</p>
+              <h3>Render og last ned</h3>
+              <p>Ferdig film i 16:9 med kontorets logo og farger. Klar til Finn og sosiale medier.</p>
             </div>
           </div>
         </div>
@@ -352,62 +185,75 @@ export default function Home() {
         <div className="wrap">
           <div className="sec-head">
             <span className="eyebrow"><span className="dot" />Funksjoner</span>
-            <h2>Et komplett filmstudio i nettleseren.</h2>
-            <p>Alle moduler snakker sammen. Bytt vert, og leppesynk, manus og musikk justeres deretter — uten å starte på nytt.</p>
+            <h2>Din digitale kopi. I alle filmer.</h2>
+            <p>Sett opp én gang. Bruk for alltid. Klonen din leverer alle boliger med ditt ansikt og din stemme — automatisk.</p>
           </div>
 
           <div className="features">
 
-            {/* Avatars — spans 4 cols */}
-            <div className="feat feat-1">
-              <div>
-                <span className="eyebrow"><span className="dot" />Avatarbibliotek · 6 stk</span>
-                <h3>Seks profesjonelle AI-verter på norsk.</h3>
-                <p className="desc">Innspilt med skuespillere i Oslo. Naturlig leppesynk, intonasjon og pauser — både bokmål og nynorsk.</p>
-              </div>
-              <div className="feat-vis">
-                <div className="av-grid">
-                  {AVATARS.map((av, i) => (
-                    <div key={av.id} className={`av${i === 1 ? ' on' : ''}`}>
-                      <img src={`${R2}/${av.id}.jpg`} alt={av.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}} />
-                      <span className="l">{av.lang}</span>
-                      <span className="n">{av.name}</span>
-                      <span className="d">{av.desc}</span>
+            {/* Digital Clone — full width hero, dark */}
+            <div className="feat feat-1 dark">
+              <div className="clone-layout">
+                <div className="clone-text">
+                  <span className="eyebrow"><span className="dot" />Digital klon · Kun hos ReelHome</span>
+                  <h3>En versjon av deg<br />som aldri<br />er opptatt.</h3>
+                  <p className="desc">Tenk deg at du kan presentere alle dine boliger — samtidig, når som helst, på alle plattformer — uten å stå foran kamera én eneste gang til. Det er ikke en tankelek. Det er det ReelHome gjør for deg. Last opp ett bilde og les en tekst. Resten tar din digitale tvilling seg av.</p>
+                  <div className="clone-setup">
+                    <div className="cs-step">
+                      <span className="cs-n">01</span>
+                      <span>Last opp ett bilde</span>
                     </div>
-                  ))}
+                    <span className="cs-sep">+</span>
+                    <div className="cs-step">
+                      <span className="cs-n">02</span>
+                      <span>Les teksten (~2 min)</span>
+                    </div>
+                    <span className="cs-sep">→</span>
+                    <div className="cs-step cs-done">
+                      <span className="cs-n">✓</span>
+                      <span>Din kopi er klar</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="clone-vis">
+                  <div className="clone-portrait">
+                    { /* eslint-disable-next-line @next/next/no-img-element */ }
+                    <img src={`${R2}/sofia.jpg`} alt="Avatar" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center 10%'}} />
+                    <div className="clone-voice-bar">
+                      <span className="clone-voice-label">Stemme</span>
+                      <div className="waveform" style={{height:'22px'}}>
+                        {Array.from({length: 32}, (_, i) => (
+                          <span key={i} style={{
+                            animationDelay: `-${(i * 0.05).toFixed(2)}s`,
+                            animationDuration: `${(1 + (i % 5) * 0.15).toFixed(2)}s`,
+                            opacity: 0.7 + (i % 4) / 12,
+                          }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="clone-tag">Din digitale kopi</div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',flex:1}}>
+                    {[
+                      {label:'Foran bolig',    bg:'linear-gradient(145deg,#2d4a1e,#1a3010)'},
+                      {label:'Kontormiljø',    bg:'linear-gradient(145deg,#1a2a4a,#0e1a30)'},
+                      {label:'Nøytral studio', bg:'linear-gradient(145deg,#3a2e22,#221b14)'},
+                      {label:'Utendørs',       bg:'linear-gradient(145deg,#1a3a3a,#0e2424)'},
+                    ].map(({label, bg}) => (
+                      <div key={label} style={{background:bg,borderRadius:'8px',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'flex-end',padding:'8px 10px',minHeight:'80px'}}>
+                        <span style={{fontSize:'10px',fontWeight:500,color:'rgba(255,255,255,0.55)',background:'rgba(0,0,0,0.4)',padding:'3px 7px',borderRadius:'4px'}}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Voice clone — spans 2 cols, dark */}
-            <div className="feat feat-2 dark">
-              <div>
-                <span className="eyebrow"><span className="dot" />Stemmekloning</span>
-                <h3>Din stemme.<br />I hver film.</h3>
-                <p className="desc">Tre minutter opptak. Vi trener en personlig modell.</p>
-              </div>
-              <div className="feat-vis voice-vis">
-                <span className="label on">REC</span>
-                <div className="waveform">
-                  {Array.from({ length: 48 }, (_, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        animationDelay: `-${(i * 0.04).toFixed(2)}s`,
-                        animationDuration: `${(1 + (i % 5) * 0.15).toFixed(2)}s`,
-                        opacity: 0.6 + (i % 6) / 14,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Speed — spans 2 cols */}
-            <div className="feat feat-3">
+            {/* Speed — spans 3 cols */}
+            <div className="feat feat-2">
               <div>
                 <span className="eyebrow"><span className="dot" />Hastighet</span>
-                <h3>Tre dager → fem minutter.</h3>
+                <h3>Tre dager → ti minutter.</h3>
                 <p className="desc">Sammenlignet med tradisjonelt byrå-arbeid.</p>
               </div>
               <div className="feat-vis">
@@ -424,19 +270,19 @@ export default function Home() {
                   </div>
                   <div className="row">
                     <span className="k" style={{ color: "var(--blue)" }}>ReelHome</span>
-                    <div className="bar"><span className="new" style={{ width: "3%" }} /></div>
-                    <span className="v" style={{ color: "var(--blue)" }}>5 min</span>
+                    <div className="bar"><span className="new" style={{ width: "4%" }} /></div>
+                    <span className="v" style={{ color: "var(--blue)" }}>10 min</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Music — spans 4 cols */}
-            <div className="feat feat-4">
+            {/* Music — spans 3 cols */}
+            <div className="feat feat-3">
               <div>
-                <span className="eyebrow"><span className="dot" />Musikkbibliotek · 400+ spor</span>
-                <h3>Royalty-fritt, kuratert nordisk.</h3>
-                <p className="desc">Tempo og klipping synkroniseres automatisk med musikken.</p>
+                <span className="eyebrow"><span className="dot" />Musikkbibliotek</span>
+                <h3>Kuratert for norske boliger.</h3>
+                <p className="desc">Et håndplukket utvalg nordiske spor. Tempo og klipping synkroniseres automatisk.</p>
               </div>
               <div className="feat-vis">
                 <div className="tracks">
@@ -651,7 +497,7 @@ export default function Home() {
               <ul>
                 <li><a href="#funksjoner">Funksjoner</a></li>
                 <li><a href="#priser">Priser</a></li>
-                <li><a href="#kunder">Kunder</a></li>
+                <li><a href="#tilgang">Tidlig tilgang</a></li>
                 <li><a href="#">Endringslogg</a></li>
                 <li><a href="#">Veikart</a></li>
               </ul>
