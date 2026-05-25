@@ -84,13 +84,11 @@ export default function ProfilePage() {
   const voiceFileRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Only show setting images for the currently active portrait.
-  // If there are images with a matching portrait_url, show only those.
-  // Fall back to images without portrait_url (old records) only when no match exists.
+  // Show only images for the currently active portrait.
+  // If no portrait is selected, fall back to images without portrait_url (old records).
   const activePortrait = profile.portrait_url
-  const matchingImages = settingImages.filter(i => i.portrait_url === activePortrait)
-  const visibleSettingImages = matchingImages.length > 0
-    ? matchingImages
+  const visibleSettingImages = activePortrait
+    ? settingImages.filter(i => i.portrait_url === activePortrait)
     : settingImages.filter(i => !i.portrait_url)
 
   useEffect(() => {
