@@ -101,6 +101,7 @@ export default function PropertyDetailPage() {
   const [publishCaption, setPublishCaption] = useState('')
   const [publishLoading, setPublishLoading] = useState(false)
   const [publishResults, setPublishResults] = useState<{ pageName: string; success: boolean; error?: string }[] | null>(null)
+  const [showBgHint, setShowBgHint] = useState(false)
 
   async function openPublishModal(url: string) {
     setPublishModalUrl(url)
@@ -815,19 +816,29 @@ export default function PropertyDetailPage() {
                 {/* Separator + property images for composite generation */}
                 {property.images?.length > 0 && (
                   <>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px', gap: '3px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px', gap: '3px', position: 'relative' }}>
                       <div style={{ width: '1px', height: '22px', background: 'var(--line)' }} />
-                      <span
-                        title="Vil du at presenteren skal stå foran et bilde fra denne boligen? Velg et bilde her og klikk «Generer» — AI-en setter presenteren inn i bildet."
+                      <button
+                        onClick={e => { e.stopPropagation(); setShowBgHint(v => !v) }}
                         style={{
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          width: '16px', height: '16px', borderRadius: '50%',
-                          border: '1px solid var(--line-2)', background: 'var(--surface-2)',
-                          fontSize: '10px', color: 'var(--muted)', cursor: 'default',
-                          fontFamily: 'var(--sans)', fontWeight: 600, flexShrink: 0,
-                          userSelect: 'none',
+                          width: '20px', height: '20px', borderRadius: '50%',
+                          border: '1px solid var(--line-2)', background: showBgHint ? 'var(--ink)' : 'var(--surface-2)',
+                          fontSize: '11px', color: showBgHint ? '#fff' : 'var(--muted)', cursor: 'pointer',
+                          fontFamily: 'var(--sans)', fontWeight: 700, flexShrink: 0,
+                          userSelect: 'none', padding: 0,
                         }}
-                      >?</span>
+                      >?</button>
+                      {showBgHint && (
+                        <div style={{
+                          position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+                          marginTop: '6px', width: '220px', background: 'var(--ink)', color: '#fff',
+                          fontSize: '12px', lineHeight: '1.5', padding: '10px 12px', borderRadius: '8px',
+                          zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.18)', pointerEvents: 'none',
+                        }}>
+                          Vil du at presenteren skal stå foran et bilde fra boligen? Velg et bilde her — AI-en setter presenteren inn i bildet.
+                        </div>
+                      )}
                       <div style={{ width: '1px', height: '22px', background: 'var(--line)' }} />
                     </div>
                     {property.images.map((img, i) => (
