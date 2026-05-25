@@ -60,7 +60,6 @@ export default function Home() {
       <header className="hero">
         <div className="hero-inner">
           <div className="hero-head">
-            <span className="eyebrow"><span className="dot" />Tilgjengelig nå · For norske meglerhus</span>
             <h1>Profesjonelle visningsvideoer<br /><span className="blue">På ti minutter.</span></h1>
             <p className="hero-sub">
               ReelHome genererer ferdige visningsvideoer automatisk — med AI-vert, klonet stemme og kuratert musikk.
