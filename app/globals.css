@@ -170,7 +170,7 @@ nav.top {
   border-bottom: 1px solid var(--line);
 }
 
-nav.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+nav.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 92px; }
 
 /* ─── Logo lockup (new brand v1 Moss) */
 .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
