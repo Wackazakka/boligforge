@@ -636,7 +636,10 @@ export default function PropertyDetailPage() {
                   borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
                 }}
               >
-                <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', background: 'var(--line)' }}>
+                <div
+                  onClick={e => { e.stopPropagation(); setLightboxUrl(profile.portrait_url ?? null) }}
+                  style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', background: 'var(--line)', position: 'relative', cursor: 'zoom-in' }}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={profile.portrait_url} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                 </div>
@@ -673,7 +676,10 @@ export default function PropertyDetailPage() {
                   border: `2px solid ${activeAvatar?.id === av.id ? 'var(--blue)' : 'var(--line)'}`,
                   borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
                 }}>
-                <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden' }}>
+                <div
+                  onClick={e => { e.stopPropagation(); setLightboxUrl(av.portraitUrl) }}
+                  style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', position: 'relative', cursor: 'zoom-in' }}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={av.portraitUrl} alt={av.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                 </div>
