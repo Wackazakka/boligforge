@@ -456,9 +456,9 @@ export default function Home() {
         <div className="wrap">
           <div className="foot-top">
             <div className="foot-brand">
-              <a href="#" className="logo">
+              <a href="/" className="logo">
                 { /* eslint-disable-next-line @next/next/no-img-element */ }
-              <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '40px', width: 'auto' }} />
+                <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '40px', width: 'auto' }} />
               </a>
               <p>AI-drevet videoproduksjon for norske eiendomsmeglere. Bygget i Oslo.</p>
               <div className="foot-status"><span className="dot" />Alle systemer operative</div>
@@ -469,45 +469,17 @@ export default function Home() {
                 <li><a href="#funksjoner">Funksjoner</a></li>
                 <li><a href="#priser">Priser</a></li>
                 <li><a href="#tilgang">Tidlig tilgang</a></li>
-                <li><a href="#">Endringslogg</a></li>
-                <li><a href="#">Veikart</a></li>
               </ul>
             </div>
             <div>
-              <h4>Utviklere</h4>
+              <h4>Kontakt</h4>
               <ul>
-                <li><a href="#">Dokumentasjon</a></li>
-                <li><a href="#">API-referanse</a></li>
-                <li><a href="#">Integrasjoner</a></li>
-                <li><a href="#">Status</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4>Selskap</h4>
-              <ul>
-                <li><a href="#">Om oss</a></li>
-                <li><a href="#">Stillinger</a></li>
-                <li><a href="#">Presse</a></li>
-                <li><a href="#">Kontakt</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4>Juridisk</h4>
-              <ul>
-                <li><a href="#">Personvern</a></li>
-                <li><a href="#">Vilkår</a></li>
-                <li><a href="#">DPA</a></li>
-                <li><a href="#">Sikkerhet</a></li>
+                <li><a href="mailto:hei@reelhome.no">hei@reelhome.no</a></li>
               </ul>
             </div>
           </div>
           <div className="foot-bot">
             <span>© 2026 ReelHome AS · Org. 932 415 880 · Akersgata 16, 0158 Oslo</span>
-            <div className="links">
-              <a href="#">X</a>
-              <a href="#">LinkedIn</a>
-              <a href="#">GitHub</a>
-            </div>
           </div>
         </div>
       </footer>
