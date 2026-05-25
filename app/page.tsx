@@ -48,7 +48,6 @@ export default function Home() {
             <a href="#funksjoner">Funksjoner</a>
             <a href="#priser">Priser</a>
             <a href="#tilgang">Tidlig tilgang</a>
-            <a href="#">Dokumentasjon</a>
           </div>
           <div className="nav-cta">
             <Link href="/auth/login" className="btn btn-text">Logg inn</Link>
