@@ -1198,8 +1198,15 @@ export default function PropertyDetailPage() {
 
         {/* Video result */}
         {videoUrl && (
-          <div className="app-card space-y-4" style={{ border: '1px solid var(--gold-deep)' }}>
-            <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Ferdig video ✓</h2>
+          <div className="app-card space-y-4" style={{ border: '1px solid var(--gold-deep)', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Ferdig video ✓</h2>
+              <button
+                onClick={() => setVideoUrl(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '18px', lineHeight: 1, padding: '2px 4px' }}
+                title="Lukk preview"
+              >×</button>
+            </div>
             <video src={videoUrl} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
@@ -1216,16 +1223,13 @@ export default function PropertyDetailPage() {
               >
                 📤 Publiser
               </button>
-              <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                Legg den i en mappe nedenfor for å arkivere den.
-              </p>
             </div>
           </div>
         )}
 
-        {/* Videohistorikk — bare videoer som ikke er lagt i mappe */}
-        {(() => {
-          const unfiledVideos = pastVideos.filter(v => v.collection_ids.length === 0 && v.video_url !== videoUrl)
+        {/* Videohistorikk — skjult mens fersk video vises i preview */}
+        {!videoUrl && (() => {
+          const unfiledVideos = pastVideos.filter(v => v.collection_ids.length === 0)
           if (unfiledVideos.length === 0) return null
           return (
           <div className="app-card space-y-3">
