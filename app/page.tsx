@@ -184,7 +184,7 @@ export default function Home() {
           <div className="features">
 
             {/* Digital Clone — full width hero, dark */}
-            <div className="feat feat-1 dark">
+            <div className="feat feat-1 dark" style={{ gridColumn: 'span 6' }}>
               <div className="clone-layout">
                 <div className="clone-text">
                   <span className="eyebrow"><span className="dot" />Digital klon · Kun hos ReelHome</span>
@@ -244,6 +244,29 @@ export default function Home() {
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────── MID-PAGE CTA */}
+      <section className="cta-final" style={{ borderBottom: '1px solid var(--line)' }}>
+        <div className="wrap-tight">
+          <span className="eyebrow"><span className="dot" />Klar når du er det</span>
+          <h2 style={{ marginTop: "24px" }}>
+            Lag din første video.<br /><span className="blue">Gratis i 14 dager.</span>
+          </h2>
+          <p>Ingen kortinformasjon. Ingen forpliktelser. Last opp én bolig, se hva ReelHome gjør med den.</p>
+          <div className="hero-cta" style={{ justifyContent: "center" }}>
+            <Link href="/auth/signup" className="btn btn-primary">Start gratis prøveperiode <ArrowIcon /></Link>
+            <a href="#" className="btn btn-ghost">Book demo</a>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────── FEATURES ROW 2 */}
+      <section style={{ paddingTop: '88px', paddingBottom: '16px' }}>
+        <div className="wrap">
+          <div className="features">
             {/* Speed — spans 3 cols */}
             <div className="feat feat-2">
               <div>
@@ -283,7 +306,6 @@ export default function Home() {
                 <MusicTracks />
               </div>
             </div>
-
           </div>
         </div>
       </section>
@@ -436,20 +458,6 @@ export default function Home() {
       </section>
 
       {/* ─────────────────────────────────── FINAL CTA */}
-      <section className="cta-final">
-        <div className="wrap-tight">
-          <span className="eyebrow"><span className="dot" />Klar når du er det</span>
-          <h2 style={{ marginTop: "24px" }}>
-            Lag din første video.<br /><span className="blue">Gratis i 14 dager.</span>
-          </h2>
-          <p>Ingen kortinformasjon. Ingen forpliktelser. Last opp én bolig, se hva ReelHome gjør med den.</p>
-          <div className="hero-cta" style={{ justifyContent: "center" }}>
-            <Link href="/auth/signup" className="btn btn-primary">Start gratis prøveperiode <ArrowIcon /></Link>
-            <a href="#" className="btn btn-ghost">Book demo</a>
-          </div>
-        </div>
-      </section>
-
       {/* ─────────────────────────────────── FOOTER */}
       <footer className="landing-footer">
         <div className="wrap">
