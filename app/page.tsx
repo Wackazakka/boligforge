@@ -479,7 +479,7 @@ export default function Home() {
             </div>
           </div>
           <div className="foot-bot">
-            <span>© 2026 ReelHome AS · Org. 932 415 880 · Akersgata 16, 0158 Oslo</span>
+            <span>© 2026 ReelHome AS</span>
           </div>
         </div>
       </footer>
