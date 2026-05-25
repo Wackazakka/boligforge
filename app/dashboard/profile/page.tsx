@@ -238,8 +238,7 @@ export default function ProfilePage() {
         setSettingErrors(prev => ({ ...prev, [settingId]: data.error || `HTTP ${res.status}` }))
         return
       }
-      // Legg til bildet direkte i state — samme synkrone blokk som setGeneratingSettings(false)
-      // slik at React batcher dem og viser bilde og skrur av spinner i én og samme render
+      // Vis bildet umiddelbart via midlertidig oppføring
       setSettingImages(prev => [
         ...prev,
         {
@@ -250,11 +249,14 @@ export default function ProfilePage() {
           portrait_url: portraitUrl,
         },
       ])
-      // Synkroniser med server i bakgrunnen (ublokerende)
-      void loadSettingImages()
+      // Vent på at serverdata er lastet inn FØR spinneren slås av.
+      // Dermed er settingImages allerede oppdatert med ekte ID
+      // i det finally-blokken kjører — ingen flash av "Ikke generert".
+      await loadSettingImages()
     } catch (err) {
       setSettingErrors(prev => ({ ...prev, [settingId]: String(err) }))
     } finally {
+      // Slå av spinner etter at bildet er bekreftet i state
       setGeneratingSettings(prev => ({ ...prev, [settingId]: false }))
     }
   }
