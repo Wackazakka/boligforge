@@ -209,7 +209,7 @@ export default function ProfilePage() {
       const { url } = await res.json()
       setProfile(p => ({ ...p, [`${type}_url`]: url }))
       if (type === 'portrait') {
-        ;(async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id, url) })()
+        void Promise.all(SETTINGS.map(s => handleGenerateSetting(s.id, url)))
       }
     } else {
       alert('Opplasting feilet')
@@ -596,7 +596,7 @@ export default function ProfilePage() {
               <h3 className="text-sm font-semibold" style={{ color: 'var(--ink-2)' }}>Settings-bibliotek</h3>
               {visibleSettingImages.length > 0 && profile.portrait_url && (
                 <button
-                  onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
+                  onClick={async () => { void Promise.all(SETTINGS.map(s => handleGenerateSetting(s.id))) }}
                   disabled={Object.values(generatingSettings).some(Boolean)}
                   className="app-btn-ghost text-xs"
                   style={{ color: 'var(--muted)' }}
@@ -613,7 +613,7 @@ export default function ProfilePage() {
             </p>
             {profile.portrait_url && visibleSettingImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
               <button
-                onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
+                onClick={async () => { void Promise.all(SETTINGS.map(s => handleGenerateSetting(s.id))) }}
                 className="app-btn-secondary mb-4"
                 style={{ fontSize: '13px' }}
               >
