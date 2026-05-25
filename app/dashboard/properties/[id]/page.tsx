@@ -703,6 +703,39 @@ export default function PropertyDetailPage() {
               </button>
             ))}
           </div>
+
+          {/* Preset setting images for selected template avatar */}
+          {activeAvatar && activeAvatar.presets.length > 0 && (
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', marginBottom: '10px' }}>
+                Velg bakgrunn for {activeAvatar.name}
+              </p>
+              <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                {activeAvatar.presets.map(preset => (
+                  <div
+                    key={preset.key}
+                    onClick={() => setSelectedAvatarUrl(selectedAvatarUrl === preset.url ? '' : preset.url)}
+                    style={{
+                      flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', position: 'relative',
+                      border: `2px solid ${selectedAvatarUrl === preset.url ? 'var(--gold)' : 'transparent'}`,
+                      opacity: selectedAvatarUrl === preset.url ? 1 : 0.65,
+                      transition: 'opacity 0.15s, border-color 0.15s',
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={preset.url} alt={preset.label} style={{ width: '140px', height: '88px', objectFit: 'cover', display: 'block' }} />
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: 'rgba(11,11,12,0.55)', color: '#fff',
+                      fontSize: '10px', fontWeight: 600, textAlign: 'center', padding: '4px 0',
+                    }}>
+                      {preset.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Script section */}
