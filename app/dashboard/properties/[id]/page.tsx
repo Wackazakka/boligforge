@@ -961,30 +961,32 @@ export default function PropertyDetailPage() {
                       className="mt-1.5 app-btn-ghost text-sm px-1"
                     >✕</button>
                   </div>
-                  <div className="flex gap-2 flex-wrap items-center">
-                    <button
-                      onClick={() => updateSegment(i, { type: 'avatar', imageUrl: undefined })}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                      style={{
-                        background: seg.type === 'avatar' ? 'var(--gold)' : 'var(--surface)',
-                        color: seg.type === 'avatar' ? '#fff' : 'var(--muted)',
-                        border: `1px solid ${seg.type === 'avatar' ? 'var(--gold)' : 'var(--line)'}`,
-                      }}
-                    >
-                      Avatarvideo
-                    </button>
-                    <button
-                      onClick={() => updateSegment(i, { type: 'image' })}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                      style={{
-                        background: seg.type === 'image' ? 'var(--gold)' : 'var(--surface)',
-                        color: seg.type === 'image' ? '#fff' : 'var(--muted)',
-                        border: `1px solid ${seg.type === 'image' ? 'var(--gold)' : 'var(--line)'}`,
-                      }}
-                    >
-                      Boligbilde
-                    </button>
-                    <div className="ml-auto flex gap-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => updateSegment(i, { type: 'avatar', imageUrl: undefined })}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                        style={{
+                          background: seg.type === 'avatar' ? 'var(--gold)' : 'var(--surface)',
+                          color: seg.type === 'avatar' ? '#fff' : 'var(--muted)',
+                          border: `1px solid ${seg.type === 'avatar' ? 'var(--gold)' : 'var(--line)'}`,
+                        }}
+                      >
+                        Avatarvideo
+                      </button>
+                      <button
+                        onClick={() => updateSegment(i, { type: 'image' })}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                        style={{
+                          background: seg.type === 'image' ? 'var(--gold)' : 'var(--surface)',
+                          color: seg.type === 'image' ? '#fff' : 'var(--muted)',
+                          border: `1px solid ${seg.type === 'image' ? 'var(--gold)' : 'var(--line)'}`,
+                        }}
+                      >
+                        Boligbilde
+                      </button>
+                    </div>
+                    <div className="flex gap-1.5">
                       <button
                         onClick={() => handlePlaySegmentAudio(i)}
                         disabled={seg.previewingAudio || !effectiveVoiceId}
