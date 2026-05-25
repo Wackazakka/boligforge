@@ -129,7 +129,7 @@ export default function BillingPage() {
           Første betaling trekkes når prøveperioden utløper. Kanseller når som helst.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div className="billing-plans-grid">
           {PLANS.map(plan => (
             <div
               key={plan.id}
