@@ -176,7 +176,7 @@ export default function CollectionsPage() {
           <p style={{ fontSize: '13px' }}>Opprett en mappe, og legg videoer i den fra eiendomssiden.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? '280px 1fr' : '1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="collections-grid" style={{ gridTemplateColumns: selected ? '280px 1fr' : '1fr' }}>
 
           {/* Left: folder lists */}
           <div>

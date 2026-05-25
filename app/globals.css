@@ -732,6 +732,16 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   font-weight: 500;
 }
 
+/* ── Collections: two-column → single column on mobile ── */
+.collections-grid {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .collections-grid { grid-template-columns: 1fr !important; }
+}
+
 /* ── Dashboard nav: two-row layout on mobile (must come AFTER global nav rules) ── */
 @media (max-width: 640px) {
   .app-nav {
