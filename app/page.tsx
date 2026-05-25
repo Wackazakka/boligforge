@@ -460,7 +460,7 @@ export default function Home() {
                 { /* eslint-disable-next-line @next/next/no-img-element */ }
                 <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '40px', width: 'auto' }} />
               </a>
-              <p>AI-drevet videoproduksjon for norske eiendomsmeglere. Bygget i Oslo.</p>
+              <p>AI-drevet videoproduksjon for norske eiendomsmeglere.</p>
               <div className="foot-status"><span className="dot" />Alle systemer operative</div>
             </div>
             <div>
