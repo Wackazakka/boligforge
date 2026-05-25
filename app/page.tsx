@@ -1,5 +1,6 @@
 import Link from "next/link";
 import VideoHero from "./VideoHero";
+import MusicTracks from "./MusicTracks";
 
 const R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
 const PRESETS_BASE = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/presets'
@@ -289,32 +290,7 @@ export default function Home() {
                 <p className="desc">Originale spor produsert eksklusivt for ReelHome. Tempo og klipping synkroniseres automatisk.</p>
               </div>
               <div className="feat-vis">
-                <div className="tracks">
-                  <div className="track on">
-                    <span className="play" />
-                    <span className="info">
-                      <span className="n">Nordlys</span>
-                      <span className="m">Ambient · Strykere · 80 BPM</span>
-                    </span>
-                    <span className="dur">02:42</span>
-                  </div>
-                  <div className="track">
-                    <span className="play" />
-                    <span className="info">
-                      <span className="n">Fjorden Stiger</span>
-                      <span className="m">Cinematic · Piano · 92 BPM</span>
-                    </span>
-                    <span className="dur">03:18</span>
-                  </div>
-                  <div className="track">
-                    <span className="play" />
-                    <span className="info">
-                      <span className="n">Mørketid</span>
-                      <span className="m">Lavmælt · Akustisk · 68 BPM</span>
-                    </span>
-                    <span className="dur">02:05</span>
-                  </div>
-                </div>
+                <MusicTracks />
               </div>
             </div>
 
