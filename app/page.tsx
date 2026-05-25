@@ -376,7 +376,7 @@ export default function Home() {
               <div className="ea-perk">
                 <div className="ea-num">01</div>
                 <h4>Grunnlegger-pris</h4>
-                <p>Aldri høyere enn det du betaler nå — uansett hva listen koster om seks måneder.</p>
+                <p>Prisen du starter med er garantert i 2 år — uansett hva listen koster da.</p>
               </div>
               <div className="ea-perk">
                 <div className="ea-num">02</div>
