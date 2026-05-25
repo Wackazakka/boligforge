@@ -74,7 +74,6 @@ export default function ProfilePage() {
   const [customPrompts, setCustomPrompts] = useState<Record<string, string>>(SETTING_PROMPTS)
   const [showPrompt, setShowPrompt] = useState<Record<string, boolean>>({})
   const [lightbox, setLightbox] = useState<string | null>(null)
-  const [avatarSource, setAvatarSource] = useState<'own' | 'standard'>('own')
   const [voiceRecordState, setVoiceRecordState] = useState<'idle' | 'recording' | 'cloning' | 'done' | 'error'>('idle')
   const [voiceRecordError, setVoiceRecordError] = useState('')
   const [recordSeconds, setRecordSeconds] = useState(0)
@@ -85,12 +84,14 @@ export default function ProfilePage() {
   const voiceFileRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Only show setting images for the currently active portrait
-  // Images without portrait_url (old records) are shown regardless for backward compat
+  // Only show setting images for the currently active portrait.
+  // If there are images with a matching portrait_url, show only those.
+  // Fall back to images without portrait_url (old records) only when no match exists.
   const activePortrait = profile.portrait_url
-  const visibleSettingImages = settingImages.filter(i =>
-    !i.portrait_url || i.portrait_url === activePortrait
-  )
+  const matchingImages = settingImages.filter(i => i.portrait_url === activePortrait)
+  const visibleSettingImages = matchingImages.length > 0
+    ? matchingImages
+    : settingImages.filter(i => !i.portrait_url)
 
   useEffect(() => {
     fetch('/api/profile/get')
@@ -509,54 +510,39 @@ export default function ProfilePage() {
             Avatar og setting
           </h2>
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
-            Velg din digitale tvilling — last opp ditt eget bilde, eller bruk én av våre ferdige avatarer. AI genererer deg i fire profesjonelle settings.
+            Velg hvem som skal presentere boligene dine. Last opp ditt eget bilde, eller velg en av våre avatarer.
           </p>
 
-          {/* Source toggle */}
-          <div className="flex gap-2 mb-5">
-            <button
-              onClick={() => setAvatarSource('own')}
-              className="app-btn-secondary text-xs"
-              style={avatarSource === 'own' ? { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)' } : {}}
-            >
-              Min digitale tvilling
-            </button>
-            <button
-              onClick={() => setAvatarSource('standard')}
-              className="app-btn-secondary text-xs"
-              style={avatarSource === 'standard' ? { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)' } : {}}
-            >
-              Bruk standard avatar
-            </button>
-          </div>
+          {/* Avatar selector row */}
+          <div className="flex gap-3 overflow-x-auto pb-2 mb-5" style={{ overscrollBehaviorX: 'contain' }}>
 
-          {avatarSource === 'own' ? (
-            <div className="flex items-center gap-4 mb-6">
-              {profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)) ? (
-                <img
-                  src={profile.portrait_url}
-                  alt="Portrett"
-                  className="w-24 h-24 object-cover rounded-xl"
-                  style={{ border: '1px solid var(--line)' }}
-                />
-              ) : (
-                <div
-                  className="w-24 h-24 rounded-xl flex items-center justify-center text-xs text-center px-2"
-                  style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}
-                >
-                  Ingen bilde
-                </div>
-              )}
-              <div>
-                <button
-                  onClick={() => portraitRef.current?.click()}
-                  disabled={uploadingPortrait}
-                  className="app-btn-secondary"
-                >
-                  {uploadingPortrait ? 'Laster opp...' : 'Last opp portrett'}
-                </button>
-                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Bruk et godt, klart ansiktsbilde</p>
-              </div>
+            {/* Own portrait */}
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => portraitRef.current?.click()}
+                disabled={uploadingPortrait}
+                style={{
+                  width: 64, height: 64, borderRadius: 12, overflow: 'hidden',
+                  border: (profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)))
+                    ? '2px solid var(--blue)' : '2px dashed var(--line-2)',
+                  background: 'var(--surface-2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', padding: 0, flexShrink: 0,
+                }}
+                title="Last opp eget bilde"
+              >
+                {uploadingPortrait ? (
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>...</span>
+                ) : profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.portrait_url} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
+                ) : (
+                  <span style={{ fontSize: 24, color: 'var(--muted)' }}>＋</span>
+                )}
+              </button>
+              <span className="text-[10px] text-center" style={{ color: 'var(--muted)', maxWidth: 64 }}>
+                {profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)) ? 'Din avatar' : 'Last opp'}
+              </span>
               <input
                 ref={portraitRef}
                 type="file"
@@ -565,49 +551,46 @@ export default function ProfilePage() {
                 onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], 'portrait')}
               />
             </div>
-          ) : (
-            <div className="mb-6">
-              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
-                Velg en avatar — AI plasserer den i fire profesjonelle settings for deg.
-              </p>
-              <div className="grid grid-cols-6 gap-2">
-                {STANDARD_AVATARS.map(av => {
-                  const avatarUrl = `${AVATAR_R2}/${av.id}.jpg`
-                  const isSelected = profile.portrait_url === avatarUrl
-                  return (
-                    <button
-                      key={av.id}
-                      onClick={async () => {
-                        setProfile(p => ({ ...p, portrait_url: avatarUrl }))
-                        await fetch('/api/profile/save', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ ...profile, portrait_url: avatarUrl }),
-                        })
-                        for (const s of SETTINGS) await handleGenerateSetting(s.id, avatarUrl)
-                      }}
-                      className="flex flex-col items-center gap-1"
-                      title={av.name}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={avatarUrl}
-                        alt={av.name}
-                        className="w-full aspect-square object-cover object-top rounded-lg"
-                        style={{
-                          border: isSelected ? '2px solid var(--blue)' : '2px solid transparent',
-                          boxShadow: isSelected ? '0 0 0 2px rgba(37,99,235,0.2)' : 'none',
-                        }}
-                      />
-                      <span className="text-xs" style={{ color: isSelected ? 'var(--blue)' : 'var(--muted)' }}>
-                        {av.name}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+
+            {/* Divider */}
+            <div style={{ width: 1, background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
+
+            {/* Standard avatars */}
+            {STANDARD_AVATARS.map(av => {
+              const avatarUrl = `${AVATAR_R2}/${av.id}.jpg`
+              const isSelected = profile.portrait_url === avatarUrl
+              return (
+                <button
+                  key={av.id}
+                  onClick={async () => {
+                    setProfile(p => ({ ...p, portrait_url: avatarUrl }))
+                    await fetch('/api/profile/save', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ...profile, portrait_url: avatarUrl }),
+                    })
+                  }}
+                  className="flex flex-col items-center gap-1 flex-shrink-0"
+                  title={av.name}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={avatarUrl}
+                    alt={av.name}
+                    style={{
+                      width: 64, height: 64, objectFit: 'cover', objectPosition: 'center 15%',
+                      borderRadius: 12,
+                      border: isSelected ? '2px solid var(--blue)' : '2px solid transparent',
+                      boxShadow: isSelected ? '0 0 0 2px rgba(37,99,235,0.2)' : 'none',
+                    }}
+                  />
+                  <span className="text-[10px]" style={{ color: isSelected ? 'var(--blue)' : 'var(--muted)' }}>
+                    {av.name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
 
           {/* Setting generator */}
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: '20px' }}>
