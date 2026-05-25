@@ -286,7 +286,7 @@ export default function Home() {
               <div>
                 <span className="eyebrow"><span className="dot" />Musikkbibliotek</span>
                 <h3>Spesialkomponert for eiendom.</h3>
-                <p className="desc">Ikke streamingmusikk — originale spor produsert eksklusivt for ReelHome. Tempo og klipping synkroniseres automatisk.</p>
+                <p className="desc">Originale spor produsert eksklusivt for ReelHome. Tempo og klipping synkroniseres automatisk.</p>
               </div>
               <div className="feat-vis">
                 <div className="tracks">
