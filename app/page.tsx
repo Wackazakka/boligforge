@@ -65,7 +65,7 @@ export default function Home() {
             <h1>Profesjonelle visningsvideoer.<br /><span className="blue">På ti minutter.</span></h1>
             <p className="hero-sub">
               ReelHome genererer ferdige listingsvideoer automatisk — med AI-vert, klonet stemme og kuratert musikk.
-              Lim inn Finn-lenken, motta ferdig film klar for Finn og LinkedIn.
+              Lim inn Finn-lenken, motta ferdig film klar for Facebook og LinkedIn.
             </p>
             <div className="hero-cta">
               <Link href="/auth/signup" className="btn btn-primary">
