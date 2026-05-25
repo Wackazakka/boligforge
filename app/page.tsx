@@ -38,10 +38,10 @@ export default function Home() {
       {/* ─────────────────────────────────── NAV */}
       <nav className="top">
         <div className="wrap">
-          <a href="#" className="logo">
-            { /* eslint-disable-next-line @next/next/no-img-element */ }
-            <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '72px', width: 'auto' }} />
-            <span className="ver mono">v2.0</span>
+          <a href="#" className="rh-lockup" aria-label="ReelHome">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand-kit/reelhome-mark.svg" alt="" width="30" height="30" />
+            <span className="rh-wm">ReelHome<span className="rh-ai">.ai</span></span>
           </a>
           <div className="nav-links">
             <a href="#hvordan">Hvordan</a>
@@ -463,9 +463,10 @@ export default function Home() {
         <div className="wrap">
           <div className="foot-top">
             <div className="foot-brand">
-              <a href="/" className="logo">
-                { /* eslint-disable-next-line @next/next/no-img-element */ }
-                <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '40px', width: 'auto' }} />
+              <a href="/" className="rh-lockup" aria-label="ReelHome">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand-kit/reelhome-mark.svg" alt="" width="24" height="24" />
+                <span className="rh-wm" style={{ fontSize: '18px' }}>ReelHome<span className="rh-ai">.ai</span></span>
               </a>
               <p>AI-drevet videoproduksjon for norske eiendomsmeglere.</p>
               <div className="foot-status"><span className="dot" />Alle systemer operative</div>

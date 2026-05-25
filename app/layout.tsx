@@ -24,11 +24,11 @@ export const metadata: Metadata = {
   description:
     "ReelHome produserer profesjonelle visningsvideoer for eiendomsmeglere automatisk — med AI-avatar, din egen stemmeklone og kuratert musikk.",
   icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/brand-kit/favicon.svg",
+    apple: "/brand-kit/reelhome-app-icon.svg",
   },
   openGraph: {
-    images: [{ url: "/logo.png" }],
+    images: [{ url: "/brand-kit/reelhome-app-icon.svg" }],
   },
 };
 

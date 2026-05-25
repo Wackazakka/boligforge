@@ -39,9 +39,10 @@ export default function DashboardNav() {
   return (
     <nav className="app-nav">
       {/* Logo — venstre */}
-      <Link href="/" className="app-nav-logo">
+      <Link href="/" className="app-nav-logo rh-lockup" aria-label="ReelHome">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '68px', width: 'auto' }} />
+        <img src="/brand-kit/reelhome-mark.svg" alt="" width="28" height="28" />
+        <span className="rh-wm">ReelHome<span className="rh-ai">.ai</span></span>
       </Link>
 
       {/* Lenker — midtstilt */}
