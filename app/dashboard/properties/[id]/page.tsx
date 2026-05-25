@@ -1219,7 +1219,7 @@ export default function PropertyDetailPage() {
 
         {/* Videohistorikk — bare videoer som ikke er lagt i mappe */}
         {(() => {
-          const unfiledVideos = pastVideos.filter(v => v.collection_ids.length === 0)
+          const unfiledVideos = pastVideos.filter(v => v.collection_ids.length === 0 && v.video_url !== videoUrl)
           if (unfiledVideos.length === 0) return null
           return (
           <div className="app-card space-y-3">
