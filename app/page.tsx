@@ -40,7 +40,7 @@ export default function Home() {
         <div className="wrap">
           <a href="#" className="rh-lockup" aria-label="ReelHome">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand-kit/reelhome-mark.svg" alt="" width="68" height="68" />
+            <img src="/brand-kit/reelhome-mark-moss.svg" alt="" width="68" height="68" />
             <span className="rh-wm" style={{ fontSize: '45px' }}>ReelHome<span className="rh-ai">.ai</span></span>
           </a>
           <div className="nav-links">

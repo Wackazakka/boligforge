@@ -189,7 +189,7 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
   font-size: 20px;
   letter-spacing: -0.025em;
   line-height: 1;
-  color: var(--ink);
+  color: #4E632C;
 }
 
 .rh-ai {
@@ -197,7 +197,7 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
   font-size: 0.55em;
   margin-left: 0.04em;
   vertical-align: 0.32em;
-  color: #4E632C;
+  color: var(--ink);
 }
 
 .logo .ver {
