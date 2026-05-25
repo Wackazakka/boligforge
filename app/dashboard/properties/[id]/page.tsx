@@ -787,9 +787,19 @@ export default function PropertyDetailPage() {
                 {property.images?.length > 0 && (
                   <>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px', gap: '3px' }}>
-                      <div style={{ width: '1px', height: '30px', background: 'var(--line)' }} />
-                      <span style={{ fontSize: '9px', color: 'var(--muted)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap', writingMode: 'vertical-rl' }}>Foran boligen</span>
-                      <div style={{ width: '1px', height: '30px', background: 'var(--line)' }} />
+                      <div style={{ width: '1px', height: '22px', background: 'var(--line)' }} />
+                      <span
+                        title="Vil du at presenteren skal stå foran et bilde fra denne boligen? Velg et bilde her og klikk «Generer» — AI-en setter presenteren inn i bildet."
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          width: '16px', height: '16px', borderRadius: '50%',
+                          border: '1px solid var(--line-2)', background: 'var(--surface-2)',
+                          fontSize: '10px', color: 'var(--muted)', cursor: 'default',
+                          fontFamily: 'var(--sans)', fontWeight: 600, flexShrink: 0,
+                          userSelect: 'none',
+                        }}
+                      >?</span>
+                      <div style={{ width: '1px', height: '22px', background: 'var(--line)' }} />
                     </div>
                     {property.images.map((img, i) => (
                       <div key={i}
