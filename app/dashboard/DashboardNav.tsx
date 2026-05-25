@@ -46,7 +46,7 @@ export default function DashboardNav() {
       </Link>
 
       {/* Lenker — midtstilt */}
-      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px' }}>
+      <div className="app-nav-links">
         {links.map(link => {
           const active = pathname.startsWith(link.href)
           return (
