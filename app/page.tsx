@@ -118,7 +118,7 @@ export default function Home() {
             </div>
 
             <div className="step">
-              <div className="head"><span className="num">02</span><span className="time">~60 sek</span></div>
+              <div className="head"><span className="num">02</span><span className="time">~1 min</span></div>
               <div className="vis">
                 <div className="v2-wrap">
                   <div className="v2-grid">
