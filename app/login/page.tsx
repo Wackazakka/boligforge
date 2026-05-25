@@ -49,10 +49,8 @@ export default function LoginPage() {
       <div className="app-card w-full max-w-sm" style={{ padding: '32px' }}>
         <div className="mb-8">
           <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', marginBottom: '20px' }}>
-            <span style={{ width: '22px', height: '22px', borderRadius: '5px', background: 'var(--ink)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 }}>R</span>
-            <span style={{ fontSize: '15px', fontWeight: 550, color: 'var(--ink)', letterSpacing: '-0.015em' }}>
-              Reel<span style={{ color: 'var(--muted)' }}>Home</span>
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '48px', width: 'auto' }} />
           </a>
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
             {mode === 'login' ? 'Logg inn på din konto' : 'Tilbakestill passord'}

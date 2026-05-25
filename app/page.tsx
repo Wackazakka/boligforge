@@ -44,7 +44,7 @@ export default function Home() {
             <a href="#hvordan">Hvordan</a>
             <a href="#funksjoner">Funksjoner</a>
             <a href="#priser">Priser</a>
-            <a href="#kunder">Kunder</a>
+            <a href="#tilgang">Tidlig tilgang</a>
             <a href="#">Dokumentasjon</a>
           </div>
           <div className="nav-cta">
@@ -245,18 +245,6 @@ export default function Home() {
                     <div className="specs">
                       <span>187 m²</span><span>4 sov</span><span>1894</span><span>P-rom</span>
                     </div>
-                  </div>
-                </div>
-
-                <div className="rp-section">
-                  <div className="lbl">Vert <button>Bytt →</button></div>
-                  <div className="rp-avatars">
-                    {AVATARS.map((av, i) => (
-                      <div key={av.id} className={`av-tile${i === 0 ? ' active' : ''}`}>
-                        <img src={`${R2}/${av.id}.jpg`} alt={av.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}} />
-                        <span className="n">{av.name}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
 
@@ -548,74 +536,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─────────────────────────────────── TESTIMONIALS */}
-      <section id="kunder" className="testimonials">
+      {/* ─────────────────────────────────── EARLY ACCESS */}
+      <section id="tilgang" className="early-access">
         <div className="wrap">
-          <div className="sec-head">
-            <span className="eyebrow"><span className="dot" />Kunder</span>
-            <h2>Brukt av meglere som vinner oppdrag.</h2>
-          </div>
-
-          <div className="q-grid">
-            <div className="q-card tall">
-              <p className="body">
-                ReelHome har erstattet hele videoflyten vår. Jeg bruker fem minutter på å lage filmen som{" "}
-                <em>tidligere tok tre dager hos byrå</em> — og resultatet ser bedre ut. Kundene merker det også.
-              </p>
-              <div>
-                <div className="who">
-                  <div className="av" />
-                  <div>
-                    <div className="name">Henrik Solberg</div>
-                    <div className="role">Daglig leder · Solberg Eiendom</div>
-                  </div>
-                </div>
-                <div className="logo-mini" style={{ marginTop: "14px" }}>Solberg Eiendom AS</div>
+          <div className="ea-card">
+            <span className="eyebrow"><span className="dot" />Tidlig lansering</span>
+            <h2>Vær med fra start.</h2>
+            <p className="ea-sub">
+              ReelHome åpner for de første meglerkontorene nå. Grunnlegger-brukere låser
+              fast dagens pris og former produktet direkte.
+            </p>
+            <div className="ea-perks">
+              <div className="ea-perk">
+                <div className="ea-num">01</div>
+                <h4>Grunnlegger-pris</h4>
+                <p>Aldri høyere enn det du betaler nå — uansett hva listen koster om seks måneder.</p>
+              </div>
+              <div className="ea-perk">
+                <div className="ea-num">02</div>
+                <h4>Direkte linje til teamet</h4>
+                <p>Innspillene dine bygger neste versjon. Vi har dedikert tid til tidlige brukere hver uke.</p>
+              </div>
+              <div className="ea-perk">
+                <div className="ea-num">03</div>
+                <h4>Alltid først ut</h4>
+                <p>Tidlig tilgang til alle nye funksjoner — avatarer, integrasjoner og analyseverktøy.</p>
               </div>
             </div>
-
-            <div className="q-card">
-              <p className="body">Stemmeklonen min er så god at kundene tror <em>jeg har snakket inn det selv</em>.</p>
-              <div className="who">
-                <div className="av" style={{ background: "linear-gradient(135deg,#a78bfa,#6d28d9)" }} />
-                <div>
-                  <div className="name">Maria Bjørge</div>
-                  <div className="role">Megler · Bergen Sentrum</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="q-card">
-              <p className="body"><em>240 % flere klikk</em> på Finn-annonsen etter vi byttet til ReelHome.</p>
-              <div className="who">
-                <div className="av" style={{ background: "linear-gradient(135deg,#fb923c,#c2410c)" }} />
-                <div>
-                  <div className="name">Erik Tønnessen</div>
-                  <div className="role">Salgssjef · Nordvik Frogner</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="q-card">
-              <p className="body">Hele kontoret er på Pro-planen nå. Det betaler seg <em>tilbake første uka</em>.</p>
-              <div className="who">
-                <div className="av" style={{ background: "linear-gradient(135deg,#34d399,#065f46)" }} />
-                <div>
-                  <div className="name">Christine Lien</div>
-                  <div className="role">Markedssjef · Krogsveen Trondheim</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="q-card">
-              <p className="body">Vi solgte <em>to tomter via Reels</em> i forrige uke. Helt nytt for oss.</p>
-              <div className="who">
-                <div className="av" style={{ background: "linear-gradient(135deg,#f472b6,#9d174d)" }} />
-                <div>
-                  <div className="name">Andreas Vik</div>
-                  <div className="role">Megler · DNB Eiendom Stavanger</div>
-                </div>
-              </div>
+            <div className="hero-cta" style={{ justifyContent: "center" }}>
+              <Link href="/auth/signup" className="btn btn-primary">Sikre din plass <ArrowIcon /></Link>
+              <a href="mailto:hei@reelhome.no" className="btn btn-ghost">Snakk med oss</a>
             </div>
           </div>
         </div>

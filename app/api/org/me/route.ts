@@ -14,7 +14,14 @@ export async function GET() {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (!membership) return NextResponse.json({ org: null, role: null })
+    // Superadmin bypass
+    const superadminEmail = process.env.LARS_EMAIL ?? ''
+    if (!membership) {
+      if (superadminEmail && user.email === superadminEmail) {
+        return NextResponse.json({ org: null, role: 'superadmin' })
+      }
+      return NextResponse.json({ org: null, role: null })
+    }
 
     const { data: org } = await supabase
       .from('organizations')

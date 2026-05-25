@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export async function GET() {
   try {
@@ -15,15 +24,23 @@ export async function GET() {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (!membership) return NextResponse.json({ error: 'Ikke medlem av noe firma' }, { status: 404 })
-    if (membership.role !== 'admin') return NextResponse.json({ error: 'Kun admin kan se dette' }, { status: 403 })
+    const isSuperadmin = user.email === (process.env.LARS_EMAIL ?? '')
 
-    // Get all members in the org
-    const { data: members, error } = await supabase
+    if (!membership && !isSuperadmin) return NextResponse.json({ error: 'Ikke medlem av noe firma' }, { status: 404 })
+    if (membership && membership.role !== 'admin' && !isSuperadmin) return NextResponse.json({ error: 'Kun admin kan se dette' }, { status: 403 })
+
+    // Superadmin sees all members via service client (bypasses RLS); org admin sees own org
+    const queryClient = isSuperadmin ? getServiceClient() : supabase
+    const membersQuery = queryClient
       .from('organization_members')
-      .select('id, user_id, role, created_at')
-      .eq('organization_id', membership.organization_id)
+      .select('id, user_id, role, created_at, organization_id')
       .order('created_at', { ascending: true })
+
+    if (!isSuperadmin && membership) {
+      membersQuery.eq('organization_id', membership.organization_id)
+    }
+
+    const { data: members, error } = await membersQuery
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -41,7 +58,7 @@ export async function GET() {
       profile: profileMap[m.user_id] ?? null,
     }))
 
-    return NextResponse.json({ members: result, org_id: membership.organization_id })
+    return NextResponse.json({ members: result, org_id: membership?.organization_id ?? null, is_superadmin: isSuperadmin })
   } catch (err: unknown) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

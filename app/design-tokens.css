@@ -1,0 +1,28 @@
+:root {
+  /* backgrounds */
+  --bg: #0d0b08;
+  --bg-2: #13100c;
+  --surface: #19150f;
+  --surface-2: #1f1a13;
+
+  /* borders */
+  --line: #2a2419;
+  --line-2: #3a3122;
+
+  /* text */
+  --ink: #f4ecdc;
+  --ink-2: #d6cab1;
+  --muted: #8a7e66;
+  --muted-2: #5d5340;
+
+  /* gold palette */
+  --gold: #c9a86a;
+  --gold-bright: #e8c987;
+  --gold-deep: #8a6f3a;
+  --gold-glow: rgba(201, 168, 106, 0.14);
+
+  /* typography */
+  --serif: var(--font-instrument-serif), "Cormorant Garamond", Georgia, serif;
+  --sans: var(--font-geist-sans), -apple-system, "Helvetica Neue", sans-serif;
+  --mono: var(--font-geist-mono), ui-monospace, monospace;
+}

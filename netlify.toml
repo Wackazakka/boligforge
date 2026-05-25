@@ -3,7 +3,7 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_PUBLIC_BASE_URL = "https://boligforge.netlify.app"
+  NEXT_PUBLIC_BASE_URL = "https://reelhome.ai"
 
 [functions]
   node_bundler = "nft"

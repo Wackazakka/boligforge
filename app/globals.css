@@ -489,19 +489,23 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 .plan.featured .btn-ghost { background: transparent; border-color: rgba(255,255,255,.2); color: #fff; }
 .plan.featured .btn-ghost:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.4); }
 
-/* ─── TESTIMONIALS */
-.testimonials { background: var(--bg-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.q-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.q-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px; display: flex; flex-direction: column; gap: 24px; justify-content: space-between; min-height: 280px; }
-.q-card.tall { grid-row: span 2; min-height: 580px; }
-.q-card .body { font-size: 18px; color: var(--ink); line-height: 1.45; letter-spacing: -0.015em; font-weight: 450; }
-.q-card.tall .body { font-size: 24px; line-height: 1.35; font-weight: 500; }
-.q-card .body em { font-style: normal; color: var(--blue); font-weight: 500; border-bottom: 1px solid var(--blue-line); }
-.q-card .who { display: flex; align-items: center; gap: 10px; }
-.q-card .who .av { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #7ba9d8, #1e4d7e); flex-shrink: 0; }
-.q-card .who .name { font-size: 13.5px; color: var(--ink); font-weight: 500; }
-.q-card .who .role { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 2px; }
-.q-card .logo-mini { font-weight: 600; font-size: 13px; letter-spacing: -0.02em; color: var(--ink-3); margin-top: auto; }
+/* ─── EARLY ACCESS */
+.early-access { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.ea-card { background: var(--ink); border-radius: 14px; padding: 72px; text-align: center; position: relative; overflow: hidden; }
+.ea-card::before { content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 640px; height: 280px; background: radial-gradient(ellipse, rgba(37,99,235,0.22), transparent 70%); pointer-events: none; }
+.ea-card .eyebrow { color: rgba(255,255,255,0.45); position: relative; }
+.ea-card .eyebrow .dot { background: var(--blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.25); }
+.ea-card h2 { color: #fff; font-size: clamp(36px, 5vw, 64px); margin: 16px 0 22px; position: relative; }
+.ea-sub { font-size: 17px; max-width: 520px; margin: 0 auto 52px; color: rgba(255,255,255,0.55); line-height: 1.55; position: relative; }
+.ea-perks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-bottom: 52px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 44px; text-align: left; position: relative; }
+.ea-num { font-family: var(--mono); font-size: 11px; color: var(--blue); letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 500; }
+.ea-perk h4 { font-size: 17px; color: #fff; margin-bottom: 8px; font-weight: 500; letter-spacing: -0.015em; }
+.ea-perk p { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+.ea-card .hero-cta { position: relative; }
+.ea-card .btn-primary, .ea-card a.btn-primary { background: #fff; color: var(--ink) !important; border-color: #fff; }
+.ea-card .btn-primary:hover, .ea-card a.btn-primary:hover { background: rgba(255,255,255,0.9); }
+.ea-card .btn-ghost { border-color: rgba(255,255,255,0.22); color: rgba(255,255,255,0.75); background: transparent; }
+.ea-card .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.45); color: #fff; }
 
 /* ─── FAQ */
 .faq-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 80px; align-items: flex-start; }
@@ -546,8 +550,8 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
 @media (max-width: 980px) {
   .features { grid-template-columns: 1fr; }
   .feat { grid-column: auto !important; }
-  .q-grid { grid-template-columns: 1fr; }
-  .q-card.tall { grid-row: auto; min-height: auto; }
+  .ea-perks { grid-template-columns: 1fr; gap: 28px; }
+  .ea-card { padding: 48px 28px; }
   .steps, .price-grid { grid-template-columns: 1fr; }
   .faq-grid { grid-template-columns: 1fr; gap: 48px; }
   .editor { grid-template-columns: 1fr; height: auto; }

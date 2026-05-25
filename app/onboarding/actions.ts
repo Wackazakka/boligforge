@@ -96,5 +96,5 @@ export async function createOrgAction(
   console.log(`createOrgAction: ferdig — org ${org.id}, bruker ${user.id}`)
 
   // Server-side redirect — bypasser RSC-cache og cookie-problematikk
-  redirect('/dashboard')
+  redirect('/onboarding/avatar')
 }

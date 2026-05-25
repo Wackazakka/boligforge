@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import AccountTabs from './AccountTabs'
 const SETTING_PROMPTS: Record<string, string> = {
   modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent looks confident and natural, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
   office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
@@ -246,6 +247,7 @@ export default function ProfilePage() {
   return (
     <div>
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <AccountTabs />
         <div>
           <h1
             className="text-xl font-semibold"
