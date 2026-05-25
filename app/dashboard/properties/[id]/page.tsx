@@ -77,7 +77,7 @@ export default function PropertyDetailPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [statusMsg, setStatusMsg] = useState('')
-  const [selectedImageIdx, setSelectedImageIdx] = useState(0)
+  const [selectedImageIdx, setSelectedImageIdx] = useState(-1)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [selectedVideoImages, setSelectedVideoImages] = useState<string[]>([])
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
@@ -570,7 +570,7 @@ export default function PropertyDetailPage() {
         {/* Image gallery */}
         {property.images?.length > 0 && (
           <div className="space-y-2">
-            <img src={property.images[selectedImageIdx]} alt="" className="w-full h-64 object-cover rounded-xl" />
+            <img src={property.images[selectedImageIdx >= 0 ? selectedImageIdx : 0]} alt="" className="w-full h-64 object-cover rounded-xl" />
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
               {property.images.map((img, i) => (
                 <img
@@ -618,18 +618,21 @@ export default function PropertyDetailPage() {
           </div>
         ) : null}
 
-        {/* ── Presenter / avatar selector ── */}
+        {/* ── Presenter + bakgrunn (unified) ── */}
         <div className="app-card" style={{ padding: '16px 20px' }}>
-          <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '14px', fontSize: '15px' }}>Velg presenter</h2>
+          <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '14px', fontSize: '15px' }}>
+            Velg presenter og bakgrunn
+          </h2>
+
+          {/* — Presenter row — */}
           <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', overscrollBehaviorX: 'contain' }}>
-            {/* Own profile — or link to create one */}
             {hasOwnAvatar ? (
               <button
-                onClick={() => { setActiveAvatar(null); setGeneratedAvatarUrl(null) }}
+                onClick={() => { setActiveAvatar(null); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
                 style={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                  background: activeAvatar === null ? '#eff6ff' : 'var(--surface-2)',
-                  border: `2px solid ${activeAvatar === null ? '#2563eb' : 'var(--line)'}`,
+                  background: activeAvatar === null ? 'var(--blue-soft)' : 'var(--surface-2)',
+                  border: `2px solid ${activeAvatar === null ? 'var(--blue)' : 'var(--line)'}`,
                   borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
                 }}
               >
@@ -637,103 +640,205 @@ export default function PropertyDetailPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={profile.portrait_url} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar === null ? '#2563eb' : 'var(--ink)' }}>
-                  Din avatar
-                </span>
-                {profile.name && (
-                  <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{profile.name.split(' ')[0]}</span>
-                )}
+                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar === null ? 'var(--blue)' : 'var(--ink)' }}>Din avatar</span>
+                {profile.name && <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{profile.name.split(' ')[0]}</span>}
                 {profile.voice_id && (
-                  <button
-                    onClick={e => { e.stopPropagation(); playVoiceSample(profile.voice_id!) }}
-                    style={{ fontSize: '10px', color: playingVoiceId === profile.voice_id ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0', marginTop: '2px' }}
-                  >
+                  <button onClick={e => { e.stopPropagation(); playVoiceSample(profile.voice_id!) }}
+                    style={{ fontSize: '10px', color: playingVoiceId === profile.voice_id ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0', marginTop: '2px' }}>
                     {playingVoiceId === profile.voice_id ? '■ Spiller...' : '▶ Hør'}
                   </button>
                 )}
               </button>
             ) : (
-              <a
-                href="/dashboard/profile"
-                style={{
-                  flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                  background: 'var(--surface-2)', border: '2px dashed var(--line)',
-                  borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
-                  textDecoration: 'none',
-                }}
-              >
+              <a href="/dashboard/profile" style={{
+                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                background: 'var(--surface-2)', border: '2px dashed var(--line)',
+                borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px', textDecoration: 'none',
+              }}>
                 <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ fontSize: '22px' }}>＋</span>
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--blue)', textAlign: 'center', lineHeight: 1.3 }}>
-                  Lag din<br />avatar →
-                </span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--blue)', textAlign: 'center', lineHeight: 1.3 }}>Lag din<br />avatar →</span>
               </a>
             )}
 
-            {/* Divider */}
             <div style={{ width: '1px', background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
 
-            {/* Template avatars */}
             {TEMPLATE_AVATARS.map(av => (
-              <button
-                key={av.id}
+              <button key={av.id}
                 onClick={() => { setActiveAvatar(av); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
                 style={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                  background: activeAvatar?.id === av.id ? '#eff6ff' : 'var(--surface-2)',
-                  border: `2px solid ${activeAvatar?.id === av.id ? '#2563eb' : 'var(--line)'}`,
+                  background: activeAvatar?.id === av.id ? 'var(--blue-soft)' : 'var(--surface-2)',
+                  border: `2px solid ${activeAvatar?.id === av.id ? 'var(--blue)' : 'var(--line)'}`,
                   borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
-                }}
-              >
+                }}>
                 <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={av.portraitUrl} alt={av.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar?.id === av.id ? '#2563eb' : 'var(--ink)' }}>
-                  {av.name}
-                </span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar?.id === av.id ? 'var(--blue)' : 'var(--ink)' }}>{av.name}</span>
                 <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{av.desc}</span>
-                <button
-                  onClick={e => { e.stopPropagation(); playVoiceSample(av.voiceId) }}
-                  style={{ fontSize: '10px', color: playingVoiceId === av.voiceId ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0', marginTop: '2px' }}
-                >
+                <button onClick={e => { e.stopPropagation(); playVoiceSample(av.voiceId) }}
+                  style={{ fontSize: '10px', color: playingVoiceId === av.voiceId ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0', marginTop: '2px' }}>
                   {playingVoiceId === av.voiceId ? '■ Spiller...' : '▶ Hør'}
                 </button>
               </button>
             ))}
           </div>
 
-          {/* Preset setting images for selected template avatar */}
-          {activeAvatar && activeAvatar.presets.length > 0 && (
+          {/* — Bakgrunn row — always visible once an avatar is active or images exist — */}
+          {(activeAvatar || hasOwnAvatar || property.images?.length > 0) && (
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
-              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', marginBottom: '10px' }}>
-                Velg bakgrunn for {activeAvatar.name}
+              <p className="text-xs font-medium uppercase tracking-wide"
+                style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', marginBottom: '10px' }}>
+                Velg bakgrunn
               </p>
-              <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
-                {activeAvatar.presets.map(preset => (
-                  <div
-                    key={preset.key}
+
+              <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center', overscrollBehaviorX: 'contain' }}>
+
+                {/* Portrett — always first, default choice */}
+                <div onClick={() => setSelectedAvatarUrl('')}
+                  style={{
+                    flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', position: 'relative',
+                    border: `2px solid ${selectedAvatarUrl === '' ? 'var(--gold)' : 'var(--line)'}`,
+                    transition: 'border-color 0.15s',
+                  }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={(activeAvatar ? activeAvatar.portraitUrl : profile.portrait_url) ?? ''}
+                    alt="Portrett"
+                    style={{ width: '104px', height: '88px', objectFit: 'cover', objectPosition: 'center 10%', display: 'block' }}
+                  />
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    background: selectedAvatarUrl === '' ? 'var(--gold)' : 'rgba(11,11,12,0.55)',
+                    color: '#fff', fontSize: '10px', fontWeight: 600, textAlign: 'center', padding: '4px 0',
+                  }}>
+                    {selectedAvatarUrl === '' ? '✓ Portrett' : 'Portrett'}
+                  </div>
+                </div>
+
+                {/* Preset setting images (template avatar) */}
+                {activeAvatar && activeAvatar.presets.map(preset => (
+                  <div key={preset.key}
                     onClick={() => setSelectedAvatarUrl(selectedAvatarUrl === preset.url ? '' : preset.url)}
                     style={{
                       flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', position: 'relative',
                       border: `2px solid ${selectedAvatarUrl === preset.url ? 'var(--gold)' : 'transparent'}`,
-                      opacity: selectedAvatarUrl === preset.url ? 1 : 0.65,
+                      opacity: selectedAvatarUrl === preset.url ? 1 : 0.6,
                       transition: 'opacity 0.15s, border-color 0.15s',
-                    }}
-                  >
+                    }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={preset.url} alt={preset.label} style={{ width: '140px', height: '88px', objectFit: 'cover', display: 'block' }} />
                     <div style={{
                       position: 'absolute', bottom: 0, left: 0, right: 0,
-                      background: 'rgba(11,11,12,0.55)', color: '#fff',
-                      fontSize: '10px', fontWeight: 600, textAlign: 'center', padding: '4px 0',
+                      background: selectedAvatarUrl === preset.url ? 'var(--gold)' : 'rgba(11,11,12,0.55)',
+                      color: '#fff', fontSize: '10px', fontWeight: 600, textAlign: 'center', padding: '4px 0',
                     }}>
-                      {preset.label}
+                      {selectedAvatarUrl === preset.url ? `✓ ${preset.label}` : preset.label}
                     </div>
                   </div>
                 ))}
+
+                {/* User own setting images */}
+                {!activeAvatar && settingImages.map(s => (
+                  <div key={s.image_url}
+                    onClick={() => setSelectedAvatarUrl(selectedAvatarUrl === s.image_url ? '' : s.image_url)}
+                    className="relative flex-shrink-0"
+                    style={{
+                      borderRadius: '8px', overflow: 'hidden', cursor: 'pointer',
+                      border: `2px solid ${selectedAvatarUrl === s.image_url ? 'var(--gold)' : 'transparent'}`,
+                      opacity: selectedAvatarUrl === s.image_url ? 1 : 0.6,
+                      transition: 'opacity 0.15s, border-color 0.15s',
+                    }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s.image_url} alt={s.setting_type} style={{ width: '140px', height: '88px', objectFit: 'cover', display: 'block' }} />
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: selectedAvatarUrl === s.image_url ? 'var(--gold)' : 'rgba(11,11,12,0.55)',
+                      color: '#fff', fontSize: '10px', fontWeight: 600, textAlign: 'center', padding: '4px 0',
+                    }}>
+                      {selectedAvatarUrl === s.image_url ? '✓ ' : ''}{s.setting_type.replace(/_/g, ' ')}
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); handleDeleteSettingImage(s) }}
+                      title="Slett" className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}>✕</button>
+                  </div>
+                ))}
+
+                {/* Generated composite — appears in row after generation */}
+                {generatedAvatarUrl && (
+                  <div onClick={() => setSelectedAvatarUrl(selectedAvatarUrl === generatedAvatarUrl ? '' : generatedAvatarUrl)}
+                    style={{
+                      flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', position: 'relative',
+                      border: `2px solid ${selectedAvatarUrl === generatedAvatarUrl ? 'var(--gold)' : 'var(--line)'}`,
+                      transition: 'border-color 0.15s',
+                    }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={generatedAvatarUrl} alt="Generert" style={{ width: '104px', height: '88px', objectFit: 'cover', display: 'block' }} />
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: selectedAvatarUrl === generatedAvatarUrl ? 'var(--gold)' : 'rgba(11,11,12,0.55)',
+                      color: '#fff', fontSize: '10px', fontWeight: 600, textAlign: 'center', padding: '4px 0',
+                    }}>
+                      {selectedAvatarUrl === generatedAvatarUrl ? '✓ Generert' : 'Generert'}
+                    </div>
+                  </div>
+                )}
+
+                {/* Separator + property images for composite generation */}
+                {property.images?.length > 0 && (
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px', gap: '3px' }}>
+                      <div style={{ width: '1px', height: '30px', background: 'var(--line)' }} />
+                      <span style={{ fontSize: '9px', color: 'var(--muted)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap', writingMode: 'vertical-rl' }}>Foran boligen</span>
+                      <div style={{ width: '1px', height: '30px', background: 'var(--line)' }} />
+                    </div>
+                    {property.images.map((img, i) => (
+                      <div key={i}
+                        onClick={() => setSelectedImageIdx(i === selectedImageIdx ? -1 : i)}
+                        style={{
+                          flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', position: 'relative',
+                          border: `2px solid ${selectedImageIdx === i ? 'var(--blue)' : 'transparent'}`,
+                          opacity: selectedImageIdx === i ? 1 : 0.55,
+                          transition: 'opacity 0.15s, border-color 0.15s',
+                        }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img} alt="" style={{ width: '104px', height: '88px', objectFit: 'cover', display: 'block' }} />
+                        {selectedImageIdx === i && (
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--blue)', color: '#fff', fontSize: '10px', fontWeight: 600, textAlign: 'center', padding: '4px 0' }}>
+                            Valgt
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
+
+              {/* Generate button — only when a property image is selected */}
+              {selectedImageIdx >= 0 && property.images?.length > 0 && (
+                <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button onClick={handleGenerateAvatar}
+                    disabled={generatingAvatar || (!effectivePortrait && !selectedAvatarUrl)}
+                    className="app-btn-primary flex items-center gap-2"
+                    style={{ padding: '8px 14px', fontSize: '13px' }}>
+                    {generatingAvatar && (
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    )}
+                    {generatingAvatar ? 'Genererer (~20 sek)...' : generatedAvatarUrl ? '↺ Regenerer foran valgt bilde' : 'Generer foran valgt bilde'}
+                  </button>
+                  {generatedAvatarUrl && (
+                    <button onClick={handleSaveAvatar} disabled={savingAvatar} className="app-btn-secondary text-xs" style={{ padding: '6px 12px' }}>
+                      {savingAvatar ? 'Lagrer...' : avatarSaved ? '✓ Lagret' : 'Lagre til bibliotek'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -994,152 +1099,6 @@ export default function PropertyDetailPage() {
           )
         })()}
 
-        {/* Avatar image section */}
-        <div className="app-card space-y-5">
-          <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>
-            Velg avatar-bilde
-            {activeAvatar && (
-              <span style={{ marginLeft: '8px', fontSize: '13px', fontWeight: 400, color: '#2563eb' }}>
-                — {activeAvatar.name}
-              </span>
-            )}
-          </h2>
-
-          {settingImages.length > 0 && !activeAvatar && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
-                Fra profilen din
-              </p>
-              <div className="flex gap-3 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
-                {settingImages.map(s => (
-                  <div
-                    key={s.image_url}
-                    className="relative flex-shrink-0 rounded-lg overflow-hidden"
-                    style={{
-                      border: `2px solid ${selectedAvatarUrl === s.image_url ? 'var(--gold)' : 'transparent'}`,
-                      opacity: selectedAvatarUrl === s.image_url ? 1 : 0.6,
-                    }}
-                  >
-                    <img
-                      src={s.image_url}
-                      alt={s.setting_type}
-                      onClick={() => setSelectedAvatarUrl(s.image_url)}
-                      className="w-40 h-24 object-cover cursor-pointer"
-                    />
-                    <button
-                      onClick={() => handleDeleteSettingImage(s)}
-                      title="Slett bilde"
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}
-                    >✕</button>
-                    <button
-                      onClick={e => { e.stopPropagation(); setLightboxUrl(s.image_url) }}
-                      title="Forstørr"
-                      className="absolute bottom-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}
-                    >⤢</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {property.images?.length > 0 && (
-            <div className="space-y-3 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
-              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
-                Foran denne boligen
-              </p>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                Velg hvilke boligbilde du vil stå foran, og generer et nytt avatarbilde.
-              </p>
-
-              <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
-                {property.images.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    alt=""
-                    onClick={() => setSelectedImageIdx(i)}
-                    className="w-16 h-12 object-cover rounded cursor-pointer flex-shrink-0 transition-all"
-                    style={thumbBorder(i === selectedImageIdx)}
-                  />
-                ))}
-              </div>
-
-              {(selectedAvatarUrl || effectivePortrait) && (
-                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
-                  <img
-                    src={selectedAvatarUrl || effectivePortrait}
-                    className="w-8 h-10 object-cover rounded"
-                    style={{ border: '1px solid var(--line)' }}
-                    alt="Kilde"
-                  />
-                  <span>
-                    {selectedAvatarUrl
-                      ? 'Bruker valgt bilde — velg et annet over for å bytte'
-                      : 'Bruker portrettbilde — velg et setting-bilde over for bedre resultat'}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleGenerateAvatar}
-                  disabled={generatingAvatar || (!effectivePortrait && !selectedAvatarUrl)}
-                  className="app-btn-primary flex items-center gap-2"
-                  style={{ padding: '8px 16px', fontSize: '13px' }}
-                >
-                  {generatingAvatar && (
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  )}
-                  {generatingAvatar ? 'Genererer (~20 sek)...' : generatedAvatarUrl ? '↺ Regenerer' : 'Generer foran denne boligen'}
-                </button>
-                {!effectivePortrait && !selectedAvatarUrl && (
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>Last opp portrett i profilen din først</p>
-                )}
-              </div>
-
-              {generatedAvatarUrl && (
-                <div className="flex items-end gap-3">
-                  <div
-                    onClick={() => setSelectedAvatarUrl(generatedAvatarUrl)}
-                    className="relative cursor-pointer rounded-lg overflow-hidden"
-                    style={{
-                      border: `2px solid ${selectedAvatarUrl === generatedAvatarUrl ? 'var(--gold)' : 'var(--line)'}`,
-                    }}
-                  >
-                    <img src={generatedAvatarUrl} alt="Generert avatar" className="w-48 h-32 object-cover" />
-                    <button
-                      onClick={e => { e.stopPropagation(); setLightboxUrl(generatedAvatarUrl) }}
-                      title="Forstørr"
-                      className="absolute bottom-6 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}
-                    >⤢</button>
-                    <p className="text-xs text-center py-1" style={{ color: 'var(--muted)' }}>
-                      {selectedAvatarUrl === generatedAvatarUrl ? '✓ Valgt' : 'Klikk for å velge'}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-2 pb-1">
-                    <button
-                      onClick={handleSaveAvatar}
-                      disabled={savingAvatar}
-                      className="app-btn-secondary text-xs"
-                      style={{ padding: '6px 12px' }}
-                    >
-                      {savingAvatar ? 'Lagrer...' : avatarSaved ? '✓ Lagret' : 'Lagre til bibliotek'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {settingImages.length === 0 && !property.images?.length && (
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Gå til Profil for å generere setting-bilder.</p>
-          )}
-        </div>
 
         {/* Property image picker for video */}
         {segments.length === 0 && property.images?.length > 0 && (
