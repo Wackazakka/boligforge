@@ -1211,7 +1211,7 @@ export default function PropertyDetailPage() {
                 📤 Publiser
               </button>
               <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                Legg den i en mappe med 📁-knappen — da forsvinner den fra historikken her.
+                Legg den i en mappe nedenfor for å arkivere den.
               </p>
             </div>
           </div>
