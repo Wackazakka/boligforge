@@ -659,6 +659,31 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
 
   /* ── CTA final: smaller heading ── */
   .cta-final h2 { font-size: clamp(32px, 8vw, 52px); }
+
+  /* ── Dashboard nav: two-row layout on mobile ── */
+  .app-nav {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 16px 0;
+    gap: 0;
+  }
+  /* Logo takes full left, logout far right in first row */
+  .app-nav-logo { flex: 1; margin-right: 0; }
+  /* Links div (inline-styled absolute) → static, full-width second row */
+  .app-nav > div {
+    position: static !important;
+    left: auto !important;
+    transform: none !important;
+    width: 100%;
+    order: 3;
+    display: flex !important;
+    overflow-x: auto;
+    padding: 6px 0 10px;
+    gap: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .app-nav > div::-webkit-scrollbar { display: none; }
 }
 
 /* ─── App (Dashboard) Component Styles ─── */
