@@ -627,7 +627,7 @@ export default function ProfilePage() {
             </div>
             <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
               {profile.portrait_url
-                ? 'Alle lagrede bilder er tilgjengelige som bakgrunn når du lager en video. Slett bilder du ikke vil beholde.'
+                ? 'Disse bildene velger du fra når du lager en video. Slett de du ikke vil beholde.'
                 : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
             </p>
             {profile.portrait_url && visibleSettingImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
