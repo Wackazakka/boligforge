@@ -548,14 +548,14 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 .early-access { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg-2); }
 .ea-card { background: var(--ink); border-radius: 14px; padding: 72px; text-align: center; position: relative; overflow: hidden; }
 .ea-card::before { content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 640px; height: 280px; background: radial-gradient(ellipse, rgba(37,99,235,0.22), transparent 70%); pointer-events: none; }
-.ea-card .eyebrow { color: rgba(255,255,255,0.45); position: relative; }
+.ea-card .eyebrow { color: rgba(255,255,255,0.6); position: relative; }
 .ea-card .eyebrow .dot { background: var(--blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.25); }
 .ea-card h2 { color: #fff; font-size: clamp(36px, 5vw, 64px); margin: 16px 0 22px; position: relative; }
-.ea-sub { font-size: 17px; max-width: 520px; margin: 0 auto 52px; color: rgba(255,255,255,0.55); line-height: 1.55; position: relative; }
+.ea-sub { font-size: 17px; max-width: 520px; margin: 0 auto 52px; color: rgba(255,255,255,0.75); line-height: 1.55; position: relative; }
 .ea-perks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-bottom: 52px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 44px; text-align: left; position: relative; }
 .ea-num { font-family: var(--mono); font-size: 11px; color: var(--blue); letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 500; }
 .ea-perk h4 { font-size: 17px; color: #fff; margin-bottom: 8px; font-weight: 500; letter-spacing: -0.015em; }
-.ea-perk p { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+.ea-perk p { font-size: 14px; color: rgba(255,255,255,0.68); line-height: 1.6; }
 .ea-card .hero-cta { position: relative; }
 .ea-card .btn-primary, .ea-card a.btn-primary { background: #fff; color: var(--ink) !important; border-color: #fff; }
 .ea-card .btn-primary:hover, .ea-card a.btn-primary:hover { background: rgba(255,255,255,0.9); }
