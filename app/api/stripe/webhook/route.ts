@@ -43,13 +43,17 @@ export async function POST(request: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
 
-        // ── Ekstra videokreditter (engangskjøp) ──────────────────────
-        if (session.metadata?.type === 'extra_credits') {
+        // ── Ekstra videokreditter (engangskjøp: legacy buy-credits + ny topup) ──
+        if (
+          session.metadata?.type === 'extra_credits' ||
+          session.metadata?.type === 'topup'
+        ) {
           const userId  = session.metadata.user_id
           const credits = parseInt(session.metadata.credits_purchased ?? '0', 10)
+          const type    = session.metadata.type
 
           if (!userId || !credits) {
-            console.warn('Webhook: extra_credits mangler user_id eller credits_purchased', session.id)
+            console.warn(`Webhook: ${type} mangler user_id eller credits_purchased`, session.id)
             break
           }
 
@@ -70,11 +74,11 @@ export async function POST(request: Request) {
             )
 
           if (error) {
-            console.error('Supabase update failed (extra_credits):', error)
+            console.error(`Supabase update failed (${type}):`, error)
             return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
           }
 
-          console.log(`Bruker ${userId}: +${credits} ekstra videokreditter (nå ${current + credits})`)
+          console.log(`Bruker ${userId} [${type}]: +${credits} ekstra videokreditter (nå ${current + credits})`)
           break
         }
 

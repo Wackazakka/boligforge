@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import TopupBanner from './TopupBanner'
 
 // Service-role client for data reads — brukes etter at bruker er verifisert
 // via createSupabaseServerClient().auth.getUser(). Bypasser RLS-problematikk
@@ -94,6 +95,11 @@ export default async function DashboardPage() {
               Velg plan for å fortsette etter trialen →
             </Link>
           </div>
+        )}
+
+        {/* Topup-banner — vises når ≤ 1 video gjenstår */}
+        {remaining <= 1 && credits && (
+          <TopupBanner remaining={remaining} />
         )}
 
         {/* Stats-rad */}
