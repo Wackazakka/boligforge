@@ -816,7 +816,7 @@ export default function PropertyDetailPage() {
                 {/* Separator + property images for composite generation */}
                 {property.images?.length > 0 && (
                   <>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px', gap: '3px', position: 'relative' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px', gap: '3px' }}>
                       <div style={{ width: '1px', height: '22px', background: 'var(--line)' }} />
                       <button
                         onClick={e => { e.stopPropagation(); setShowBgHint(v => !v) }}
@@ -829,16 +829,6 @@ export default function PropertyDetailPage() {
                           userSelect: 'none', padding: 0,
                         }}
                       >?</button>
-                      {showBgHint && (
-                        <div style={{
-                          position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                          marginTop: '6px', width: '220px', background: 'var(--ink)', color: '#fff',
-                          fontSize: '12px', lineHeight: '1.5', padding: '10px 12px', borderRadius: '8px',
-                          zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.18)', pointerEvents: 'none',
-                        }}>
-                          Vil du at presenteren skal stå foran et bilde fra boligen? Velg et bilde her — AI-en setter presenteren inn i bildet.
-                        </div>
-                      )}
                       <div style={{ width: '1px', height: '22px', background: 'var(--line)' }} />
                     </div>
                     {property.images.map((img, i) => (
@@ -865,6 +855,17 @@ export default function PropertyDetailPage() {
                   </>
                 )}
               </div>
+
+              {/* Hint for property image compositing */}
+              {showBgHint && (
+                <div style={{
+                  marginTop: '8px', padding: '10px 12px',
+                  background: 'var(--surface-2)', border: '1px solid var(--line)',
+                  borderRadius: '8px', fontSize: '12px', color: 'var(--ink)', lineHeight: '1.5',
+                }}>
+                  Vil du at presenteren skal stå foran et bilde fra boligen? Velg et bilde her — AI-en setter presenteren inn i bildet.
+                </div>
+              )}
 
               {/* Generate button — only when a property image is selected */}
               {selectedImageIdx >= 0 && property.images?.length > 0 && (
