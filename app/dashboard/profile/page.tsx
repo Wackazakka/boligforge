@@ -56,6 +56,7 @@ type SettingImage = {
   setting_type: string
   image_url: string
   created_at: string
+  portrait_url?: string
 }
 
 export default function ProfilePage() {
@@ -83,6 +84,13 @@ export default function ProfilePage() {
   const portraitRef = useRef<HTMLInputElement>(null)
   const voiceFileRef = useRef<HTMLInputElement>(null)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Only show setting images for the currently active portrait
+  // Images without portrait_url (old records) are shown regardless for backward compat
+  const activePortrait = profile.portrait_url
+  const visibleSettingImages = settingImages.filter(i =>
+    !i.portrait_url || i.portrait_url === activePortrait
+  )
 
   useEffect(() => {
     fetch('/api/profile/get')
@@ -605,7 +613,7 @@ export default function ProfilePage() {
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: '20px' }}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-semibold" style={{ color: 'var(--ink-2)' }}>Settings-bibliotek</h3>
-              {settingImages.length > 0 && profile.portrait_url && (
+              {visibleSettingImages.length > 0 && profile.portrait_url && (
                 <button
                   onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
                   disabled={Object.values(generatingSettings).some(Boolean)}
@@ -622,7 +630,7 @@ export default function ProfilePage() {
                 ? 'Alle lagrede bilder er tilgjengelige som bakgrunn når du lager en video. Slett bilder du ikke vil beholde.'
                 : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
             </p>
-            {profile.portrait_url && settingImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
+            {profile.portrait_url && visibleSettingImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
               <button
                 onClick={async () => { for (const s of SETTINGS) await handleGenerateSetting(s.id) }}
                 className="app-btn-secondary mb-4"
@@ -633,7 +641,7 @@ export default function ProfilePage() {
             )}
             <div className="space-y-5">
               {SETTINGS.map(s => {
-                const allForType = settingImages.filter(i => i.setting_type === s.id)
+                const allForType = visibleSettingImages.filter(i => i.setting_type === s.id)
                 const isGenerating = generatingSettings[s.id]
                 const err = settingErrors[s.id]
                 return (

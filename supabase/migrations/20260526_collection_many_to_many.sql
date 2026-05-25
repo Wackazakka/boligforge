@@ -17,15 +17,15 @@ create table if not exists public.collection_videos (
 alter table public.collection_videos enable row level security;
 
 -- Anyone who can see the collection can read its videos
-create policy "collection_videos read"
-  on public.collection_videos for select
-  using (true);
-
--- Users can add/remove from their own collections (enforced in API)
-create policy "collection_videos write"
-  on public.collection_videos for all
-  using (true)
-  with check (true);
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename='collection_videos' and policyname='collection_videos read') then
+    execute 'create policy "collection_videos read" on public.collection_videos for select using (true)';
+  end if;
+  if not exists (select 1 from pg_policies where tablename='collection_videos' and policyname='collection_videos write') then
+    execute 'create policy "collection_videos write" on public.collection_videos for all using (true) with check (true)';
+  end if;
+end$$;
 
 -- 3. Migrate existing single-assignment data to join table
 insert into public.collection_videos (collection_id, video_id)

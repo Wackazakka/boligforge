@@ -132,6 +132,7 @@ export async function POST(request: Request) {
       setting_type: setting,
       image_url: url,
       user_id: user.id,
+      portrait_url: portraitUrl,
     })
 
     return Response.json({ url, setting })

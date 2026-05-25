@@ -8,7 +8,12 @@ create table if not exists public.app_config (
 -- Only service-role can write; anon/authenticated can read
 alter table public.app_config enable row level security;
 
-create policy "service role full access"
-  on public.app_config
-  using (true)
-  with check (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where tablename = 'app_config' and policyname = 'service role full access'
+  ) then
+    execute 'create policy "service role full access" on public.app_config using (true) with check (true)';
+  end if;
+end$$;
