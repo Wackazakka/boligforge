@@ -2,6 +2,7 @@ import Link from "next/link";
 import VideoHero from "./VideoHero";
 
 const R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
+const PRESETS_BASE = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/presets'
 const AVATARS = [
   { id: 'sofia',  name: 'Sofia',  desc: 'Varm og profesjonell', lang: 'NO·BM' },
   { id: 'marius', name: 'Marius', desc: 'Klar og selvsikker',   lang: 'NO·BM' },
@@ -235,13 +236,16 @@ export default function Home() {
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',flex:1}}>
                     {[
-                      {label:'Foran bolig',    bg:'linear-gradient(145deg,#2d4a1e,#1a3010)'},
-                      {label:'Kontormiljø',    bg:'linear-gradient(145deg,#1a2a4a,#0e1a30)'},
-                      {label:'Nøytral studio', bg:'linear-gradient(145deg,#3a2e22,#221b14)'},
-                      {label:'Utendørs',       bg:'linear-gradient(145deg,#1a3a3a,#0e2424)'},
-                    ].map(({label, bg}) => (
-                      <div key={label} style={{background:bg,borderRadius:'8px',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'flex-end',padding:'8px 10px',minHeight:'80px'}}>
-                        <span style={{fontSize:'10px',fontWeight:500,color:'rgba(255,255,255,0.55)',background:'rgba(0,0,0,0.4)',padding:'3px 7px',borderRadius:'4px'}}>{label}</span>
+                      {label:'Foran bolig',    src:`${PRESETS_BASE}/sofia_modern_home.png`},
+                      {label:'Kontormiljø',    src:`${PRESETS_BASE}/sofia_office.png`},
+                      {label:'Nøytral studio', src:`${PRESETS_BASE}/sofia_studio.png`},
+                      {label:'Utendørs',       src:`${PRESETS_BASE}/sofia_neighborhood.png`},
+                    ].map(({label, src}) => (
+                      <div key={label} style={{position:'relative',borderRadius:'8px',overflow:'hidden',border:'1px solid rgba(255,255,255,0.08)',minHeight:'80px'}}>
+                        { /* eslint-disable-next-line @next/next/no-img-element */ }
+                        <img src={src} alt={label} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',position:'absolute',inset:0}} />
+                        <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,0.45) 0%,transparent 55%)'}} />
+                        <span style={{position:'absolute',bottom:'8px',left:'10px',fontSize:'10px',fontWeight:500,color:'rgba(255,255,255,0.85)'}}>{label}</span>
                       </div>
                     ))}
                   </div>
