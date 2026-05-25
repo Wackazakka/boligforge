@@ -184,7 +184,7 @@ export default function PropertiesPage() {
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="https://www.finn.no/realestate/homes/ad.html?finnkode=..."
-            className="app-input flex-1"
+            className="app-input flex-1 min-w-0"
             style={{ width: 'auto' }}
           />
           <button type="submit" disabled={scraping || !url.trim()} className="app-btn-primary">
