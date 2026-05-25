@@ -174,7 +174,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────────────────────── FEATURES */}
-      <section id="funksjoner" style={{ paddingTop: 0 }}>
+      <section id="funksjoner" style={{ paddingTop: 0, paddingBottom: '16px' }}>
         <div className="wrap">
           <div className="sec-head">
             <span className="eyebrow"><span className="dot" />Funksjoner</span>
@@ -290,7 +290,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────────────────────── PRICING */}
-      <section id="priser">
+      <section id="priser" style={{ paddingTop: '64px' }}>
         <div className="wrap">
           <div className="sec-head">
             <span className="eyebrow"><span className="dot" />Priser</span>

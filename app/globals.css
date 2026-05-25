@@ -418,7 +418,7 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 .vf-3 { width: 54px; height: 54px; }
 
 /* ─── FEATURES */
-.features { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: auto auto; gap: 20px; }
+.features { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: auto auto; gap: 64px 20px; }
 .feat { border: 1px solid var(--line); border-radius: var(--radius-lg); background: #fff; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; min-height: 340px; }
 .feat-1 { grid-column: span 6; min-height: 400px; }
 .feat-2 { grid-column: span 3; }
