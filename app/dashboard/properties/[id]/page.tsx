@@ -1030,13 +1030,13 @@ export default function PropertyDetailPage() {
                       onClick={() => handleDeleteSettingImage(s)}
                       title="Slett bilde"
                       className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                      style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
+                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}
                     >✕</button>
                     <button
                       onClick={e => { e.stopPropagation(); setLightboxUrl(s.image_url) }}
                       title="Forstørr"
                       className="absolute bottom-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                      style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
+                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}
                     >⤢</button>
                   </div>
                 ))}
@@ -1115,7 +1115,7 @@ export default function PropertyDetailPage() {
                       onClick={e => { e.stopPropagation(); setLightboxUrl(generatedAvatarUrl) }}
                       title="Forstørr"
                       className="absolute bottom-6 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                      style={{ background: 'rgba(13,11,8,0.6)', color: 'var(--ink-2)' }}
+                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}
                     >⤢</button>
                     <p className="text-xs text-center py-1" style={{ color: 'var(--muted)' }}>
                       {selectedAvatarUrl === generatedAvatarUrl ? '✓ Valgt' : 'Klikk for å velge'}
