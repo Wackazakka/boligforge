@@ -730,6 +730,9 @@ export default function PropertyDetailPage() {
                   }}>
                     {selectedAvatarUrl === '' ? '✓ Portrett' : 'Portrett'}
                   </div>
+                  <button onClick={e => { e.stopPropagation(); setLightboxUrl((activeAvatar ? activeAvatar.portraitUrl : profile.portrait_url) ?? null) }}
+                    title="Forstørr" className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                    style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}>⤢</button>
                 </div>
 
                 {/* Preset setting images (template avatar) */}
@@ -751,6 +754,9 @@ export default function PropertyDetailPage() {
                     }}>
                       {selectedAvatarUrl === preset.url ? `✓ ${preset.label}` : preset.label}
                     </div>
+                    <button onClick={e => { e.stopPropagation(); setLightboxUrl(preset.url) }}
+                      title="Forstørr" className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}>⤢</button>
                   </div>
                 ))}
 
@@ -774,6 +780,9 @@ export default function PropertyDetailPage() {
                     }}>
                       {selectedAvatarUrl === s.image_url ? '✓ ' : ''}{s.setting_type.replace(/_/g, ' ')}
                     </div>
+                    <button onClick={e => { e.stopPropagation(); setLightboxUrl(s.image_url) }}
+                      title="Forstørr" className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}>⤢</button>
                     <button onClick={e => { e.stopPropagation(); handleDeleteSettingImage(s) }}
                       title="Slett" className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
                       style={{ background: 'rgba(13,11,8,0.6)', color: '#fff' }}>✕</button>
@@ -797,6 +806,9 @@ export default function PropertyDetailPage() {
                     }}>
                       {selectedAvatarUrl === generatedAvatarUrl ? '✓ Generert' : 'Generert'}
                     </div>
+                    <button onClick={e => { e.stopPropagation(); setLightboxUrl(generatedAvatarUrl) }}
+                      title="Forstørr" className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                      style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}>⤢</button>
                   </div>
                 )}
 
@@ -834,6 +846,9 @@ export default function PropertyDetailPage() {
                             Valgt
                           </div>
                         )}
+                        <button onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
+                          title="Forstørr" className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                          style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}>⤢</button>
                       </div>
                     ))}
                   </>
