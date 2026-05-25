@@ -80,15 +80,6 @@ export default function Home() {
 
           {/* ── Editor mockup */}
           <div className="product-frame">
-            <div className="pf-chrome">
-              <div className="dots"><span /><span /><span /></div>
-              <div className="url">
-                <div className="url-inner">
-                  <span>app.reelhome.no</span>/p/<span className="b">bygdoy-alle-24</span>/editor
-                </div>
-              </div>
-            </div>
-
             <VideoHero />
           </div>
         </div>
