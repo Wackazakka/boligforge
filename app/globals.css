@@ -225,8 +225,8 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 
 .hero h1 {
   font-size: clamp(44px, 5.4vw, 72px);
-  letter-spacing: -0.04em;
-  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-weight: 700;
   line-height: 1.02;
   margin: 24px 0;
 }
