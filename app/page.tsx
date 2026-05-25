@@ -142,7 +142,7 @@ export default function Home() {
                 </div>
               </div>
               <h3>Velg vert, stemme og musikk</h3>
-              <p>Seks AI-avatarer eller din egen stemmeklone. Velg musikk kuratert for norske boliger.</p>
+              <p>Seks AI-avatarer eller din egen digitale tvilling. Velg musikk kuratert for norske boliger.</p>
             </div>
 
             <div className="step">
