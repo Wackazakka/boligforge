@@ -14,18 +14,24 @@ const BASE_LINKS = [
 
 export default function DashboardNav() {
   const pathname = usePathname()
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/org/me')
       .then(r => r.json())
-      .then(d => { if (d.role === 'admin' || d.role === 'superadmin') setIsAdmin(true) })
+      .then(d => { setRole(d.role ?? null) })
       .catch(() => {})
   }, [])
 
-  const links = isAdmin
-    ? [...BASE_LINKS, { href: '/dashboard/admin', label: 'Admin' }]
-    : BASE_LINKS
+  const isAdmin      = role === 'admin' || role === 'superadmin'
+  const isSuperadmin = role === 'superadmin'
+
+  const links = [
+    ...BASE_LINKS,
+    ...(isAdmin      ? [{ href: '/dashboard/team',  label: 'Team'   }] : []),
+    ...(isAdmin      ? [{ href: '/dashboard/admin', label: 'Admin'  }] : []),
+    ...(isSuperadmin ? [{ href: '/admin',           label: '⚡ BO'   }] : []),
+  ]
 
   async function handleLogout() {
     const supabase = createBrowserClient(
