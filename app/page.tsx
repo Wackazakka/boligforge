@@ -480,6 +480,7 @@ export default function Home() {
           </div>
           <div className="foot-bot">
             <span>© 2026 ReelHome AS</span>
+            <span>Powered by <a href="https://norditech.no" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 500 }}>Norditech AS</a></span>
           </div>
         </div>
       </footer>

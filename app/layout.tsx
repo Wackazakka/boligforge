@@ -44,9 +44,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <footer style={{ textAlign: 'center', padding: '16px', fontSize: '11px', color: 'var(--muted, #999)', borderTop: '1px solid var(--line, #eee)', marginTop: 'auto' }}>
-          Powered by <a href="https://norditech.no" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 500 }}>Norditech AS</a>
-        </footer>
       </body>
     </html>
   );
