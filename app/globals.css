@@ -660,29 +660,6 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   /* ── CTA final: smaller heading ── */
   .cta-final h2 { font-size: clamp(32px, 8vw, 52px); }
 
-  /* ── Dashboard nav: two-row layout on mobile ── */
-  .app-nav {
-    height: auto;
-    flex-wrap: wrap;
-    padding: 10px 16px 0;
-    gap: 0;
-  }
-  /* Logo takes full left, logout far right in first row */
-  .app-nav-logo { flex: 1; margin-right: 0; }
-  /* Links → static, full-width second row */
-  .app-nav-links {
-    position: static;
-    left: auto;
-    transform: none;
-    width: 100%;
-    order: 3;
-    overflow-x: auto;
-    padding: 6px 0 10px;
-    gap: 2px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .app-nav-links::-webkit-scrollbar { display: none; }
 }
 
 /* ─── App (Dashboard) Component Styles ─── */
@@ -753,6 +730,30 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   color: var(--ink);
   background: var(--surface-2);
   font-weight: 500;
+}
+
+/* ── Dashboard nav: two-row layout on mobile (must come AFTER global nav rules) ── */
+@media (max-width: 640px) {
+  .app-nav {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 16px 0;
+    gap: 0;
+  }
+  .app-nav-logo { flex: 1; margin-right: 0; }
+  .app-nav-links {
+    position: static;
+    left: auto;
+    transform: none;
+    width: 100%;
+    order: 3;
+    overflow-x: auto;
+    padding: 6px 0 10px;
+    gap: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .app-nav-links::-webkit-scrollbar { display: none; }
 }
 
 .app-card {
