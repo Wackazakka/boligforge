@@ -219,7 +219,7 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 .nav-cta { display: flex; align-items: center; gap: 10px; }
 
 /* ─── HERO */
-.hero { padding: 60px 0 32px; position: relative; }
+.hero { padding: 36px 0 32px; position: relative; }
 .hero-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
 .hero-head { max-width: 780px; margin-bottom: 48px; }
 
