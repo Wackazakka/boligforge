@@ -85,7 +85,8 @@ function hasRoomKeyword(text: string): boolean {
 function matchSegmentToImage(
   text: string,
   imageTags: Record<string, string[]>,
-  images: string[]
+  images: string[],
+  usedImages: Set<string>   // bilder allerede valgt av tidligere segmenter
 ): string | null {
   const t = text.toLowerCase()
   const scores: Record<string, number> = {}
@@ -94,13 +95,20 @@ function matchSegmentToImage(
     if (s > 0) scores[tag] = s
   }
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1])
+
   if (sorted.length > 0) {
-    const best = sorted[0][0]
-    const hit = images.find(img => imageTags[img]?.includes(best))
+    // Prøv hvert tag i score-rekkefølge — finn ubrukt bilde
+    for (const [best] of sorted) {
+      const hit = images.find(img => !usedImages.has(img) && imageTags[img]?.includes(best))
+      if (hit) return hit
+    }
+    // Alle matchende bilder er brukt — finn ubrukt bilde av riktig kategori
+    const hit = images.find(img => !usedImages.has(img))
     if (hit) return hit
   }
-  // Fallback: første bilde i galleriet
-  return images[0] ?? null
+
+  // Fallback: første ubrukte bilde, eller første bilde om alt er brukt
+  return images.find(img => !usedImages.has(img)) ?? images[0] ?? null
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -262,17 +270,18 @@ export default function PropertyDetailPage() {
       })
       const data = await res.json()
       if (data.imageTags) {
-        setSegments(newSegments.map(seg => {
-          const suggested = matchSegmentToImage(seg.text, data.imageTags, images)
+        const usedImages = new Set<string>()
+        const matched = newSegments.map(seg => {
+          const suggested = matchSegmentToImage(seg.text, data.imageTags, images, usedImages)
           if (!suggested) return seg
+          usedImages.add(suggested)   // merk som brukt før neste segment kjøres
           if (hasRoomKeyword(seg.text)) {
-            // Rom-segment → image type med matchet bilde
             return { ...seg, type: 'image' as const, imageUrl: suggested, imageSource: 'ai' as const }
           } else {
-            // Intro/outro → behold avatar, men sett imageUrl for forhåndsvisning + evt. bytte
             return { ...seg, imageUrl: suggested, imageSource: 'ai' as const }
           }
-        }))
+        })
+        setSegments(matched)
       }
     } catch {
       // Stille feil — segmenter forblir uendret
