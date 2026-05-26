@@ -387,27 +387,41 @@ export default function PropertyDetailPage() {
   async function playVoiceSample(voiceId: string) {
     if (playingVoiceId === voiceId) return
     setPlayingVoiceId(voiceId)
+    setError('')
     try {
       const res = await fetch('/api/profile/tts-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: 'Hei, jeg er glad for å presentere denne flotte boligen for deg i dag.', voiceId }),
       })
-      if (!res.ok) throw new Error('tts failed')
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '')
+        throw new Error(`TTS feilet (${res.status}): ${errText.slice(0, 120)}`)
+      }
       const contentType = res.headers.get('content-type') || ''
       let audioUrl: string
       if (contentType.includes('application/json')) {
         const data = await res.json()
+        if (!data.audioBase64) throw new Error('Mangler lyddata i svaret fra serveren')
         audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`
       } else {
         const blob = await res.blob()
+        if (blob.size === 0) throw new Error('Tomt lydsvar fra serveren')
         audioUrl = URL.createObjectURL(blob)
       }
       const audio = new Audio(audioUrl)
       audio.onended = () => { setPlayingVoiceId(null); if (audioUrl.startsWith('blob:')) URL.revokeObjectURL(audioUrl) }
-      audio.onerror = () => { setPlayingVoiceId(null); if (audioUrl.startsWith('blob:')) URL.revokeObjectURL(audioUrl) }
-      await audio.play()
-    } catch {
+      audio.onerror = () => {
+        console.error('Audio playback error', audio.error)
+        setPlayingVoiceId(null)
+        setError('Kunne ikke spille av lydeksempel')
+        if (audioUrl.startsWith('blob:')) URL.revokeObjectURL(audioUrl)
+      }
+      const playPromise = audio.play()
+      if (playPromise) await playPromise.catch((e: unknown) => { throw new Error(`Avspilling feilet: ${e instanceof Error ? e.message : String(e)}`) })
+    } catch (e) {
+      console.error('playVoiceSample error:', e)
+      setError(e instanceof Error ? e.message : String(e))
       setPlayingVoiceId(null)
     }
   }
