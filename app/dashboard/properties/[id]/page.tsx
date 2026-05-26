@@ -542,6 +542,16 @@ export default function PropertyDetailPage() {
     setVideoUrl(null)
     setStatusMsg('Sender til worker...')
 
+    // Hent alltid fersk profil rett før generering — fanger opp logo lastet opp etter at siden ble åpnet
+    let freshLogoUrl = profile.logo_url
+    try {
+      const freshProfile = await fetch('/api/profile/get').then(r => r.json())
+      freshLogoUrl = freshProfile.logo_url ?? freshLogoUrl
+      if (freshLogoUrl && freshLogoUrl !== profile.logo_url) {
+        setProfile(p => ({ ...p, logo_url: freshLogoUrl ?? undefined }))
+      }
+    } catch { /* stille feil — bruk cachet verdi */ }
+
     const tickerParts = [
       property?.address,
       property?.price ? `Prisantydning: ${formatPrice(property.price)}` : null,
@@ -553,7 +563,7 @@ export default function PropertyDetailPage() {
     const tickerText = outro.images.length > 0
       ? (tickerParts.length > 0 ? tickerParts.join('  ·  ') : property?.title || property?.address || 'Se mer om denne boligen')
       : undefined
-    const logoUrl = profile.logo_url || undefined
+    const logoUrl = freshLogoUrl || undefined
     const outroPayload = (outro.images.length > 0 || logoUrl)
       ? { ...outro, tickerText, ...(logoUrl ? { logoUrl } : {}) }
       : undefined
@@ -566,7 +576,8 @@ export default function PropertyDetailPage() {
 
     const body = segments.length > 0
       ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload }
-      : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages }
+      // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
+      : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}) }
 
     const res = await fetch('/api/video/generate', {
       method: 'POST',
