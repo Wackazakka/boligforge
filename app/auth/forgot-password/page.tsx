@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
       <div className="app-card" style={{ width: '100%', maxWidth: '380px', padding: '40px' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', marginBottom: '32px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '48px', width: 'auto' }} />
+          <img src="/brand-kit/reelhome-mark.svg" alt="" width="32" height="32" /><span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>ReelHome<span style={{ color: 'var(--blue)' }}>.ai</span></span>
         </Link>
 
         <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#0f0f0f', marginBottom: '8px' }}>Glemt passord?</h1>

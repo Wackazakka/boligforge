@@ -50,7 +50,7 @@ export default function LoginPage() {
         <div className="mb-8">
           <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', marginBottom: '20px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '48px', width: 'auto' }} />
+            <img src="/brand-kit/reelhome-mark.svg" alt="" width="32" height="32" /><span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>ReelHome<span style={{ color: 'var(--blue)' }}>.ai</span></span>
           </a>
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
             {mode === 'login' ? 'Logg inn på din konto' : 'Tilbakestill passord'}
