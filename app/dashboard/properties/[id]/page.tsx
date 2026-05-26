@@ -41,6 +41,7 @@ type Segment = {
   text: string
   type: 'avatar' | 'image'
   imageUrl?: string
+  imageSource?: 'ai' | 'manual'  // 'ai' = AI-foreslått, 'manual' = brukervalgt
   previewingAudio?: boolean
   previewAudioUrl?: string   // blob URL for local playback
   audioUrl?: string          // persistent R2 URL — reused by worker to skip TTS
@@ -57,6 +58,51 @@ type SettingImage = {
   setting_type: string
   image_url: string
 }
+
+// ─── Image-matching helpers (module-level, no state deps) ─────────────────────
+const ROOM_KEYWORDS = [
+  'stue', 'stua', 'sofa', 'kjøkken', 'kjøkkenet', 'bad', 'baderom', 'dusj',
+  'badekar', 'vaskerom', 'soverom', 'seng', 'terrasse', 'balkong', 'hage',
+  'hagen', 'gang', 'entré', 'inngangsparti', 'kontor', 'hjemmekontor',
+]
+const TAG_KEYWORDS: Record<string, string[]> = {
+  stue:     ['stue', 'stua', 'sofa', 'tv', 'oppholdsrom'],
+  kjøkken:  ['kjøkken', 'kjøkkenet', 'matlaging', 'spise'],
+  bad:      ['bad', 'baderom', 'dusj', 'badekar', 'vaskerom'],
+  soverom:  ['soverom', 'seng', 'gjesterom'],
+  fasade:   ['fasade', 'inngang', 'ytterdør', 'presenterer', 'velkommen', 'huset', 'boligen', 'eiendommen'],
+  terrasse: ['terrasse', 'balkong', 'uteplass'],
+  hage:     ['hage', 'hagen', 'plen', 'uteareal', 'tomt'],
+  gang:     ['gang', 'entré', 'inngangsparti'],
+  kontor:   ['kontor', 'hjemmekontor', 'arbeidsrom'],
+}
+
+function hasRoomKeyword(text: string): boolean {
+  const t = text.toLowerCase()
+  return ROOM_KEYWORDS.some(kw => t.includes(kw))
+}
+
+function matchSegmentToImage(
+  text: string,
+  imageTags: Record<string, string[]>,
+  images: string[]
+): string | null {
+  const t = text.toLowerCase()
+  const scores: Record<string, number> = {}
+  for (const [tag, keywords] of Object.entries(TAG_KEYWORDS)) {
+    const s = keywords.filter(kw => t.includes(kw)).length
+    if (s > 0) scores[tag] = s
+  }
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1])
+  if (sorted.length > 0) {
+    const best = sorted[0][0]
+    const hit = images.find(img => imageTags[img]?.includes(best))
+    if (hit) return hit
+  }
+  // Fallback: første bilde i galleriet
+  return images[0] ?? null
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -102,6 +148,8 @@ export default function PropertyDetailPage() {
   const [publishLoading, setPublishLoading] = useState(false)
   const [publishResults, setPublishResults] = useState<{ pageName: string; success: boolean; error?: string }[] | null>(null)
   const [showBgHint, setShowBgHint] = useState(false)
+  const [classifyingImages, setClassifyingImages] = useState(false)
+  const [openGalleryForSegment, setOpenGalleryForSegment] = useState<number | null>(null)
 
   async function openPublishModal(url: string) {
     setPublishModalUrl(url)
@@ -195,10 +243,42 @@ export default function PropertyDetailPage() {
     return result
   }
 
-  function handleSplitSegments() {
+  async function handleSplitSegments() {
     if (!script) return
-    setSegments(splitIntoSegments(script))
+    const newSegments = splitIntoSegments(script)
+    setSegments(newSegments)
     setOutro({ images: [], musicUrl: '', durationPerImage: 4 })
+    setOpenGalleryForSegment(null)
+
+    const images = property?.images
+    if (!images?.length) return
+
+    setClassifyingImages(true)
+    try {
+      const res = await fetch('/api/properties/classify-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images }),
+      })
+      const data = await res.json()
+      if (data.imageTags) {
+        setSegments(newSegments.map(seg => {
+          const suggested = matchSegmentToImage(seg.text, data.imageTags, images)
+          if (!suggested) return seg
+          if (hasRoomKeyword(seg.text)) {
+            // Rom-segment → image type med matchet bilde
+            return { ...seg, type: 'image' as const, imageUrl: suggested, imageSource: 'ai' as const }
+          } else {
+            // Intro/outro → behold avatar, men sett imageUrl for forhåndsvisning + evt. bytte
+            return { ...seg, imageUrl: suggested, imageSource: 'ai' as const }
+          }
+        }))
+      }
+    } catch {
+      // Stille feil — segmenter forblir uendret
+    } finally {
+      setClassifyingImages(false)
+    }
   }
 
   function updateSegment(idx: number, patch: Partial<Segment>) {
@@ -899,8 +979,12 @@ export default function PropertyDetailPage() {
             <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Presentasjonsmanus</h2>
             <div className="flex gap-2">
               {script && (
-                <button onClick={handleSplitSegments} className="app-btn-secondary text-sm">
-                  Del opp i segmenter
+                <button
+                  onClick={handleSplitSegments}
+                  disabled={classifyingImages}
+                  className="app-btn-secondary text-sm"
+                >
+                  {classifyingImages ? 'Analyserer bilder…' : 'Del opp i segmenter'}
                 </button>
               )}
               <button
@@ -1006,17 +1090,112 @@ export default function PropertyDetailPage() {
                       </button>
                     </div>
                   </div>
+                  {/* ── Bilde-seksjon for image-type segmenter ── */}
                   {seg.type === 'image' && (
                     <div className="space-y-1.5">
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>Velg bilde for dette segmentet:</p>
+                      {seg.imageUrl && openGalleryForSegment !== i ? (
+                        /* Kompakt visning: valgt bilde + bytt-knapp */
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div
+                            style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}
+                            onClick={() => setOpenGalleryForSegment(i)}
+                            title="Bytt bilde"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={seg.imageUrl} alt=""
+                              style={{ width: '96px', height: '64px', objectFit: 'cover', display: 'block' }}
+                            />
+                            {seg.imageSource === 'ai' && (
+                              <span style={{ position: 'absolute', top: '3px', left: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '9px', color: '#fff', fontWeight: 600, lineHeight: '1.4' }}>✨ AI</span>
+                            )}
+                            <span style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>⇄</span>
+                          </div>
+                          <button
+                            onClick={() => setOpenGalleryForSegment(i)}
+                            style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >Bytt bilde →</button>
+                        </div>
+                      ) : (
+                        /* Galleri-velger */
+                        <div className="space-y-1.5">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <p className="text-xs" style={{ color: 'var(--muted)' }}>Velg bilde for dette segmentet:</p>
+                            {openGalleryForSegment === i && (
+                              <button
+                                onClick={() => setOpenGalleryForSegment(null)}
+                                style={{ fontSize: '11px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                              >↩ Lukk</button>
+                            )}
+                          </div>
+                          <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
+                            {(property?.images || []).map((img, j) => (
+                              <div key={j} className="relative flex-shrink-0 group">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={img} alt=""
+                                  onClick={() => { updateSegment(i, { imageUrl: img, imageSource: 'manual' as const }); setOpenGalleryForSegment(null) }}
+                                  className="w-36 h-24 object-cover rounded-lg cursor-pointer transition-all"
+                                  style={{
+                                    border: `2px solid ${seg.imageUrl === img ? 'var(--gold)' : 'transparent'}`,
+                                    opacity: seg.imageUrl === img ? 1 : 0.5,
+                                  }}
+                                />
+                                <button
+                                  onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
+                                  className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
+                                  style={{ background: 'rgba(13,11,8,0.7)' }}
+                                >⤢</button>
+                              </div>
+                            ))}
+                          </div>
+                          {!seg.imageUrl && (
+                            <p className="text-xs" style={{ color: 'var(--gold-deep)' }}>Velg et bilde over</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── AI-foreslått bilde for avatar-segmenter ── */}
+                  {seg.type === 'avatar' && seg.imageUrl && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--muted)', flexShrink: 0 }}>Foreslått bilde:</span>
+                      <div
+                        style={{ position: 'relative', flexShrink: 0, borderRadius: '6px', overflow: 'hidden', cursor: 'pointer' }}
+                        onClick={() => setOpenGalleryForSegment(openGalleryForSegment === i ? null : i)}
+                        title="Bytt foreslått bilde"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={seg.imageUrl} alt="" style={{ width: '72px', height: '48px', objectFit: 'cover', display: 'block' }} />
+                        {seg.imageSource === 'ai' && (
+                          <span style={{ position: 'absolute', top: '2px', left: '2px', background: 'rgba(0,0,0,0.65)', borderRadius: '3px', padding: '1px 4px', fontSize: '9px', color: '#fff', fontWeight: 600 }}>✨</span>
+                        )}
+                        <span style={{ position: 'absolute', bottom: '2px', right: '2px', background: 'rgba(0,0,0,0.65)', borderRadius: '3px', fontSize: '9px', color: '#fff', padding: '1px 3px' }}>⇄</span>
+                      </div>
+                      <button
+                        onClick={() => setOpenGalleryForSegment(openGalleryForSegment === i ? null : i)}
+                        style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >Bytt →</button>
+                    </div>
+                  )}
+                  {seg.type === 'avatar' && openGalleryForSegment === i && (
+                    <div className="space-y-1">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>Velg alternativt bilde (brukes hvis du bytter til Boligbilde):</p>
+                        <button
+                          onClick={() => setOpenGalleryForSegment(null)}
+                          style={{ fontSize: '11px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0, marginLeft: '8px' }}
+                        >↩ Lukk</button>
+                      </div>
                       <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
                         {(property?.images || []).map((img, j) => (
                           <div key={j} className="relative flex-shrink-0 group">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={img}
-                              alt=""
-                              onClick={() => updateSegment(i, { imageUrl: img })}
-                              className="w-36 h-24 object-cover rounded-lg cursor-pointer transition-all"
+                              src={img} alt=""
+                              onClick={() => { updateSegment(i, { imageUrl: img, imageSource: 'manual' as const }); setOpenGalleryForSegment(null) }}
+                              className="w-28 h-20 object-cover rounded-lg cursor-pointer transition-all"
                               style={{
                                 border: `2px solid ${seg.imageUrl === img ? 'var(--gold)' : 'transparent'}`,
                                 opacity: seg.imageUrl === img ? 1 : 0.5,
@@ -1030,9 +1209,6 @@ export default function PropertyDetailPage() {
                           </div>
                         ))}
                       </div>
-                      {!seg.imageUrl && (
-                        <p className="text-xs" style={{ color: 'var(--gold-deep)' }}>Velg et bilde over</p>
-                      )}
                     </div>
                   )}
                 </div>
