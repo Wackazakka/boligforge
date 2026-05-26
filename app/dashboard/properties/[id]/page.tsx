@@ -568,11 +568,39 @@ export default function PropertyDetailPage() {
       ? { ...outro, tickerText, ...(logoUrl ? { logoUrl } : {}) }
       : undefined
 
-    // Prepend a 1.5s still shot of the property's first image before avatar speaks
-    const introSegment = (segments.length > 0 && property?.images?.[0])
-      ? [{ type: 'still' as const, imageUrl: property.images[0], duration: 1.5 }]
+    // Ensure all non-still segments have audioUrl — generate TTS now for any that are missing,
+    // so the worker always uses the approved voice rather than re-generating on its end.
+    let resolvedSegments = [...segments]
+    const missingAudio = resolvedSegments
+      .map((seg, idx) => ({ seg, idx }))
+      .filter(({ seg }) => !seg.audioUrl)
+    if (missingAudio.length > 0) {
+      setStatusMsg(`Genererer lyd for ${missingAudio.length} segment(er)...`)
+      await Promise.all(missingAudio.map(async ({ seg, idx }) => {
+        try {
+          const r = await fetch('/api/profile/tts-preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: seg.text, voiceId: effectiveVoiceId }),
+          })
+          if (!r.ok) return
+          const ct = r.headers.get('content-type') || ''
+          if (ct.includes('application/json')) {
+            const d = await r.json()
+            if (d.audioUrl) {
+              resolvedSegments[idx] = { ...resolvedSegments[idx], audioUrl: d.audioUrl }
+              updateSegment(idx, { audioUrl: d.audioUrl })
+            }
+          }
+        } catch { /* stille feil — worker faller tilbake til TTS */ }
+      }))
+    }
+
+    // Prepend a still shot of the property's first image before avatar speaks
+    const introSegment = (resolvedSegments.length > 0 && property?.images?.[0])
+      ? [{ type: 'still' as const, imageUrl: property.images[0], duration: 2.5 }]
       : []
-    const segmentsWithIntro = [...introSegment, ...segments]
+    const segmentsWithIntro = [...introSegment, ...resolvedSegments]
 
     const body = segments.length > 0
       ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload }
