@@ -394,11 +394,18 @@ export default function PropertyDetailPage() {
         body: JSON.stringify({ text: 'Hei, jeg er glad for å presentere denne flotte boligen for deg i dag.', voiceId }),
       })
       if (!res.ok) throw new Error('tts failed')
-      const blob = await res.blob()
-      const audioUrl = URL.createObjectURL(blob)
+      const contentType = res.headers.get('content-type') || ''
+      let audioUrl: string
+      if (contentType.includes('application/json')) {
+        const data = await res.json()
+        audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`
+      } else {
+        const blob = await res.blob()
+        audioUrl = URL.createObjectURL(blob)
+      }
       const audio = new Audio(audioUrl)
-      audio.onended = () => { setPlayingVoiceId(null); URL.revokeObjectURL(audioUrl) }
-      audio.onerror = () => { setPlayingVoiceId(null); URL.revokeObjectURL(audioUrl) }
+      audio.onended = () => { setPlayingVoiceId(null); if (audioUrl.startsWith('blob:')) URL.revokeObjectURL(audioUrl) }
+      audio.onerror = () => { setPlayingVoiceId(null); if (audioUrl.startsWith('blob:')) URL.revokeObjectURL(audioUrl) }
       await audio.play()
     } catch {
       setPlayingVoiceId(null)
