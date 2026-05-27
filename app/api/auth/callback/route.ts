@@ -24,7 +24,8 @@ export async function GET(request: Request) {
   // Extract org from `next` param (e.g. next=/onboarding?org=<uuid>)
   const nextUrl       = new URL(`${origin}${next}`)
   const invitedOrgId  = nextUrl.searchParams.get('org') ??
-                        searchParams.get('org') ?? null
+                        searchParams.get('org') ??
+                        (user.user_metadata?.organization_id as string | undefined) ?? null
 
   if (invitedOrgId) {
     // Provision profile as team_member without creating a new org

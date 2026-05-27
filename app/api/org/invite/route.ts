@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const { data: inviteData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(
       email.trim(),
       {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback`,
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback?org=${membership.organization_id}`,
         data: { organization_id: membership.organization_id, role: 'agent' },
       }
     )
