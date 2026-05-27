@@ -6,9 +6,10 @@ import { createOrgAction, createSoloOrgAction } from './actions'
 
 function Logo() {
   return (
-    <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+    <Link href="/" className="rh-lockup" style={{ textDecoration: 'none' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png?v=1" alt="ReelHome" style={{ height: '72px', width: 'auto' }} />
+      <img src="/brand-kit/reelhome-mark.svg" alt="" width="36" height="36" />
+      <span className="rh-wm" style={{ fontSize: '24px' }}>ReelHome<span className="rh-ai">.ai</span></span>
     </Link>
   )
 }
