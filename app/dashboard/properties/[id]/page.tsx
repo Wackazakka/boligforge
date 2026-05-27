@@ -145,6 +145,10 @@ export default function PropertyDetailPage() {
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
   const [folderPanelVideoId, setFolderPanelVideoId] = useState<string | null>(null)
+  // Folder panel for the freshly generated video (lazy-loads collections on open)
+  const [newVideoFolderOpen, setNewVideoFolderOpen] = useState(false)
+  const [loadingCollections, setLoadingCollections] = useState(false)
+  const [folderFeedback, setFolderFeedback] = useState<{ text: string; ok: boolean } | null>(null)
   const [activeAvatar, setActiveAvatar] = useState<TemplateAvatar | null>(null)
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const [playingMusicUrl, setPlayingMusicUrl] = useState<string | null>(null)
@@ -164,6 +168,94 @@ export default function PropertyDetailPage() {
   const [showBgHint, setShowBgHint] = useState(false)
   const [classifyingImages, setClassifyingImages] = useState(false)
   const [openGalleryForSegment, setOpenGalleryForSegment] = useState<number | null>(null)
+
+  // ── Folder panel for the freshly generated video ──
+  // The just-finished video lives in pastVideos (re-fetched when polling completes),
+  // so we resolve its real DB id by matching the URL, then reuse /api/collections/assign.
+  async function openNewVideoFolderPanel() {
+    const next = !newVideoFolderOpen
+    setNewVideoFolderOpen(next)
+    setFolderFeedback(null)
+    if (!next) return
+    // Lazy-load collections fresh on open (requirement: not at page load)
+    setLoadingCollections(true)
+    try {
+      const res = await fetch('/api/collections')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setCollections(data.map((c: { id: string; name: string; is_org: boolean }) => ({ id: c.id, name: c.name, is_org: c.is_org })))
+      }
+    } catch {
+      setFolderFeedback({ text: 'Kunne ikke hente mapper', ok: false })
+    } finally {
+      setLoadingCollections(false)
+    }
+  }
+
+  function newVideoRow() {
+    return videoUrl ? pastVideos.find(v => v.video_url === videoUrl) ?? null : null
+  }
+
+  async function toggleNewVideoCollection(collectionId: string, collectionName: string, isOrg: boolean) {
+    const row = newVideoRow()
+    if (!row) {
+      setFolderFeedback({ text: 'Videoen er ikke lagret ennå – prøv igjen om et øyeblikk', ok: false })
+      return
+    }
+    const checked = row.collection_ids.includes(collectionId)
+    try {
+      const res = await fetch('/api/collections/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: row.id, collectionId, add: !checked }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error || `HTTP ${res.status}`)
+      }
+      setPastVideos(prev => prev.map(x => x.id !== row.id ? x : {
+        ...x,
+        collection_ids: checked
+          ? x.collection_ids.filter(cid => cid !== collectionId)
+          : [...x.collection_ids, collectionId],
+      }))
+      setFolderFeedback({
+        text: checked ? `Fjernet fra ${isOrg ? '🏢' : '📁'} ${collectionName}` : `Lagt til i ${isOrg ? '🏢' : '📁'} ${collectionName} ✓`,
+        ok: true,
+      })
+    } catch (e) {
+      setFolderFeedback({ text: `Kunne ikke oppdatere mappe: ${String(e)}`, ok: false })
+    }
+  }
+
+  async function createAndAssignNewVideoCollection() {
+    const row = newVideoRow()
+    if (!row) {
+      setFolderFeedback({ text: 'Videoen er ikke lagret ennå – prøv igjen om et øyeblikk', ok: false })
+      return
+    }
+    const name = prompt('Navn på ny mappe:')?.trim()
+    if (!name) return
+    try {
+      const res = await fetch('/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      const newCol = await res.json()
+      if (!res.ok || !newCol.id) throw new Error(newCol.error || 'Kunne ikke opprette mappe')
+      setCollections(prev => [...prev, { id: newCol.id, name: newCol.name, is_org: false }])
+      await fetch('/api/collections/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: row.id, collectionId: newCol.id, add: true }),
+      })
+      setPastVideos(prev => prev.map(x => x.id !== row.id ? x : { ...x, collection_ids: [...x.collection_ids, newCol.id] }))
+      setFolderFeedback({ text: `Lagt til i 📁 ${newCol.name} ✓`, ok: true })
+    } catch (e) {
+      setFolderFeedback({ text: `Kunne ikke opprette mappe: ${String(e)}`, ok: false })
+    }
+  }
 
   async function openPublishModal(url: string) {
     setPublishModalUrl(url)
@@ -1600,7 +1692,73 @@ export default function PropertyDetailPage() {
               >
                 📤 Publiser
               </button>
+
+              {/* Legg i mappe — folder picker for the freshly generated video */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={openNewVideoFolderPanel}
+                  className="app-btn-secondary"
+                  style={{ fontSize: '13px', padding: '8px 18px' }}
+                >
+                  📁 Legg i mappe
+                </button>
+
+                {newVideoFolderOpen && (
+                  <div
+                    style={{
+                      position: 'absolute', top: '100%', left: 0, marginTop: '6px',
+                      background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px',
+                      padding: '12px', zIndex: 50, minWidth: '240px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Velg mapper</p>
+                      <button
+                        onClick={() => setNewVideoFolderOpen(false)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '14px', lineHeight: 1, padding: 0 }}
+                        title="Lukk"
+                      >×</button>
+                    </div>
+
+                    {loadingCollections && (
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 8px' }}>Henter mapper…</p>
+                    )}
+
+                    {!loadingCollections && collections.length === 0 && (
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 8px' }}>Ingen mapper ennå</p>
+                    )}
+
+                    {!loadingCollections && collections.map(c => {
+                      const row = newVideoRow()
+                      const checked = !!row && row.collection_ids.includes(c.id)
+                      return (
+                        <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleNewVideoCollection(c.id, c.name, c.is_org)}
+                          />
+                          {c.is_org ? '🏢' : '📁'} {c.name}
+                        </label>
+                      )
+                    })}
+
+                    <button
+                      onClick={createAndAssignNewVideoCollection}
+                      style={{ marginTop: '8px', width: '100%', fontSize: '12px', color: 'var(--blue)', background: 'none', border: '1px dashed var(--line)', borderRadius: '6px', padding: '5px', cursor: 'pointer' }}
+                    >
+                      + Ny mappe
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {folderFeedback && (
+              <p style={{ fontSize: '12px', margin: 0, color: folderFeedback.ok ? 'var(--blue)' : 'var(--gold-deep)' }}>
+                {folderFeedback.text}
+              </p>
+            )}
           </div>
         )}
 
