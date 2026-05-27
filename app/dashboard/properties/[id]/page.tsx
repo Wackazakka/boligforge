@@ -155,6 +155,9 @@ export default function PropertyDetailPage() {
   const [publishCaption, setPublishCaption] = useState('')
   const [publishLoading, setPublishLoading] = useState(false)
   const [publishResults, setPublishResults] = useState<{ pageName: string; success: boolean; error?: string }[] | null>(null)
+  const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [scheduleDone, setScheduleDone] = useState<string | null>(null)
   const [showBgHint, setShowBgHint] = useState(false)
   const [classifyingImages, setClassifyingImages] = useState(false)
   const [openGalleryForSegment, setOpenGalleryForSegment] = useState<number | null>(null)
@@ -164,6 +167,9 @@ export default function PropertyDetailPage() {
     setPublishResults(null)
     setPublishCaption('')
     setPublishSelected(new Set())
+    setPublishMode('now')
+    setScheduledAt('')
+    setScheduleDone(null)
     setPublishLoading(true)
     try {
       const res = await fetch('/api/social/connections')
@@ -191,10 +197,46 @@ export default function PropertyDetailPage() {
           video_url:      publishModalUrl,
           caption:        publishCaption,
           connection_ids: Array.from(publishSelected),
+          property_id:    id,
         }),
       })
       const data = await res.json()
       if (data.results) setPublishResults(data.results)
+    } finally {
+      setPublishLoading(false)
+    }
+  }
+
+  async function handleSchedule() {
+    if (!publishModalUrl || publishSelected.size === 0 || !scheduledAt) return
+    if (new Date(scheduledAt).getTime() <= Date.now()) {
+      setError('Tidspunktet må være i framtiden')
+      return
+    }
+    setPublishLoading(true)
+    setScheduleDone(null)
+    try {
+      const res = await fetch('/api/social/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_url:      publishModalUrl,
+          caption:        publishCaption,
+          connection_ids: Array.from(publishSelected),
+          scheduled_at:   new Date(scheduledAt).toISOString(),
+          property_id:    id,
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setScheduleDone(
+          new Date(scheduledAt).toLocaleString('nb-NO', {
+            day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+          })
+        )
+      } else {
+        setError(data.error || 'Kunne ikke planlegge publisering')
+      }
     } finally {
       setPublishLoading(false)
     }
@@ -1657,8 +1699,36 @@ export default function PropertyDetailPage() {
             </button>
           </div>
 
-          {/* Results view */}
-          {publishResults ? (
+          {/* Scheduled confirmation view */}
+          {scheduleDone ? (
+            <div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '12px 16px', borderRadius: '8px', marginBottom: '20px',
+                background: '#dcfce7', border: '1px solid #86efac',
+              }}>
+                <span style={{ fontSize: '16px' }}>✓</span>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: '#166534', margin: 0 }}>
+                  Planlagt for {scheduleDone}
+                </p>
+              </div>
+              <a
+                href="/dashboard/calendar"
+                className="app-btn-secondary w-full"
+                style={{ padding: '12px', textDecoration: 'none', display: 'block', textAlign: 'center', marginBottom: '8px' }}
+              >
+                Se kalender →
+              </a>
+              <button
+                onClick={() => setPublishModalUrl(null)}
+                className="app-btn-primary w-full"
+                style={{ padding: '12px' }}
+              >
+                Lukk
+              </button>
+            </div>
+          ) : /* Results view */
+          publishResults ? (
             <div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                 {publishResults.map((r, i) => (
@@ -1770,14 +1840,61 @@ export default function PropertyDetailPage() {
                 }}
               />
 
-              <button
-                onClick={handlePublish}
-                disabled={publishLoading || publishSelected.size === 0}
-                className="app-btn-primary w-full"
-                style={{ padding: '12px', fontSize: '15px' }}
-              >
-                {publishLoading ? 'Publiserer…' : `Publiser nå (${publishSelected.size})`}
-              </button>
+              {/* When to publish */}
+              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                Når
+              </p>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                {(['now', 'schedule'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setPublishMode(m)}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: '8px', fontSize: '14px', fontWeight: 500,
+                      cursor: 'pointer', border: '1px solid var(--line)',
+                      background: publishMode === m ? 'var(--ink)' : 'var(--surface-2)',
+                      color:      publishMode === m ? '#fff' : 'var(--ink)',
+                    }}
+                  >
+                    {m === 'now' ? 'Publiser nå' : 'Planlegg'}
+                  </button>
+                ))}
+              </div>
+
+              {publishMode === 'schedule' && (
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={e => setScheduledAt(e.target.value)}
+                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                  style={{
+                    width: '100%', borderRadius: '8px', border: '1px solid var(--line)',
+                    padding: '10px 12px', fontSize: '14px', color: 'var(--ink)',
+                    background: 'var(--surface-2)', boxSizing: 'border-box', marginBottom: '20px',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              )}
+
+              {publishMode === 'now' ? (
+                <button
+                  onClick={handlePublish}
+                  disabled={publishLoading || publishSelected.size === 0}
+                  className="app-btn-primary w-full"
+                  style={{ padding: '12px', fontSize: '15px' }}
+                >
+                  {publishLoading ? 'Publiserer…' : `Publiser nå (${publishSelected.size})`}
+                </button>
+              ) : (
+                <button
+                  onClick={handleSchedule}
+                  disabled={publishLoading || publishSelected.size === 0 || !scheduledAt}
+                  className="app-btn-primary w-full"
+                  style={{ padding: '12px', fontSize: '15px' }}
+                >
+                  {publishLoading ? 'Planlegger…' : `Planlegg publisering (${publishSelected.size})`}
+                </button>
+              )}
             </>
           )}
         </div>

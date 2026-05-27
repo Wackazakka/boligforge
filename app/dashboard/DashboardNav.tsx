@@ -9,6 +9,7 @@ const BASE_LINKS = [
   { href: '/dashboard/properties', label: 'Eiendommer' },
   { href: '/dashboard/collections', label: 'Mapper' },
   { href: '/dashboard/settings/social', label: 'Publisering' },
+  { href: '/dashboard/calendar', label: 'Kalender' },
   { href: '/dashboard/profile', label: 'Profil' },
 ]
 

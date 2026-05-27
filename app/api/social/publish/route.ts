@@ -19,6 +19,67 @@ type PublishResult = {
   error?: string
 }
 
+type Connection = {
+  id: string
+  platform: string
+  page_id: string
+  page_name: string
+  access_token: string
+}
+
+/**
+ * Publish a video to the given connections and log each result to the
+ * `publications` table. Shared by the interactive publish endpoint and the
+ * scheduled-publishing cron.
+ */
+export async function publishVideoToConnections(opts: {
+  userId: string
+  videoUrl: string
+  caption: string
+  connections: Connection[]
+  propertyId?: string | null
+}): Promise<PublishResult[]> {
+  const { userId, videoUrl, caption, connections, propertyId = null } = opts
+  const supabase = getServiceClient()
+
+  const results: PublishResult[] = await Promise.all(
+    connections.map(async conn => {
+      let result: { success: boolean; postId?: string; error?: string }
+
+      if (conn.platform === 'facebook') {
+        result = await publishToFacebook(conn.page_id, conn.access_token, videoUrl, caption)
+      } else if (conn.platform === 'linkedin') {
+        result = await publishToLinkedIn(conn.page_id, conn.access_token, videoUrl, caption)
+      } else {
+        result = { success: false, error: `Ukjent plattform: ${conn.platform}` }
+      }
+
+      // Log the outcome so it shows up in the calendar / history
+      await supabase.from('publications').insert({
+        user_id:       userId,
+        property_id:   propertyId,
+        connection_id: conn.id,
+        platform:      conn.platform,
+        page_name:     conn.page_name,
+        caption,
+        video_url:     videoUrl,
+        post_id:       result.postId ?? null,
+        status:        result.success ? 'published' : 'failed',
+        error:         result.error ?? null,
+      })
+
+      return {
+        connectionId: conn.id,
+        platform:     conn.platform,
+        pageName:     conn.page_name,
+        ...result,
+      }
+    })
+  )
+
+  return results
+}
+
 async function publishToFacebook(
   pageId: string,
   accessToken: string,
@@ -120,7 +181,7 @@ export async function POST(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { video_url, caption = '', connection_ids } = await request.json()
+  const { video_url, caption = '', connection_ids, property_id = null } = await request.json()
 
   if (!video_url) return NextResponse.json({ error: 'Mangler video_url' }, { status: 400 })
   if (!Array.isArray(connection_ids) || connection_ids.length === 0) {
@@ -141,27 +202,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ingen gyldige tilkoblinger funnet' }, { status: 400 })
   }
 
-  // Publish to each connection in parallel
-  const results: PublishResult[] = await Promise.all(
-    connections.map(async conn => {
-      let result: { success: boolean; postId?: string; error?: string }
-
-      if (conn.platform === 'facebook') {
-        result = await publishToFacebook(conn.page_id, conn.access_token, video_url, caption)
-      } else if (conn.platform === 'linkedin') {
-        result = await publishToLinkedIn(conn.page_id, conn.access_token, video_url, caption)
-      } else {
-        result = { success: false, error: `Ukjent plattform: ${conn.platform}` }
-      }
-
-      return {
-        connectionId: conn.id,
-        platform:     conn.platform,
-        pageName:     conn.page_name,
-        ...result,
-      }
-    })
-  )
+  const results = await publishVideoToConnections({
+    userId:      user.id,
+    videoUrl:    video_url,
+    caption,
+    connections,
+    propertyId:  property_id,
+  })
 
   const allOk = results.every(r => r.success)
   return NextResponse.json({ ok: allOk, results }, { status: allOk ? 200 : 207 })
