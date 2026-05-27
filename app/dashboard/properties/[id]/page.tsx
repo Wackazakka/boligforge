@@ -147,6 +147,8 @@ export default function PropertyDetailPage() {
   const [folderPanelVideoId, setFolderPanelVideoId] = useState<string | null>(null)
   const [activeAvatar, setActiveAvatar] = useState<TemplateAvatar | null>(null)
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
+  const [playingMusicUrl, setPlayingMusicUrl] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Publish modal
   type SocialConnection = { id: string; platform: string; page_name: string; token_expires_at: string | null }
@@ -483,6 +485,30 @@ export default function PropertyDetailPage() {
       setPlayingVoiceId(null)
     }
   }
+
+  function toggleMusicPreview(url: string) {
+    if (url === playingMusicUrl) {
+      audioRef.current?.pause()
+      setPlayingMusicUrl(null)
+      return
+    }
+    if (!audioRef.current) audioRef.current = new Audio()
+    const audio = audioRef.current
+    audio.onended = () => setPlayingMusicUrl(null)
+    audio.src = url
+    audio.play().catch(() => { setError('Kunne ikke spille av musikk'); setPlayingMusicUrl(null) })
+    setPlayingMusicUrl(url)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
+        audioRef.current = null
+      }
+    }
+  }, [])
 
   async function downloadVideo(url: string, filename = 'presentasjon.mp4') {
     try {
@@ -1441,6 +1467,10 @@ export default function PropertyDetailPage() {
                       >
                         <span className="text-sm">{outro.musicUrl === f.url ? '♪' : '○'}</span>
                         <span className="text-sm flex-1 truncate">{f.name}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); toggleMusicPreview(f.url) }}
+                          style={{ fontSize: '10px', color: playingMusicUrl === f.url ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0' }}
+                        >{playingMusicUrl === f.url ? '■ Stopp' : '▶ Hør'}</button>
                         <button
                           onClick={e => { e.stopPropagation(); handleDeleteMusic(f.id, f.url) }}
                           className="app-btn-ghost text-xs px-1"
