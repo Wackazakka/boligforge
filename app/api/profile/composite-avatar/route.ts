@@ -50,7 +50,7 @@ function getSupabase() {
 
 export async function POST(request: Request) {
   try {
-    const { portraitUrl, propertyImageUrl, cutoutUrl: existingCutoutUrl } = await request.json()
+    const { portraitUrl, propertyImageUrl, cutoutUrl: existingCutoutUrl, ownerPortraitUrl } = await request.json()
     if (!portraitUrl || !propertyImageUrl) {
       return Response.json({ error: 'Missing portraitUrl or propertyImageUrl' }, { status: 400 })
     }
@@ -145,13 +145,17 @@ export async function POST(request: Request) {
     const url = `${process.env.R2_PUBLIC_URL}/${key}`
 
     // Step 5: Save to Supabase
+    // Tag each composite with the portrait that generated it, so the library can be
+    // filtered per avatar (own vs. template). Falls back to the source portrait when
+    // the client doesn't send an explicit owner portrait.
+    const ownerPortrait = ownerPortraitUrl ?? portraitUrl
     const { data: row } = await getSupabase()
       .from('agent_settings_images')
-      .insert({ setting_type: 'property_front', image_url: url })
+      .insert({ setting_type: 'property_front', image_url: url, portrait_url: ownerPortrait })
       .select('id')
       .single()
 
-    return Response.json({ url, id: row?.id, cutoutUrl })
+    return Response.json({ url, id: row?.id, cutoutUrl, portraitUrl: ownerPortrait })
   } catch (err: unknown) {
     console.error('[composite-avatar]', err)
     return Response.json({ error: String(err) }, { status: 500 })

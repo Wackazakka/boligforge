@@ -57,6 +57,7 @@ type SettingImage = {
   id: string
   setting_type: string
   image_url: string
+  portrait_url?: string | null  // portrait that generated this composite — used to filter per avatar
 }
 
 // ─── Image-matching helpers (module-level, no state deps) ─────────────────────
@@ -245,6 +246,13 @@ export default function PropertyDetailPage() {
   // True only if the user has uploaded/generated their own portrait (not a template placeholder)
   const hasOwnAvatar = !!profile.portrait_url &&
     !TEMPLATE_AVATARS.some(av => av.portraitUrl === profile.portrait_url)
+
+  // Setting images that belong to the user's OWN avatar — i.e. composites NOT generated
+  // from a template portrait. Template-generated composites are tagged with the template's
+  // portrait_url and must not appear under "Din avatar".
+  const ownSettingImages = settingImages.filter(
+    s => !TEMPLATE_AVATARS.some(av => av.portraitUrl === s.portrait_url)
+  )
 
   // Effective values — template avatar overrides own profile when selected
   const effectiveVoiceId   = activeAvatar?.voiceId     ?? profile.voice_id    ?? ''
@@ -517,6 +525,9 @@ export default function PropertyDetailPage() {
           portraitUrl: agentSourceUrl,
           propertyImageUrl: propertyImg,
           cutoutUrl: reuseCutout,
+          // Which avatar this composite belongs to (template portrait when a template is
+          // active, else the user's own portrait) — used to filter the library per avatar.
+          ownerPortraitUrl: effectivePortrait,
         }),
       })
       const data = await res.json()
@@ -528,7 +539,7 @@ export default function PropertyDetailPage() {
         setCutoutSourceUrl(agentSourceUrl ?? null)
       }
       if (data.id) {
-        setSettingImages(prev => [...prev, { id: data.id, setting_type: 'property_front', image_url: data.url }])
+        setSettingImages(prev => [...prev, { id: data.id, setting_type: 'property_front', image_url: data.url, portrait_url: data.portraitUrl ?? effectivePortrait }])
       }
     } catch (err) {
       setError('Avatar-generering feilet: ' + String(err))
@@ -953,8 +964,8 @@ export default function PropertyDetailPage() {
                   </div>
                 ))}
 
-                {/* User own setting images */}
-                {!activeAvatar && settingImages.map(s => (
+                {/* User own setting images — only composites generated from the user's own portrait */}
+                {!activeAvatar && ownSettingImages.map(s => (
                   <div key={s.image_url}
                     onClick={() => setSelectedAvatarUrl(selectedAvatarUrl === s.image_url ? '' : s.image_url)}
                     className="relative flex-shrink-0"
