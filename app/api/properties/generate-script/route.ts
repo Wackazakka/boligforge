@@ -5,7 +5,15 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 export async function POST(request: Request) {
   try {
-    const { property, agentProfile } = await request.json()
+    const { property, agentProfile, scriptStyle } = await request.json()
+
+    const styleDescriptions: Record<string, string> = {
+      neutral: agentProfile?.tone_of_voice || 'profesjonell og engasjert',
+      luxury:  'eksklusiv, sofistikert og prestisjefylt. Vektlegg unike detaljer, premium materialer og eksklusiv beliggenhet',
+      family:  'varm, inkluderende og praktisk. Vektlegg plass, nærhet til skoler/barnehager, trygt nabolag og familievennlige løsninger',
+      young:   'frisk, moderne og jordnær. Snakk til førstegangskjøpere, vektlegg tilgjengelighet, smart planløsning og gode transportmuligheter',
+    }
+    const tone = styleDescriptions[scriptStyle ?? 'neutral'] ?? styleDescriptions.neutral
 
     const propertyDetails = [
       property.title && `Tittel: ${property.title}`,
@@ -29,7 +37,6 @@ export async function POST(request: Request) {
     ].filter(Boolean).join('\n')
 
     const agentName = agentProfile?.name || 'megler'
-    const tone = agentProfile?.tone_of_voice || 'profesjonell og engasjert'
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',

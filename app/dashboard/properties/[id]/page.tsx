@@ -128,6 +128,7 @@ export default function PropertyDetailPage() {
   const [savingAvatar, setSavingAvatar] = useState(false)
   const [avatarSaved, setAvatarSaved] = useState(false)
   const [script, setScript] = useState('')
+  const [scriptStyle, setScriptStyle] = useState<'neutral' | 'luxury' | 'family' | 'young'>('neutral')
   const [generatingScript, setGeneratingScript] = useState(false)
   const [generatingVideo, setGeneratingVideo] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
@@ -625,7 +626,7 @@ export default function PropertyDetailPage() {
     const res = await fetch('/api/properties/generate-script', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ property, agentProfile: { ...profile, name: effectiveAgentName } }),
+      body: JSON.stringify({ property, agentProfile: { ...profile, name: effectiveAgentName }, scriptStyle }),
     })
     const data = await res.json()
     setGeneratingScript(false)
@@ -1226,6 +1227,28 @@ export default function PropertyDetailPage() {
         <div className="app-card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Presentasjonsmanus</h2>
+            {/* Stil-valg */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {([
+                { value: 'neutral', label: 'Nøytral' },
+                { value: 'luxury',  label: 'Luksus' },
+                { value: 'family',  label: 'Familie' },
+                { value: 'young',   label: 'Nyetablert' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setScriptStyle(opt.value)}
+                  style={{
+                    padding: '5px 12px', borderRadius: '99px', fontSize: '12px', fontWeight: 500,
+                    border: '1px solid var(--line)', cursor: 'pointer',
+                    background: scriptStyle === opt.value ? 'var(--ink)' : 'var(--surface-2)',
+                    color:      scriptStyle === opt.value ? '#fff' : 'var(--ink)',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-2">
               {script && (
                 <button
