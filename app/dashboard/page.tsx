@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '../../lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import TopupBanner from './TopupBanner'
+import GettingStarted, { type ChecklistStep } from './GettingStarted'
 
 // Service-role client for data reads — brukes etter at bruker er verifisert
 // via createSupabaseServerClient().auth.getUser(). Bypasser RLS-problematikk
@@ -23,11 +24,49 @@ export default async function DashboardPage() {
   // Data leses med service role for å unngå RLS-problemer med ny nøkkelformat
   const { data: profile } = await serviceSupabase
     .from('profiles')
-    .select('full_name, organization_id')
+    .select('full_name, organization_id, voice_id, logo_url, portrait_url, selected_avatar_url')
     .eq('id', user.id)
     .maybeSingle()
 
   if (!profile?.organization_id) redirect('/onboarding')
+
+  // ── Kom-i-gang-sjekkliste: sjekk om brukeren har laget sin første video ──
+  // property_videos har ingen organization_id, så vi knytter videoer til org
+  // via medlemmenes user_id (samme mønster som backoffice-rapporten).
+  const { data: orgMembers } = await serviceSupabase
+    .from('profiles')
+    .select('id')
+    .eq('organization_id', profile.organization_id)
+
+  const memberIds = (orgMembers ?? []).map(m => m.id)
+
+  let hasVideo = false
+  if (memberIds.length > 0) {
+    const { count } = await serviceSupabase
+      .from('property_videos')
+      .select('id', { count: 'exact', head: true })
+      .in('user_id', memberIds)
+      .not('video_url', 'is', null)
+      .neq('video_url', '')
+    hasVideo = (count ?? 0) > 0
+  }
+
+  // En avatar er valgt hvis brukeren har et portrettbilde (egen eller mal)
+  // ELLER har valgt en konkret setting-bakgrunn.
+  const hasAvatar = Boolean(profile.portrait_url || profile.selected_avatar_url)
+  const hasVoice  = Boolean(profile.voice_id)
+  const hasLogo   = Boolean(profile.logo_url)
+
+  const checklistSteps: ChecklistStep[] = [
+    { key: 'account', label: 'Konto opprettet',       hint: '',                                           href: '/dashboard',                  done: true },
+    { key: 'avatar',  label: 'Velg avatar',            hint: 'Velg en malmegler eller last opp ditt eget bilde', href: '/dashboard/profile',     done: hasAvatar },
+    { key: 'voice',   label: 'Legg til en stemme',     hint: 'Velg en standardstemme eller klon din egen', href: '/dashboard/profile',          done: hasVoice },
+    { key: 'logo',    label: 'Last opp logo (valgfritt)', hint: 'Vises i videoene dine',                   href: '/dashboard/profile',          done: hasLogo },
+    { key: 'video',   label: 'Lag din første video',   hint: 'Lim inn en FINN-lenke og generer',           href: '/dashboard/properties',       done: hasVideo },
+  ]
+
+  // Vis sjekklisten kun før første video er laget.
+  const showChecklist = !hasVideo
 
   const { data: credits } = await serviceSupabase
     .from('credits')
@@ -64,6 +103,9 @@ export default async function DashboardPage() {
             Klar til å lage en ny visningsvideo?
           </p>
         </div>
+
+        {/* Kom-i-gang-sjekkliste — kun for nye brukere uten video ennå */}
+        {showChecklist && <GettingStarted steps={checklistSteps} />}
 
         {/* Trial-banner */}
         {isInTrial && (
