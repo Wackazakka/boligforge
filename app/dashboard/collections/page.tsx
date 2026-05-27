@@ -342,14 +342,18 @@ export default function CollectionsPage() {
           onClick={e => { if (e.target === e.currentTarget) setPublishModalUrl(null) }}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 200, padding: '16px',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            zIndex: 200,
+            padding: '16px 16px 0 16px',
+            overflowY: 'auto',
           }}
         >
           <div style={{
             background: 'var(--surface)', borderRadius: '16px', padding: '28px',
             width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-            maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+            marginTop: 'auto', marginBottom: 'auto',
+            paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 16px))',
+            flexShrink: 0,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
