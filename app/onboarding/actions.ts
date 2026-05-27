@@ -19,41 +19,42 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, '')
 }
 
-export async function createOrgAction(
-  _prevState: string | null,
-  formData: FormData
+async function provisionOrg(
+  userId: string,
+  orgName: string,
+  accountType: 'solo' | 'team_admin'
 ): Promise<string | null> {
-  const user = await getUser()
-  if (!user) return 'Ikke innlogget – logg inn og prøv igjen'
-
-  const name = formData.get('orgName')?.toString().trim()
-  if (!name) return 'Firmanavn er påkrevd'
-
-  const slug        = `${slugify(name)}-${Math.random().toString(36).slice(2, 7)}`
+  const slug        = `${slugify(orgName)}-${Math.random().toString(36).slice(2, 7)}`
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
 
   // 1. Opprett org
   const { data: org, error: orgError } = await supabase
     .from('organizations')
-    .insert({ name, slug, plan: 'pro', owner_id: user.id, trial_ends_at: trialEndsAt })
+    .insert({ name: orgName, slug, plan: 'pro', owner_id: userId, trial_ends_at: trialEndsAt })
     .select('id')
     .single()
 
   if (orgError || !org) {
-    console.error('createOrgAction: org insert error', orgError)
+    console.error('provisionOrg: org insert error', orgError)
     return orgError?.message ?? 'Kunne ikke opprette organisasjon'
   }
 
-  // 2. Sett organization_id på profil
+  // 2. Sett organization_id og account_type på profil
   const { error: profileError } = await supabase
     .from('profiles')
     .upsert(
-      { id: user.id, organization_id: org.id, full_name: user.user_metadata?.full_name ?? '', role: 'admin' },
+      {
+        id:              userId,
+        organization_id: org.id,
+        full_name:       '',
+        role:            'admin',
+        account_type:    accountType,
+      },
       { onConflict: 'id' }
     )
 
   if (profileError) {
-    console.error('createOrgAction: profile upsert error', profileError)
+    console.error('provisionOrg: profile upsert error', profileError)
     return profileError.message
   }
 
@@ -61,23 +62,22 @@ export async function createOrgAction(
   const { data: check } = await supabase
     .from('profiles')
     .select('organization_id')
-    .eq('id', user.id)
+    .eq('id', userId)
     .maybeSingle()
 
-  console.log(`createOrgAction: profile etter upsert → organization_id=${check?.organization_id}, forventet=${org.id}`)
+  console.log(`provisionOrg: profile etter upsert → organization_id=${check?.organization_id}, forventet=${org.id}`)
 
   if (check?.organization_id !== org.id) {
-    // Prøv eksplisitt UPDATE som fallback
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ organization_id: org.id })
-      .eq('id', user.id)
+      .update({ organization_id: org.id, account_type: accountType })
+      .eq('id', userId)
 
     if (updateError) {
-      console.error('createOrgAction: fallback update error', updateError)
+      console.error('provisionOrg: fallback update error', updateError)
       return updateError.message
     }
-    console.log('createOrgAction: brukte fallback UPDATE for organization_id')
+    console.log('provisionOrg: brukte fallback UPDATE for organization_id')
   }
 
   // 3. Opprett credits (10 videoer for Pro)
@@ -89,12 +89,54 @@ export async function createOrgAction(
     )
 
   if (creditsError) {
-    console.error('createOrgAction: credits upsert error', creditsError)
+    console.error('provisionOrg: credits upsert error', creditsError)
     return creditsError.message
   }
 
-  console.log(`createOrgAction: ferdig — org ${org.id}, bruker ${user.id}`)
+  console.log(`provisionOrg: ferdig — org ${org.id}, bruker ${userId}`)
+  return null
+}
 
-  // Server-side redirect — bypasser RSC-cache og cookie-problematikk
+// -----------------------------------------------------------------------
+// createOrgAction — brukes av team_admin som skriver inn firmanavn
+// -----------------------------------------------------------------------
+export async function createOrgAction(
+  _prevState: string | null,
+  formData: FormData
+): Promise<string | null> {
+  const user = await getUser()
+  if (!user) return 'Ikke innlogget – logg inn og prøv igjen'
+
+  const name = formData.get('orgName')?.toString().trim()
+  if (!name) return 'Firmanavn er påkrevd'
+
+  const err = await provisionOrg(user.id, name, 'team_admin')
+  if (err) return err
+
+  redirect('/onboarding/avatar')
+}
+
+// -----------------------------------------------------------------------
+// createSoloOrgAction — brukes av solo-megler (ingen org-navn-steg)
+// Genererer org-navn fra brukerens fulle navn eller e-post.
+// -----------------------------------------------------------------------
+export async function createSoloOrgAction(
+  _prevState: string | null,
+  _formData: FormData
+): Promise<string | null> {
+  const user = await getUser()
+  if (!user) return 'Ikke innlogget – logg inn og prøv igjen'
+
+  // Bruk fullt navn fra metadata, fallback til e-post-prefix
+  const displayName =
+    user.user_metadata?.full_name?.toString().trim() ||
+    user.email?.split('@')[0] ||
+    'min konto'
+
+  const orgName = displayName
+
+  const err = await provisionOrg(user.id, orgName, 'solo')
+  if (err) return err
+
   redirect('/onboarding/avatar')
 }
