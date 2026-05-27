@@ -90,6 +90,9 @@ export default function ProfilePage() {
   const [recordSeconds, setRecordSeconds] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
   const voiceFileRef = useRef<HTMLInputElement>(null)
@@ -309,6 +312,59 @@ export default function ProfilePage() {
     setProfile(p => ({ ...p, selected_avatar_url: url }))
   }
 
+  async function playVoiceSample(voiceId: string, previewUrl?: string) {
+    // Toggle off if the same voice is already playing
+    if (playingVoiceId === voiceId) {
+      voiceAudioRef.current?.pause()
+      voiceAudioRef.current = null
+      setPlayingVoiceId(null)
+      return
+    }
+    // Stop whatever is currently playing
+    if (voiceAudioRef.current) {
+      voiceAudioRef.current.pause()
+      voiceAudioRef.current = null
+    }
+    setPlayingVoiceId(null)
+
+    if (previewUrl) {
+      // Static preview URL — play immediately
+      setPlayingVoiceId(voiceId)
+      const audio = new Audio(previewUrl)
+      voiceAudioRef.current = audio
+      audio.onended = () => { setPlayingVoiceId(null); voiceAudioRef.current = null }
+      void audio.play()
+    } else {
+      // No static URL → generate via TTS (used for cloned voice)
+      setLoadingPreviewId(voiceId)
+      try {
+        const res = await fetch('/api/profile/tts-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'Hei, her er din klonede stemme. Hyggelig å møte deg!', voiceId }),
+        })
+        if (!res.ok) throw new Error('Forhåndsvisning feilet')
+        const contentType = res.headers.get('content-type') || ''
+        let url: string
+        if (contentType.includes('application/json')) {
+          const data = await res.json() as { audioUrl?: string; audioBase64?: string }
+          url = data.audioUrl || `data:audio/mpeg;base64,${data.audioBase64}`
+        } else {
+          const blob = await res.blob()
+          url = URL.createObjectURL(blob)
+        }
+        setLoadingPreviewId(null)
+        setPlayingVoiceId(voiceId)
+        const audio = new Audio(url)
+        voiceAudioRef.current = audio
+        audio.onended = () => { setPlayingVoiceId(null); voiceAudioRef.current = null }
+        void audio.play()
+      } catch {
+        setLoadingPreviewId(null)
+      }
+    }
+  }
+
   return (
     <div>
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -373,9 +429,27 @@ export default function ProfilePage() {
                     className={`app-voice-row${profile.voice_id === profile.cloned_voice_id ? ' active' : ''}`}
                   >
                     <span>🎙 Din klonede stemme</span>
-                    {profile.voice_id === profile.cloned_voice_id && (
-                      <span className="text-xs" style={{ color: 'var(--gold)' }}>Aktiv</span>
-                    )}
+                    <span className="flex items-center gap-2">
+                      {profile.voice_id === profile.cloned_voice_id && (
+                        <span className="text-xs" style={{ color: 'var(--gold)' }}>Aktiv</span>
+                      )}
+                      <span
+                        onClick={e => { e.stopPropagation(); void playVoiceSample(profile.cloned_voice_id!) }}
+                        className="text-xs px-2 py-0.5 rounded"
+                        style={{
+                          color: playingVoiceId === profile.cloned_voice_id || loadingPreviewId === profile.cloned_voice_id
+                            ? 'var(--gold)' : 'var(--muted)',
+                          cursor: 'pointer',
+                        }}
+                        title="Hør forhåndsvisning"
+                      >
+                        {loadingPreviewId === profile.cloned_voice_id
+                          ? '...'
+                          : playingVoiceId === profile.cloned_voice_id
+                            ? '■ Stopp'
+                            : '▶ Hør'}
+                      </span>
+                    </span>
                   </button>
                 )}
                 {VOICES.map(v => (
@@ -394,12 +468,12 @@ export default function ProfilePage() {
                   >
                     <span>{v.name}</span>
                     <span
-                      onClick={e => { e.stopPropagation(); new Audio(v.preview).play() }}
+                      onClick={e => { e.stopPropagation(); void playVoiceSample(v.id, v.preview) }}
                       className="text-xs px-2 py-0.5 rounded"
-                      style={{ color: 'var(--muted)' }}
+                      style={{ color: playingVoiceId === v.id ? 'var(--gold)' : 'var(--muted)', cursor: 'pointer' }}
                       title="Hør forhåndsvisning"
                     >
-                      ▶ Hør
+                      {playingVoiceId === v.id ? '■ Stopp' : '▶ Hør'}
                     </span>
                   </button>
                 ))}
