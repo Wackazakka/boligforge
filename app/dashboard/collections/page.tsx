@@ -349,6 +349,7 @@ export default function CollectionsPage() {
           <div style={{
             background: 'var(--surface)', borderRadius: '16px', padding: '28px',
             width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
@@ -440,7 +441,43 @@ export default function CollectionsPage() {
               </div>
             ) : (
               <>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+                {/* When to publish — shown first so it's always visible */}
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  Når
+                </p>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                  {(['now', 'schedule'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => { setPublishMode(m); setScheduleError(null) }}
+                      style={{
+                        flex: 1, padding: '8px', borderRadius: '8px', fontSize: '14px', fontWeight: 500,
+                        cursor: 'pointer', border: '1px solid var(--line)',
+                        background: publishMode === m ? 'var(--ink)' : 'var(--surface-2)',
+                        color:      publishMode === m ? '#fff' : 'var(--ink)',
+                      }}
+                    >
+                      {m === 'now' ? 'Publiser nå' : 'Planlegg'}
+                    </button>
+                  ))}
+                </div>
+
+                {publishMode === 'schedule' && (
+                  <input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={e => { setScheduledAt(e.target.value); setScheduleError(null) }}
+                    min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                    style={{
+                      width: '100%', borderRadius: '8px', border: '1px solid var(--line)',
+                      padding: '10px 12px', fontSize: '14px', color: 'var(--ink)',
+                      background: 'var(--surface-2)', boxSizing: 'border-box', marginBottom: '20px',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                )}
+
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', marginTop: '8px' }}>
                   Publiser til
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
@@ -500,42 +537,6 @@ export default function CollectionsPage() {
                     fontFamily: 'inherit',
                   }}
                 />
-
-                {/* When to publish */}
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                  Når
-                </p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                  {(['now', 'schedule'] as const).map(m => (
-                    <button
-                      key={m}
-                      onClick={() => { setPublishMode(m); setScheduleError(null) }}
-                      style={{
-                        flex: 1, padding: '8px', borderRadius: '8px', fontSize: '14px', fontWeight: 500,
-                        cursor: 'pointer', border: '1px solid var(--line)',
-                        background: publishMode === m ? 'var(--ink)' : 'var(--surface-2)',
-                        color:      publishMode === m ? '#fff' : 'var(--ink)',
-                      }}
-                    >
-                      {m === 'now' ? 'Publiser nå' : 'Planlegg'}
-                    </button>
-                  ))}
-                </div>
-
-                {publishMode === 'schedule' && (
-                  <input
-                    type="datetime-local"
-                    value={scheduledAt}
-                    onChange={e => { setScheduledAt(e.target.value); setScheduleError(null) }}
-                    min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
-                    style={{
-                      width: '100%', borderRadius: '8px', border: '1px solid var(--line)',
-                      padding: '10px 12px', fontSize: '14px', color: 'var(--ink)',
-                      background: 'var(--surface-2)', boxSizing: 'border-box', marginBottom: '20px',
-                      fontFamily: 'inherit',
-                    }}
-                  />
-                )}
 
                 {scheduleError && (
                   <p style={{ fontSize: '13px', color: '#ef4444', marginBottom: '12px' }}>{scheduleError}</p>
