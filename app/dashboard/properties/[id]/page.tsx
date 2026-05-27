@@ -142,6 +142,7 @@ export default function PropertyDetailPage() {
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
+  const [ambienceType, setAmbienceType] = useState<'none'|'nature'|'city'|'sea'|'interior'>('none')
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -805,9 +806,9 @@ export default function PropertyDetailPage() {
     const segmentsWithIntro = [...introSegment, ...resolvedSegments]
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
-      : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}) }
+      : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
     const res = await fetch('/api/video/generate', {
       method: 'POST',
@@ -1598,6 +1599,33 @@ export default function PropertyDetailPage() {
                 {musicFiles.length === 0 && !uploadingMusic && (
                   <p className="text-xs" style={{ color: 'var(--muted)' }}>Ingen musikk lastet opp ennå. Last opp en MP3 — den loopes og fades ut.</p>
                 )}
+              </div>
+
+              {/* Atmosfærelyd */}
+              <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                <label className="text-xs" style={{ color: 'var(--muted)' }}>Atmosfærelyd (valgfritt)</label>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {([
+                    { value: 'none',     label: 'Ingen' },
+                    { value: 'nature',   label: '🌿 Natur' },
+                    { value: 'city',     label: '🏙 By' },
+                    { value: 'sea',      label: '🌊 Sjø' },
+                    { value: 'interior', label: '🏠 Interiør' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setAmbienceType(opt.value)}
+                      style={{
+                        padding: '5px 12px', borderRadius: '99px', fontSize: '12px', fontWeight: 500,
+                        border: '1px solid var(--line)', cursor: 'pointer',
+                        background: ambienceType === opt.value ? 'var(--ink)' : 'var(--surface-2)',
+                        color:      ambienceType === opt.value ? '#fff' : 'var(--ink)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )
