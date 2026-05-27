@@ -247,12 +247,20 @@ export default function PropertyDetailPage() {
   const hasOwnAvatar = !!profile.portrait_url &&
     !TEMPLATE_AVATARS.some(av => av.portraitUrl === profile.portrait_url)
 
-  // Setting images that belong to the user's OWN avatar — i.e. composites NOT generated
-  // from a template portrait. Template-generated composites are tagged with the template's
-  // portrait_url and must not appear under "Din avatar".
-  const ownSettingImages = settingImages.filter(
-    s => !TEMPLATE_AVATARS.some(av => av.portraitUrl === s.portrait_url)
-  )
+  // Setting images that belong to the user's OWN avatar. A composite belongs to "Din avatar"
+  // only when it was generated from the user's own portrait — i.e. its portrait_url matches
+  // profile.portrait_url (or is untagged legacy data). Any composite tagged with a *different*
+  // portrait — including every template avatar's portrait — must never appear under "Din avatar".
+  // (Earlier this only excluded exact template-portrait matches, so template composites whose
+  // portrait_url was null/legacy or pointed at a non-current portrait leaked into the picker.)
+  const ownSettingImages = settingImages.filter(s => {
+    // Never show anything tagged with a template avatar's portrait.
+    if (TEMPLATE_AVATARS.some(av => av.portraitUrl === s.portrait_url)) return false
+    // Untagged legacy rows: keep (predates per-avatar tagging).
+    if (!s.portrait_url) return true
+    // Otherwise it must match the user's own current portrait.
+    return s.portrait_url === profile.portrait_url
+  })
 
   // Effective values — template avatar overrides own profile when selected
   const effectiveVoiceId   = activeAvatar?.voiceId     ?? profile.voice_id    ?? ''
