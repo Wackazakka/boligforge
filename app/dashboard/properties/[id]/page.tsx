@@ -142,7 +142,7 @@ export default function PropertyDetailPage() {
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
-  const [ambienceType, setAmbienceType] = useState<'none'|'nature'|'city'|'sea'|'interior'>('none')
+  const [ambienceType, setAmbienceType] = useState<string>('none')
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -1604,27 +1604,52 @@ export default function PropertyDetailPage() {
               {/* Atmosfærelyd */}
               <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
                 <label className="text-xs" style={{ color: 'var(--muted)' }}>Atmosfærelyd (valgfritt)</label>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {([
-                    { value: 'none',     label: 'Ingen' },
-                    { value: 'nature',   label: '🌿 Natur' },
-                    { value: 'city',     label: '🏙 By' },
-                    { value: 'sea',      label: '🌊 Sjø' },
-                    { value: 'interior', label: '🏠 Interiør' },
-                  ] as const).map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setAmbienceType(opt.value)}
-                      style={{
-                        padding: '5px 12px', borderRadius: '99px', fontSize: '12px', fontWeight: 500,
-                        border: '1px solid var(--line)', cursor: 'pointer',
-                        background: ambienceType === opt.value ? 'var(--ink)' : 'var(--surface-2)',
-                        color:      ambienceType === opt.value ? '#fff' : 'var(--ink)',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                {/* Ingen-pill */}
+                <div style={{ marginBottom: '6px' }}>
+                  <button
+                    onClick={() => setAmbienceType('none')}
+                    style={{
+                      padding: '5px 14px', borderRadius: '99px', fontSize: '12px', fontWeight: 500,
+                      border: '1px solid var(--line)', cursor: 'pointer',
+                      background: ambienceType === 'none' ? 'var(--ink)' : 'var(--surface-2)',
+                      color:      ambienceType === 'none' ? '#fff' : 'var(--ink)',
+                    }}
+                  >
+                    Ingen
+                  </button>
+                </div>
+                {/* 12 ambience tracks */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const num = String(i + 1).padStart(2, '0')
+                    const id = `ambience-${num}`
+                    const url = `https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/audio/ambience/${id}.mp3`
+                    const isSelected = ambienceType === id
+                    const isPlaying = playingMusicUrl === url
+                    return (
+                      <div
+                        key={id}
+                        onClick={() => setAmbienceType(id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
+                          border: `1px solid ${isSelected ? 'var(--gold)' : 'var(--line)'}`,
+                          background: isSelected ? 'rgba(212,167,88,0.12)' : 'var(--surface-2)',
+                        }}
+                      >
+                        <span style={{ fontSize: '12px', fontWeight: isSelected ? 600 : 400, color: isSelected ? 'var(--gold)' : 'var(--ink)' }}>
+                          Ambience {num}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); toggleMusicPreview(url) }}
+                          style={{ fontSize: '10px', color: isPlaying ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 8px', flexShrink: 0 }}
+                        >
+                          {isPlaying ? '■ Stopp' : '▶ Hør'}
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
