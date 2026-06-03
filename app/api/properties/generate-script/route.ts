@@ -94,6 +94,7 @@ Manuset skal:
 - Være naturlig og muntlig, ikke en punktliste
 - VIKTIG: Priser er allerede skrevet ut som tekst i dataene — bruk dem ordrett slik. Ikke konverter andre tall (areal, rom, etasje osv.) til tekst.
 - VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. i manuset. Si aldri "bruksareal" — si kun "kvadratmeter", f.eks. "på 239 kvadratmeter".
+- VIKTIG: Nevn aldri eksakte beløp for felleskostnader eller leieinntekter. Bruk heller kvalitative beskrivelser basert på beløpet: for felleskostnader si f.eks. "lave felleskostnader", "moderate felleskostnader" eller "rimelige felleskostnader". For leieinntekter si f.eks. "gode leieinntekter" eller "attraktive leieinntekter". Bruk kun disse beskrivelsene hvis feltene faktisk finnes i dataene.
 
 Her er boligdataene:
 ${propertyDetails}
