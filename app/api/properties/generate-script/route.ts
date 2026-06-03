@@ -93,7 +93,7 @@ Manuset skal:
 - Avslutte med en invitasjon til visning eller kontakt
 - Være naturlig og muntlig, ikke en punktliste
 - VIKTIG: Priser er allerede skrevet ut som tekst i dataene — bruk dem ordrett slik. Ikke konverter andre tall (areal, rom, etasje osv.) til tekst.
-- VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. i manuset — skriv alltid fullt ut, f.eks. bare "239 kvadratmeter".
+- VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. i manuset. Si aldri "bruksareal" — si kun "kvadratmeter", f.eks. "på 239 kvadratmeter".
 
 Her er boligdataene:
 ${propertyDetails}
