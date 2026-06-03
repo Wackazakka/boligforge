@@ -20,6 +20,7 @@ export async function GET() {
     .from('scheduled_publications')
     .select('id, property_id, video_url, caption, connection_ids, scheduled_at, created_at')
     .eq('user_id', user.id)
+    .eq('status', 'pending')
     .order('scheduled_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
