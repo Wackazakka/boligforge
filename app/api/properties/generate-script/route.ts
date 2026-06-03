@@ -93,8 +93,8 @@ Manuset skal:
 - Nevne pris og nøkkelinformasjon naturlig
 - Avslutte med en invitasjon til visning eller kontakt
 - Være naturlig og muntlig, ikke en punktliste
-- VIKTIG: Priser er allerede skrevet ut som tekst i dataene — bruk dem ordrett slik. Ikke konverter andre tall (areal, rom, etasje osv.) til tekst.
-- VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. i manuset. Si aldri "bruksareal" — si kun "kvadratmeter", f.eks. "på 239 kvadratmeter".
+- VIKTIG: Priser og størrelser er allerede skrevet ut som tekst i dataene — bruk dem ORDRETT slik de er oppgitt, uten å endre til sifre. Eksempel: hvis dataene sier "to-hundre-og-åtti-fem kvadratmeter", skal du skrive nøyaktig "to-hundre-og-åtti-fem kvadratmeter" i manuset.
+- VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. Si aldri "bruksareal".
 - VIKTIG: Nevn aldri eksakte beløp for felleskostnader eller leieinntekter. Bruk heller kvalitative beskrivelser basert på beløpet: for felleskostnader si f.eks. "lave felleskostnader", "moderate felleskostnader" eller "rimelige felleskostnader". For leieinntekter si f.eks. "gode leieinntekter" eller "attraktive leieinntekter". Bruk kun disse beskrivelsene hvis feltene faktisk finnes i dataene.
 
 Her er boligdataene:
