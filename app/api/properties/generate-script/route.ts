@@ -92,7 +92,7 @@ Manuset skal:
 - Nevne pris og nøkkelinformasjon naturlig
 - Avslutte med en invitasjon til visning eller kontakt
 - Være naturlig og muntlig, ikke en punktliste
-- VIKTIG: Skriv alle priser og tall med bokstaver slik de er oppgitt i dataene — ikke bruk sifre. Eksempel: "ti millioner fire hundre og nitti tusen kroner", ikke "10 490 000 kr"
+- VIKTIG: Priser er allerede skrevet ut som tekst i dataene — bruk dem ordrett slik. Ikke konverter andre tall (areal, rom, etasje osv.) til tekst.
 
 Her er boligdataene:
 ${propertyDetails}
