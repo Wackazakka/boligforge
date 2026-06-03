@@ -39,6 +39,7 @@ async function runCron(request: Request) {
     .from('scheduled_publications')
     .select('id, user_id, property_id, video_url, caption, connection_ids, scheduled_at')
     .lte('scheduled_at', new Date().toISOString())
+    .eq('status', 'pending')
 
   if (error) {
     console.error('[cron] Failed to fetch scheduled publications:', error)
@@ -89,12 +90,16 @@ async function runCron(request: Request) {
         console.error(`[cron] Post ${post.id} had failures:`, JSON.stringify(pubResults))
       }
 
-      // Done either way — the outcome is logged in `publications`
-      await supabase.from('scheduled_publications').delete().eq('id', post.id)
+      await supabase.from('scheduled_publications').update({
+        status: success ? 'published' : 'failed',
+      }).eq('id', post.id)
       results.push({ id: post.id, success })
     } catch (err) {
       console.error(`[cron] Error publishing post ${post.id}:`, err)
-      await supabase.from('scheduled_publications').delete().eq('id', post.id)
+      await supabase.from('scheduled_publications').update({
+        status: 'failed',
+        error_message: String(err),
+      }).eq('id', post.id)
       results.push({ id: post.id, success: false, error: String(err) })
     }
   }
