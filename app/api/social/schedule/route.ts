@@ -72,6 +72,7 @@ export async function POST(request: Request) {
       caption,
       connection_ids: validIds,
       scheduled_at:   when.toISOString(),
+      platform:       'video',
     })
     .select()
     .single()
