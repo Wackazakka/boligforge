@@ -4,11 +4,11 @@ import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-04-22.dahlia',
 })
 
-const supabase = createClient(
+const getSupabase = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
@@ -21,6 +21,9 @@ export async function POST(request: Request) {
   if (!sig) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
   }
+
+  const stripe   = getStripe()
+  const supabase = getSupabase()
 
   let event: Stripe.Event
   try {

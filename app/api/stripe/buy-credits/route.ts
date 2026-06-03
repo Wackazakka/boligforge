@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-04-22.dahlia',
 })
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const pkg  = TOPUP_PACKAGES[plan] ?? TOPUP_PACKAGES.starter
   const totalNok = pkg.qty * pkg.pricePerUnit
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
     line_items: [

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const getClient = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const CATEGORIES = ['stue', 'kjøkken', 'bad', 'soverom', 'fasade', 'terrasse', 'hage', 'gang', 'kontor', 'annet']
 
@@ -34,7 +34,7 @@ Svar kun med JSON (ingen markdown, ingen forklaring, ingen annen tekst):
 Bruk bildets nummer (1, 2, 3 osv.) som nøkkel. Bruk "annet" for bilder som ikke passer noen annen kategori.`,
     })
 
-    const msg = await client.messages.create({
+    const msg = await getClient().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
       messages: [{ role: 'user', content }],

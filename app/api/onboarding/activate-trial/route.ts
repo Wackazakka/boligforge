@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
 
-const supabase = createClient(
+const getSupabase = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
@@ -21,6 +21,8 @@ export async function POST(request: Request) {
   if (!plan || !videosByPlan[plan]) {
     return NextResponse.json({ error: 'Ugyldig plan' }, { status: 400 })
   }
+
+  const supabase = getSupabase()
 
   // Hent org for brukeren
   const { data: profile } = await supabase

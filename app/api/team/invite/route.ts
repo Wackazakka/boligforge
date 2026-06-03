@@ -5,7 +5,9 @@ import { Resend } from 'resend'
 
 export const runtime = 'nodejs'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 function sb() {
   return createClient(
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
     // If user already exists, send a custom Resend invite email instead
     if (inviteError.message.includes('already been registered') || inviteError.message.includes('already exists')) {
       try {
-        await resend.emails.send({
+        await getResend().emails.send({
           from:    'ReelHome <hei@reelhome.no>',
           to:      email.trim(),
           subject: `Du er invitert til ${orgName} på ReelHome`,
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
 
   // Also send a friendly branded email via Resend on top of Supabase's invite
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from:    'ReelHome <hei@reelhome.no>',
       to:      email.trim(),
       subject: `Du er invitert til ${orgName} på ReelHome`,

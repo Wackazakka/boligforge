@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
 
-const supabase = createClient(
+const getSupabase = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
@@ -27,6 +27,8 @@ export async function POST(request: Request) {
 
   const slug        = `${slugify(name)}-${Math.random().toString(36).slice(2, 7)}`
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+
+  const supabase = getSupabase()
 
   // 1. Opprett org med Pro-plan og prøveperiode
   const { data: org, error: orgError } = await supabase

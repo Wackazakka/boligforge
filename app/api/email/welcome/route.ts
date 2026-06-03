@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const getResend = () => new Resend(process.env.RESEND_API_KEY!)
 
-const serviceSupabase = createClient(
+const getServiceSupabase = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   // ── 3. Fetch email from auth.users (not stored in profiles) ───────────────
   const { data: userData, error: userError } =
-    await serviceSupabase.auth.admin.getUserById(userId)
+    await getServiceSupabase().auth.admin.getUserById(userId)
 
   if (userError || !userData?.user?.email) {
     console.error('[welcome-email] Could not fetch user email:', userError)

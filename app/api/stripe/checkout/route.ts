@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { getUser } from '../../../../lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-04-22.dahlia',
 })
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.create(sessionParams)
+    const session = await getStripe().checkout.sessions.create(sessionParams)
     return NextResponse.json({ url: session.url })
   } catch (err) {
     console.error('Stripe checkout error:', err)
