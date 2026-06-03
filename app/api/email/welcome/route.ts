@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+const getResend = () => new Resend(process.env.RESEND_API_KEY!)
 
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const email = userData.user.email
 
   // ── 4. Send welcome email via Resend ──────────────────────────────────────
-  const { error: sendError } = await resend.emails.send({
+  const { error: sendError } = await getResend().emails.send({
     from:    'ReelHome <noreply@reelhome.ai>',
     to:      email,
     subject: `Velkommen til ReelHome, ${firstName}! 🎬`,
