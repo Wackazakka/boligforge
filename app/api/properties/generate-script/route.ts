@@ -3,44 +3,45 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const getClient = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-// Convert a number to Norwegian spoken words
-function numberToNorwegian(num: number): string {
-  if (!num || isNaN(num)) return ''
+const ONES = ['', 'én', 'to', 'tre', 'fire', 'fem', 'seks', 'sju', 'åtte', 'ni',
+               'ti', 'elleve', 'tolv', 'tretten', 'fjorten', 'femten', 'seksten',
+               'sytten', 'atten', 'nitten']
+const TENS = ['', '', 'tjue', 'tretti', 'førti', 'femti', 'seksti', 'sytti', 'åtti', 'nitti']
 
-  const ones = ['', 'én', 'to', 'tre', 'fire', 'fem', 'seks', 'sju', 'åtte', 'ni',
-                 'ti', 'elleve', 'tolv', 'tretten', 'fjorten', 'femten', 'seksten',
-                 'sytten', 'atten', 'nitten']
-  const tens = ['', '', 'tjue', 'tretti', 'førti', 'femti', 'seksti', 'sytti', 'åtti', 'nitti']
-
-  function below1000(n: number): string {
-    if (n === 0) return ''
-    if (n < 20) return ones[n]
-    if (n < 100) {
-      const t = tens[Math.floor(n / 10)]
-      const o = n % 10
-      return o === 0 ? t : `${t}og${ones[o]}`
-    }
-    const h = Math.floor(n / 100)
-    const rest = n % 100
-    const hStr = h === 1 ? 'ett hundre' : `${ones[h]} hundre`
-    return rest === 0 ? hStr : `${hStr}-og-${below1000(rest)}`
+// below1000 with configurable separator between tens and ones, and between hundreds and rest
+function below1000(n: number, tensSep = 'og', hundredSep = '-og-'): string {
+  if (n === 0) return ''
+  if (n < 20) return ONES[n]
+  if (n < 100) {
+    const t = TENS[Math.floor(n / 10)]
+    const o = n % 10
+    return o === 0 ? t : `${t}${tensSep}${ONES[o]}`
   }
+  const h = Math.floor(n / 100)
+  const rest = n % 100
+  const hStr = h === 1 ? 'ett-hundre' : `${ONES[h]}-hundre`
+  return rest === 0 ? hStr : `${hStr}${hundredSep}${below1000(rest, tensSep, hundredSep)}`
+}
 
+// For prices: "ti millioner fire hundre-og-nitti tusen kroner"
+function priceToNorwegian(num: number): string {
+  if (!num || isNaN(num)) return ''
   const mill = Math.floor(num / 1_000_000)
   const thou = Math.floor((num % 1_000_000) / 1_000)
   const rest = num % 1_000
-
   const parts: string[] = []
-  if (mill > 0) parts.push(mill === 1 ? 'én million' : `${below1000(mill)} millioner`)
-  if (thou > 0) parts.push(thou === 1 ? 'tusen' : `${below1000(thou)} tusen`)
-  if (rest > 0) parts.push(below1000(rest))
-
-  return parts.join(' ')
+  if (mill > 0) parts.push(mill === 1 ? 'én million' : `${below1000(mill, 'og', '-og-')} millioner`)
+  if (thou > 0) parts.push(thou === 1 ? 'tusen' : `${below1000(thou, 'og', '-og-')} tusen`)
+  if (rest > 0) parts.push(below1000(rest, 'og', '-og-'))
+  return parts.join(' ') + ' kroner'
 }
 
-function priceToNorwegian(num: number): string {
-  const words = numberToNorwegian(num)
-  return words ? `${words} kroner` : ''
+// For sizes: "to-hundre-og-åtti-fem kvadratmeter" — fully hyphenated for TTS
+function sizeToNorwegian(num: number): string {
+  if (!num || isNaN(num)) return String(num)
+  const n = Math.round(num)
+  if (n < 1000) return below1000(n, '-', '-og-')
+  return String(n)
 }
 
 export async function POST(request: Request) {
@@ -61,8 +62,8 @@ export async function POST(request: Request) {
       property.price && `Prisantydning: ${priceToNorwegian(Number(property.price))}`,
       property.price_total && `Totalpris inkl. omk.: ${priceToNorwegian(Number(property.price_total))}`,
       property.shared_debt && `Fellesgjeld: ${priceToNorwegian(Number(property.shared_debt))}`,
-      property.shared_costs && `Felleskostnader: ${Math.round(Number(property.shared_costs))} kroner per måned`,
-      property.size_bra && `Størrelse: ${property.size_bra} kvadratmeter`,
+      property.shared_costs && `Felleskostnader: ja (beskriv som lave/moderate/rimelige basert på skjønn)`,
+      property.size_bra && `Størrelse: ${sizeToNorwegian(Number(property.size_bra))} kvadratmeter`,
       property.rooms && `Rom: ${property.rooms}`,
       property.bedrooms && `Soverom: ${property.bedrooms}`,
       property.floor && `Etasje: ${property.floor}`,
