@@ -104,7 +104,14 @@ Svar KUN med manusteksten, ingen overskrift eller forklaring.`,
       }],
     })
 
-    const script = (message.content[0] as { type: string; text: string }).text
+    // Post-process: replace any "NNN kvadratmeter" with hyphenated Norwegian words
+    const rawScript = (message.content[0] as { type: string; text: string }).text
+    const script = rawScript.replace(/(\d+)\s+kvadratmeter/g, (_, n) =>
+      sizeToNorwegian(Number(n)) + ' kvadratmeter'
+    ).replace(/(\d[\d\s]*\d|\d)\s+kroner/g, (match, n) => {
+      const num = Number(String(n).replace(/\s/g, ''))
+      return isNaN(num) ? match : priceToNorwegian(num)
+    })
     return NextResponse.json({ script })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
