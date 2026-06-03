@@ -9,8 +9,8 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { url } = await request.json()
-    if (!url?.includes('finn.no')) {
-      return NextResponse.json({ error: 'Ugyldig Finn.no-URL' }, { status: 400 })
+    if (!url?.includes('finn.no') && !url?.includes('hjem.no')) {
+      return NextResponse.json({ error: 'Ugyldig URL — kun Finn.no og Hjem.no støttes' }, { status: 400 })
     }
 
     // Droplet handles scraping, image re-hosting to R2, and saving to Supabase
