@@ -211,5 +211,21 @@ export async function POST(request: Request) {
   })
 
   const allOk = results.every(r => r.success)
+
+  // Log each publish to calendar (one row per connection)
+  for (const conn of connections) {
+    const result = results.find(r => r.platform === conn.platform)
+    await supabase.from('scheduled_publications').insert({
+      user_id:        user.id,
+      property_id,
+      video_url,
+      caption,
+      connection_ids: [conn.id],
+      scheduled_at:   new Date().toISOString(),
+      platform:       'video',
+      status:         result?.success ? 'published' : 'failed',
+    }).then(({ error }) => { if (error) console.warn('[publish] log error:', error.message) })
+  }
+
   return NextResponse.json({ ok: allOk, results }, { status: allOk ? 200 : 207 })
 }
