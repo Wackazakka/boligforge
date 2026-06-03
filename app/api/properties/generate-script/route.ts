@@ -3,8 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-// Convert a Norwegian price number to spoken words, e.g. 10490000 → "ti millioner fire hundre og nitti tusen kroner"
-function priceToNorwegian(num: number): string {
+// Convert a number to Norwegian spoken words
+function numberToNorwegian(num: number): string {
   if (!num || isNaN(num)) return ''
 
   const ones = ['', 'én', 'to', 'tre', 'fire', 'fem', 'seks', 'sju', 'åtte', 'ni',
@@ -31,19 +31,16 @@ function priceToNorwegian(num: number): string {
   const rest = num % 1_000
 
   const parts: string[] = []
-  if (mill > 0) {
-    const mStr = mill === 1 ? 'én million' : `${below1000(mill)} millioner`
-    parts.push(mStr)
-  }
-  if (thou > 0) {
-    const tStr = thou === 1 ? 'tusen' : `${below1000(thou)} tusen`
-    parts.push(tStr)
-  }
-  if (rest > 0) {
-    parts.push(below1000(rest))
-  }
+  if (mill > 0) parts.push(mill === 1 ? 'én million' : `${below1000(mill)} millioner`)
+  if (thou > 0) parts.push(thou === 1 ? 'tusen' : `${below1000(thou)} tusen`)
+  if (rest > 0) parts.push(below1000(rest))
 
-  return parts.join(' ') + ' kroner'
+  return parts.join(' ')
+}
+
+function priceToNorwegian(num: number): string {
+  const words = numberToNorwegian(num)
+  return words ? `${words} kroner` : ''
 }
 
 export async function POST(request: Request) {
