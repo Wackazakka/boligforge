@@ -685,7 +685,7 @@ export default function PropertyDetailPage() {
   }
 
   const STATUS_LABELS: Record<string, string> = {
-    unknown: 'Starter opp...',
+    unknown: 'Behandler...',
     queued: 'Venter i kø...',
     tts: 'Genererer tale med ElevenLabs...',
     encoding: 'Koder bildesegmenter...',

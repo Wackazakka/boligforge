@@ -31,11 +31,27 @@ export async function GET(
       signal: AbortSignal.timeout(10000),
     })
     if (!res.ok) {
+      // Fallback: sjekk Supabase om jobben kanskje er ferdig
+      const { data: row } = await getServiceClient()
+        .from('property_videos')
+        .select('video_url')
+        .eq('id', jobId)
+        .single()
+      if (row?.video_url) return NextResponse.json({ status: 'done', videoUrl: row.video_url })
       return NextResponse.json({ status: 'unknown', error: 'Worker svarte ikke' }, { status: 502 })
     }
     const data = await res.json()
     if (data && typeof data === 'object' && 'error' in data) {
       return NextResponse.json({ ...data, error: translateWorkerError(data.error) })
+    }
+    // Hvis worker returnerer unknown, sjekk Supabase som backup
+    if (data?.status === 'unknown') {
+      const { data: row } = await getServiceClient()
+        .from('property_videos')
+        .select('video_url')
+        .eq('id', jobId)
+        .single()
+      if (row?.video_url) return NextResponse.json({ status: 'done', videoUrl: row.video_url })
     }
 
     // When done, persist the video URL to property_videos so history shows it
