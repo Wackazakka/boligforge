@@ -2032,9 +2032,24 @@ export default function PropertyDetailPage() {
           ) : (
             <>
               {/* Account checkboxes */}
-              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
-                Publiser til
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                  Publiser til
+                </p>
+                <button
+                  onClick={() => {
+                    const validIds = publishConnections
+                      .filter(c => !c.token_expires_at || new Date(c.token_expires_at) > new Date())
+                      .map(c => c.id)
+                    const allSelected = validIds.every(id => publishSelected.has(id))
+                    setPublishSelected(allSelected ? new Set() : new Set(validIds))
+                  }}
+                  style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  {publishConnections.filter(c => !c.token_expires_at || new Date(c.token_expires_at) > new Date()).every(c => publishSelected.has(c.id))
+                    ? 'Fjern alle' : 'Velg alle'}
+                </button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                 {publishConnections.map(conn => {
                   const expired = conn.token_expires_at ? new Date(conn.token_expires_at) < new Date() : false
