@@ -12,6 +12,7 @@ type Property = {
   rooms: number | null
   images: string[]
   finn_url: string
+  hjem_url?: string | null
   status: 'active' | 'sold'
   sold_at: string | null
 }
@@ -124,7 +125,7 @@ export default function PropertiesPage() {
 
           <div className="flex items-center justify-between mt-2">
             <a
-              href={p.finn_url}
+              href={p.hjem_url || p.finn_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs transition-colors"
@@ -133,7 +134,7 @@ export default function PropertiesPage() {
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
               onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
             >
-              Finn.no #{p.finn_id} ↗
+              {p.hjem_url ? `Hjem.no #${p.finn_id}` : `Finn.no #${p.finn_id}`} ↗
             </a>
 
             {!isSold && (
@@ -173,7 +174,7 @@ export default function PropertiesPage() {
             Eiendommer
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-            Lim inn en Finn.no-annonse for å hente inn boligdata
+            Lim inn en Finn.no- eller Hjem.no-annonse for å hente inn boligdata
           </p>
         </div>
 
@@ -183,7 +184,7 @@ export default function PropertiesPage() {
             type="url"
             value={url}
             onChange={e => setUrl(e.target.value)}
-            placeholder="https://www.finn.no/realestate/homes/ad.html?finnkode=..."
+            placeholder="https://www.finn.no/... eller https://hjem.no/property/..."
             className="app-input flex-1 min-w-0"
             style={{ width: 'auto' }}
           />
@@ -199,7 +200,7 @@ export default function PropertiesPage() {
         ) : properties.length === 0 ? (
           <div className="text-center py-16" style={{ color: 'var(--muted)' }}>
             <p className="text-4xl mb-3">🏠</p>
-            <p>Ingen eiendommer ennå. Lim inn en Finn.no-lenke over.</p>
+            <p>Ingen eiendommer ennå. Lim inn en Finn.no- eller Hjem.no-lenke over.</p>
           </div>
         ) : (
           <>
