@@ -1939,6 +1939,7 @@ export default function PropertyDetailPage() {
         <div style={{
           background: 'var(--surface)', borderRadius: '16px', padding: '28px',
           width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          maxHeight: '90vh', overflowY: 'auto',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
@@ -2066,7 +2067,7 @@ export default function PropertyDetailPage() {
                           {conn.page_name}
                         </p>
                         <p style={{ fontSize: '11px', color: expired ? '#ef4444' : 'var(--muted)', margin: 0 }}>
-                          {conn.platform === 'facebook' ? 'Facebook' : 'LinkedIn'}
+                          {{ facebook: 'Facebook', linkedin: 'LinkedIn', x: 'X / Twitter', youtube: 'YouTube' }[conn.platform] ?? conn.platform}
                           {expired ? ' · Token utløpt' : ''}
                         </p>
                       </div>
