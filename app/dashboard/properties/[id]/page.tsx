@@ -935,9 +935,21 @@ export default function PropertyDetailPage() {
             { label: 'Prisantydning', value: formatPrice(property.price) },
             { label: 'Totalpris', value: formatPrice(property.price_total) },
             { label: 'BRA', value: property.size_bra ? `${property.size_bra} m²` : '—' },
-            { label: 'Rom / Soverom', value: property.rooms ? `${property.rooms} / ${property.bedrooms ?? '?'}` : '—' },
+            { label: 'Rom / Soverom', value: property.rooms
+              ? `${property.rooms} / ${property.bedrooms ?? '?'}`
+              : property.bedrooms
+              ? `${property.bedrooms} soverom`
+              : '—' },
             { label: 'Byggeår', value: property.build_year ?? '—' },
-            { label: 'Boligtype', value: property.property_type ?? '—' },
+            { label: 'Boligtype', value: (() => {
+              const typeMap: Record<string,string> = {
+                apartment: 'Leilighet', townhouse: 'Rekkehus', single_dwelling: 'Enebolig',
+                detached: 'Enebolig', semi_detached: 'Tomannsbolig', terrace: 'Rekkehus',
+                cottage: 'Hytte', cabin: 'Hytte', house: 'Hus', flat: 'Leilighet',
+              }
+              const t = property.property_type?.toLowerCase()
+              return t ? (typeMap[t] ?? property.property_type) : '—'
+            })() },
             { label: 'Eierform', value: property.ownership_type ?? '—' },
             { label: 'Energimerke', value: property.energy_label ?? '—' },
           ].map(f => (
