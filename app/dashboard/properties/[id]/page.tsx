@@ -1384,15 +1384,15 @@ export default function PropertyDetailPage() {
                     </div>
                   </div>
                   {/* ── Bilde-seksjon for image-type segmenter ── */}
-                  {seg.type === 'image' && (
+                  {(seg.type === 'image' || (seg.type === 'avatar' && seg.imageUrl)) && (
                     <div className="space-y-1.5">
                       {seg.imageUrl && openGalleryForSegment !== i ? (
                         /* Kompakt visning: valgt bilde + bytt-knapp */
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div
-                            style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}
-                            onClick={() => setOpenGalleryForSegment(i)}
-                            title="Bytt bilde"
+                            style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: seg.type === 'image' ? 'pointer' : 'default', opacity: seg.type === 'avatar' ? 0.35 : 1 }}
+                            onClick={() => seg.type === 'image' && setOpenGalleryForSegment(i)}
+                            title={seg.type === 'avatar' ? 'Bildet brukes ikke i avatarsegmenter' : 'Bytt bilde'}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -1404,10 +1404,15 @@ export default function PropertyDetailPage() {
                             )}
                             <span style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>⇄</span>
                           </div>
-                          <button
-                            onClick={() => setOpenGalleryForSegment(i)}
-                            style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >Bytt bilde →</button>
+                          {seg.type === 'image' && (
+                            <button
+                              onClick={() => setOpenGalleryForSegment(i)}
+                              style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            >Bytt bilde →</button>
+                          )}
+                          {seg.type === 'avatar' && (
+                            <span style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic' }}>Ikke brukt (avatarvideo)</span>
+                          )}
                         </div>
                       ) : (
                         /* Galleri-velger */
