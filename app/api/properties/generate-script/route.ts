@@ -3,6 +3,49 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
+// Convert a Norwegian price number to spoken words, e.g. 10490000 → "ti millioner fire hundre og nitti tusen kroner"
+function priceToNorwegian(num: number): string {
+  if (!num || isNaN(num)) return ''
+
+  const ones = ['', 'én', 'to', 'tre', 'fire', 'fem', 'seks', 'sju', 'åtte', 'ni',
+                 'ti', 'elleve', 'tolv', 'tretten', 'fjorten', 'femten', 'seksten',
+                 'sytten', 'atten', 'nitten']
+  const tens = ['', '', 'tjue', 'tretti', 'førti', 'femti', 'seksti', 'sytti', 'åtti', 'nitti']
+
+  function below1000(n: number): string {
+    if (n === 0) return ''
+    if (n < 20) return ones[n]
+    if (n < 100) {
+      const t = tens[Math.floor(n / 10)]
+      const o = n % 10
+      return o === 0 ? t : `${t}og${ones[o]}`
+    }
+    const h = Math.floor(n / 100)
+    const rest = n % 100
+    const hStr = h === 1 ? 'ett hundre' : `${ones[h]} hundre`
+    return rest === 0 ? hStr : `${hStr} og ${below1000(rest)}`
+  }
+
+  const mill = Math.floor(num / 1_000_000)
+  const thou = Math.floor((num % 1_000_000) / 1_000)
+  const rest = num % 1_000
+
+  const parts: string[] = []
+  if (mill > 0) {
+    const mStr = mill === 1 ? 'én million' : `${below1000(mill)} millioner`
+    parts.push(mStr)
+  }
+  if (thou > 0) {
+    const tStr = thou === 1 ? 'tusen' : `${below1000(thou)} tusen`
+    parts.push(tStr)
+  }
+  if (rest > 0) {
+    parts.push(below1000(rest))
+  }
+
+  return parts.join(' ') + ' kroner'
+}
+
 export async function POST(request: Request) {
   try {
     const { property, agentProfile, scriptStyle } = await request.json()
@@ -18,10 +61,10 @@ export async function POST(request: Request) {
     const propertyDetails = [
       property.title && `Tittel: ${property.title}`,
       property.address && `Adresse: ${property.address}`,
-      property.price && `Prisantydning: ${new Intl.NumberFormat('nb-NO').format(property.price)} kr`,
-      property.price_total && `Totalpris inkl. omk.: ${new Intl.NumberFormat('nb-NO').format(property.price_total)} kr`,
-      property.shared_debt && `Fellesgjeld: ${new Intl.NumberFormat('nb-NO').format(property.shared_debt)} kr`,
-      property.shared_costs && `Felleskostnader: ${new Intl.NumberFormat('nb-NO').format(property.shared_costs)} kr/mnd`,
+      property.price && `Prisantydning: ${priceToNorwegian(Number(property.price))}`,
+      property.price_total && `Totalpris inkl. omk.: ${priceToNorwegian(Number(property.price_total))}`,
+      property.shared_debt && `Fellesgjeld: ${priceToNorwegian(Number(property.shared_debt))}`,
+      property.shared_costs && `Felleskostnader: ${new Intl.NumberFormat('nb-NO').format(property.shared_costs)} kroner per måned`,
       property.size_bra && `BRA: ${property.size_bra} m²`,
       property.rooms && `Rom: ${property.rooms}`,
       property.bedrooms && `Soverom: ${property.bedrooms}`,
@@ -52,6 +95,7 @@ Manuset skal:
 - Nevne pris og nøkkelinformasjon naturlig
 - Avslutte med en invitasjon til visning eller kontakt
 - Være naturlig og muntlig, ikke en punktliste
+- VIKTIG: Skriv alle priser og tall med bokstaver slik de er oppgitt i dataene — ikke bruk sifre. Eksempel: "ti millioner fire hundre og nitti tusen kroner", ikke "10 490 000 kr"
 
 Her er boligdataene:
 ${propertyDetails}
