@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       property.price_total && `Totalpris inkl. omk.: ${priceToNorwegian(Number(property.price_total))}`,
       property.shared_debt && `Fellesgjeld: ${priceToNorwegian(Number(property.shared_debt))}`,
       property.shared_costs && `Felleskostnader: ${new Intl.NumberFormat('nb-NO').format(property.shared_costs)} kroner per måned`,
-      property.size_bra && `BRA: ${property.size_bra} m²`,
+      property.size_bra && `Bruksareal: ${property.size_bra} kvm`,
       property.rooms && `Rom: ${property.rooms}`,
       property.bedrooms && `Soverom: ${property.bedrooms}`,
       property.floor && `Etasje: ${property.floor}`,
