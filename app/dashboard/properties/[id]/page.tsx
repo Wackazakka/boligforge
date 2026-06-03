@@ -402,7 +402,12 @@ export default function PropertyDetailPage() {
         i++
       }
     }
-    return result
+    // First and last = avatar, middle = image (overridden after image classification if available)
+    return result.map((seg, idx) =>
+      idx === 0 || idx === result.length - 1
+        ? seg
+        : { ...seg, type: 'image' as const }
+    )
   }
 
   async function handleSplitSegments() {
@@ -425,15 +430,18 @@ export default function PropertyDetailPage() {
       const data = await res.json()
       if (data.imageTags) {
         const usedImages = new Set<string>()
-        const matched = newSegments.map(seg => {
+        const last = newSegments.length - 1
+        const matched = newSegments.map((seg, idx) => {
+          const isFirst = idx === 0
+          const isLast = idx === last
           const suggested = matchSegmentToImage(seg.text, data.imageTags, images, usedImages)
-          if (!suggested) return seg
-          usedImages.add(suggested)   // merk som brukt før neste segment kjøres
-          if (hasRoomKeyword(seg.text)) {
-            return { ...seg, type: 'image' as const, imageUrl: suggested, imageSource: 'ai' as const }
-          } else {
-            return { ...seg, imageUrl: suggested, imageSource: 'ai' as const }
+          if (suggested) usedImages.add(suggested)
+          // First and last segment: always avatar
+          if (isFirst || isLast) {
+            return { ...seg, type: 'avatar' as const, imageUrl: suggested ?? seg.imageUrl }
           }
+          // Middle segments: always image
+          return { ...seg, type: 'image' as const, imageUrl: suggested ?? seg.imageUrl, imageSource: 'ai' as const }
         })
         setSegments(matched)
       }
