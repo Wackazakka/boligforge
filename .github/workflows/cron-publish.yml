@@ -1,0 +1,16 @@
+name: Publish Scheduled Videos
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes
+  workflow_dispatch:        # Manual trigger
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger publish cron
+        run: |
+          curl -s -X POST "https://reelhome.ai/api/cron/publish-scheduled" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            --max-time 60
