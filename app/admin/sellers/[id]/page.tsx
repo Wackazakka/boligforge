@@ -9,11 +9,11 @@ interface Seller { id: string; name: string; email: string; ref_code: string; co
 interface PartnerOpt { id: string; name: string; ref_code: string }
 interface Detail { seller: Seller; customers: Customer[]; commissions: Commission[]; total_commission: number; parent_name: string | null; ref_url: string; discount_url: string; portal_url: string; recruit_url: string | null; is_manager: boolean }
 
-const card: React.CSSProperties = { background: '#18181b', border: '1px solid #27272a', borderRadius: 12, padding: 20, marginBottom: 20 }
+const card: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 20 }
 const fmt = (n: number) => Number(n).toLocaleString('nb-NO')
 const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('nb-NO') : '—')
 const pct = (n: number) => String(+(Number(n) * 100).toFixed(1))
-const sInput: React.CSSProperties = { background: '#0f0f10', border: '1px solid #3f3f46', borderRadius: 8, padding: '10px 26px 10px 12px', color: '#f0f0f0', fontSize: 14, width: 90, outline: 'none' }
+const sInput: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--line-2)', borderRadius: 8, padding: '10px 26px 10px 12px', color: 'var(--ink)', fontSize: 14, width: 90, outline: 'none' }
 
 export default function SellerDetailPage() {
   const router = useRouter()
@@ -79,8 +79,8 @@ export default function SellerDetailPage() {
     const a = document.createElement('a'); a.href = url; a.download = `provisjon-${data.seller.ref_code}.csv`; a.click(); URL.revokeObjectURL(url)
   }
 
-  if (loading) return <p style={{ color: '#71717a' }}>Laster...</p>
-  if (!data) return <p style={{ color: '#f87171' }}>Selger ikke funnet. <a href="/admin/sellers" style={{ color: '#2563eb' }}>Tilbake</a></p>
+  if (loading) return <p style={{ color: 'var(--muted)' }}>Laster...</p>
+  if (!data) return <p style={{ color: '#dc2626' }}>Selger ikke funnet. <a href="/admin/sellers" style={{ color: 'var(--blue)' }}>Tilbake</a></p>
   const { seller, customers, commissions, total_commission } = data
 
   return (
@@ -88,51 +88,51 @@ export default function SellerDetailPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 800 }}>{seller.name}</h1>
-          <span style={{ fontFamily: 'monospace', color: '#60a5fa' }}>{seller.ref_code}</span>
-          <span style={{ color: '#71717a', marginLeft: 12 }}>{seller.email}</span>
-          <span style={{ color: '#71717a', marginLeft: 12 }}>· trapp {pct(seller.rate_y1)}/{pct(seller.rate_y2)}/{pct(seller.rate_y3)}/{pct(seller.rate_y4)}%</span>
+          <span style={{ fontFamily: 'var(--mono)', color: 'var(--blue)' }}>{seller.ref_code}</span>
+          <span style={{ color: 'var(--muted)', marginLeft: 12 }}>{seller.email}</span>
+          <span style={{ color: 'var(--muted)', marginLeft: 12 }}>· trapp {pct(seller.rate_y1)}/{pct(seller.rate_y2)}/{pct(seller.rate_y3)}/{pct(seller.rate_y4)}%</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={toggleActive} disabled={busy} style={{ background: '#27272a', color: '#f0f0f0', border: '1px solid #3f3f46', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: busy ? 'default' : 'pointer' }}>{seller.active ? 'Deaktiver' : 'Aktiver'}</button>
-          <button onClick={deleteSeller} disabled={busy} style={{ background: 'transparent', color: '#f87171', border: '1px solid #7f1d1d', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: busy ? 'default' : 'pointer' }}>Slett</button>
-          <a href="/admin/sellers" style={{ color: '#71717a', fontSize: 14, textDecoration: 'none' }}>← Alle selgere</a>
+          <button onClick={toggleActive} disabled={busy} style={{ background: 'var(--surface-2)', color: 'var(--ink)', border: '1px solid var(--line-2)', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: busy ? 'default' : 'pointer' }}>{seller.active ? 'Deaktiver' : 'Aktiver'}</button>
+          <button onClick={deleteSeller} disabled={busy} style={{ background: 'transparent', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: busy ? 'default' : 'pointer' }}>Slett</button>
+          <a href="/admin/sellers" style={{ color: 'var(--muted)', fontSize: 14, textDecoration: 'none' }}>← Alle selgere</a>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 20 }}>
-        <div style={{ ...card, marginBottom: 0 }}><div style={{ fontSize: 12, color: '#71717a', textTransform: 'uppercase', letterSpacing: 1 }}>Kunder (org)</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 6 }}>{customers.length}</div></div>
-        <div style={{ ...card, marginBottom: 0 }}><div style={{ fontSize: 12, color: '#71717a', textTransform: 'uppercase', letterSpacing: 1 }}>Provisjon (all time)</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 6, color: '#4ade80' }}>{fmt(total_commission)} kr</div></div>
-        <div style={{ ...card, marginBottom: 0 }}><div style={{ fontSize: 12, color: '#71717a', textTransform: 'uppercase', letterSpacing: 1 }}>Status</div><div style={{ fontSize: 20, fontWeight: 800, marginTop: 10, color: seller.active ? '#4ade80' : '#fca5a5' }}>{seller.active ? 'Aktiv' : 'Inaktiv'}</div></div>
+        <div style={{ ...card, marginBottom: 0 }}><div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Kunder (org)</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 6 }}>{customers.length}</div></div>
+        <div style={{ ...card, marginBottom: 0 }}><div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Provisjon (all time)</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 6, color: 'var(--green)' }}>{fmt(total_commission)} kr</div></div>
+        <div style={{ ...card, marginBottom: 0 }}><div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Status</div><div style={{ fontSize: 20, fontWeight: 800, marginTop: 10, color: seller.active ? 'var(--green)' : '#dc2626' }}>{seller.active ? 'Aktiv' : 'Inaktiv'}</div></div>
       </div>
 
       <div style={card}>
         <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 800 }}>Provisjonstrapp</h2>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: '#71717a' }}>Provisjon per kunde (org), regnet fra org-ens registrering. År 4 gjelder år 4 og for alltid.</p>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)' }}>Provisjon per kunde (org), regnet fra org-ens registrering. År 4 gjelder år 4 og for alltid.</p>
         {rates && (
           <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap' }}>
             {([['År 1', 'y1'], ['År 2', 'y2'], ['År 3', 'y3'], ['År 4+', 'y4']] as const).map(([lbl, key]) => (
-              <div key={key}><div style={{ fontSize: 11, color: '#71717a', marginBottom: 4 }}>{lbl}</div><div style={{ position: 'relative', width: 90 }}><input type="number" min={0} max={100} step="0.5" value={rates[key]} onChange={e => setRates({ ...rates, [key]: e.target.value })} style={sInput} /><span style={{ position: 'absolute', right: 10, top: 11, color: '#71717a', fontSize: 13 }}>%</span></div></div>
+              <div key={key}><div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{lbl}</div><div style={{ position: 'relative', width: 90 }}><input type="number" min={0} max={100} step="0.5" value={rates[key]} onChange={e => setRates({ ...rates, [key]: e.target.value })} style={sInput} /><span style={{ position: 'absolute', right: 10, top: 11, color: 'var(--muted)', fontSize: 13 }}>%</span></div></div>
             ))}
-            <div style={{ borderLeft: '1px solid #27272a', paddingLeft: 14 }}><div style={{ fontSize: 11, color: '#71717a', marginBottom: 4 }}>Rabatt</div><div style={{ position: 'relative', width: 90 }}><input type="number" min={0} max={100} step="0.5" value={rates.disc} onChange={e => setRates({ ...rates, disc: e.target.value })} style={sInput} /><span style={{ position: 'absolute', right: 10, top: 11, color: '#71717a', fontSize: 13 }}>%</span></div></div>
-            <button onClick={saveRates} disabled={busy} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>Lagre</button>
-            {saveMsg && <span style={{ fontSize: 13, color: saveMsg.includes('✓') ? '#4ade80' : '#f87171' }}>{saveMsg}</span>}
+            <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: 14 }}><div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Rabatt</div><div style={{ position: 'relative', width: 90 }}><input type="number" min={0} max={100} step="0.5" value={rates.disc} onChange={e => setRates({ ...rates, disc: e.target.value })} style={sInput} /><span style={{ position: 'absolute', right: 10, top: 11, color: 'var(--muted)', fontSize: 13 }}>%</span></div></div>
+            <button onClick={saveRates} disabled={busy} style={{ background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>Lagre</button>
+            {saveMsg && <span style={{ fontSize: 13, color: saveMsg.includes('✓') ? 'var(--green)' : '#dc2626' }}>{saveMsg}</span>}
           </div>
         )}
       </div>
 
       <div style={card}>
         <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 800 }}>Hierarki</h2>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: '#71717a' }}>Sett sjefen over denne selgeren, og en sjef-sats hvis dette er en salgssjef (override på teamet under).</p>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)' }}>Sett sjefen over denne selgeren, og en sjef-sats hvis dette er en salgssjef (override på teamet under).</p>
         <div style={{ display: 'flex', gap: 16, alignItems: 'end', flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 220 }}><div style={{ fontSize: 11, color: '#71717a', marginBottom: 4 }}>Rekruttert av / sjef</div>
-            <select value={parentId} onChange={e => setParentId(e.target.value)} style={{ background: '#0f0f10', border: '1px solid #3f3f46', borderRadius: 8, padding: '10px 12px', color: '#f0f0f0', fontSize: 14, minWidth: 220, cursor: 'pointer' }}>
+          <div style={{ minWidth: 220 }}><div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Rekruttert av / sjef</div>
+            <select value={parentId} onChange={e => setParentId(e.target.value)} style={{ background: 'var(--surface)', border: '1px solid var(--line-2)', borderRadius: 8, padding: '10px 12px', color: 'var(--ink)', fontSize: 14, minWidth: 220, cursor: 'pointer' }}>
               <option value="">— Ingen (toppnivå) —</option>
               {partners.filter(p => p.id !== id).map(p => <option key={p.id} value={p.id}>{p.name} ({p.ref_code})</option>)}
             </select>
           </div>
-          <div><div style={{ fontSize: 11, color: '#71717a', marginBottom: 4 }}>Sjef-sats (%)</div><div style={{ position: 'relative', width: 110 }}><input type="number" min={0} max={100} step="0.5" value={managerRate} onChange={e => setManagerRate(e.target.value)} placeholder="—" style={{ ...sInput, width: 110 }} /><span style={{ position: 'absolute', right: 10, top: 11, color: '#71717a', fontSize: 13 }}>%</span></div></div>
-          <button onClick={saveHierarchy} disabled={busy} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>Lagre</button>
-          {hierMsg && <span style={{ fontSize: 13, color: hierMsg.includes('✓') ? '#4ade80' : '#f87171' }}>{hierMsg}</span>}
+          <div><div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Sjef-sats (%)</div><div style={{ position: 'relative', width: 110 }}><input type="number" min={0} max={100} step="0.5" value={managerRate} onChange={e => setManagerRate(e.target.value)} placeholder="—" style={{ ...sInput, width: 110 }} /><span style={{ position: 'absolute', right: 10, top: 11, color: 'var(--muted)', fontSize: 13 }}>%</span></div></div>
+          <button onClick={saveHierarchy} disabled={busy} style={{ background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>Lagre</button>
+          {hierMsg && <span style={{ fontSize: 13, color: hierMsg.includes('✓') ? 'var(--green)' : '#dc2626' }}>{hierMsg}</span>}
         </div>
       </div>
 
@@ -145,10 +145,10 @@ export default function SellerDetailPage() {
           ['Selger-portal (privat — gir tilgang)', data.portal_url],
         ] as [string, string][]).map(([lbl, url]) => (
           <div key={lbl} style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: '#71717a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{lbl}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{lbl}</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input readOnly value={url} style={{ flex: 1, background: '#0f0f10', border: '1px solid #3f3f46', borderRadius: 8, padding: '8px 10px', color: '#d4d4d8', fontSize: 13, fontFamily: 'monospace' }} onFocus={e => e.currentTarget.select()} />
-              <button onClick={() => navigator.clipboard?.writeText(url)} style={{ background: '#27272a', color: '#f0f0f0', border: '1px solid #3f3f46', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Kopier</button>
+              <input readOnly value={url} style={{ flex: 1, background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', color: 'var(--ink-2)', fontSize: 13, fontFamily: 'var(--mono)' }} onFocus={e => e.currentTarget.select()} />
+              <button onClick={() => navigator.clipboard?.writeText(url)} style={{ background: 'var(--surface-2)', color: 'var(--ink)', border: '1px solid var(--line-2)', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Kopier</button>
             </div>
           </div>
         ))}
@@ -157,23 +157,23 @@ export default function SellerDetailPage() {
       <div style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Månedlig provisjon</h2>
-          <button onClick={exportCsv} disabled={commissions.length === 0} style={{ background: '#27272a', color: '#f0f0f0', border: '1px solid #3f3f46', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: commissions.length ? 'pointer' : 'not-allowed', opacity: commissions.length ? 1 : 0.5 }}>Eksporter til CSV</button>
+          <button onClick={exportCsv} disabled={commissions.length === 0} style={{ background: 'var(--surface-2)', color: 'var(--ink)', border: '1px solid var(--line-2)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: commissions.length ? 'pointer' : 'not-allowed', opacity: commissions.length ? 1 : 0.5 }}>Eksporter til CSV</button>
         </div>
-        {commissions.length === 0 ? <p style={{ color: '#71717a', fontSize: 14 }}>Ingen beregnede perioder ennå.</p> : (
+        {commissions.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 14 }}>Ingen beregnede perioder ennå.</p> : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead><tr style={{ textAlign: 'left', color: '#71717a', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}><th style={{ padding: '8px 12px 8px 0' }}>Periode</th><th style={{ padding: 8 }}>Brutto</th><th style={{ padding: 8 }}>Provisjon</th><th style={{ padding: 8 }}>Kunder</th></tr></thead>
-            <tbody>{commissions.map(c => (<tr key={c.period} style={{ borderTop: '1px solid #27272a' }}><td style={{ padding: '12px 12px 12px 0', fontFamily: 'monospace' }}>{c.period}</td><td style={{ padding: 8 }}>{fmt(c.gross_amount)} kr</td><td style={{ padding: 8, color: '#4ade80', fontWeight: 600 }}>{fmt(c.commission_amount)} kr</td><td style={{ padding: 8 }}>{c.customer_count}</td></tr>))}</tbody>
+            <thead><tr style={{ textAlign: 'left', color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}><th style={{ padding: '8px 12px 8px 0' }}>Periode</th><th style={{ padding: 8 }}>Brutto</th><th style={{ padding: 8 }}>Provisjon</th><th style={{ padding: 8 }}>Kunder</th></tr></thead>
+            <tbody>{commissions.map(c => (<tr key={c.period} style={{ borderTop: '1px solid var(--line)' }}><td style={{ padding: '12px 12px 12px 0', fontFamily: 'var(--mono)' }}>{c.period}</td><td style={{ padding: 8 }}>{fmt(c.gross_amount)} kr</td><td style={{ padding: 8, color: 'var(--green)', fontWeight: 600 }}>{fmt(c.commission_amount)} kr</td><td style={{ padding: 8 }}>{c.customer_count}</td></tr>))}</tbody>
           </table>
         )}
       </div>
 
       <div style={card}>
         <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 800 }}>Kunder ({customers.length})</h2>
-        {customers.length === 0 ? <p style={{ color: '#71717a', fontSize: 14 }}>Ingen henviste kunder ennå.</p> : (
+        {customers.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 14 }}>Ingen henviste kunder ennå.</p> : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead><tr style={{ textAlign: 'left', color: '#71717a', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}><th style={{ padding: '8px 12px 8px 0' }}>Organisasjon</th><th style={{ padding: 8 }}>Registrert</th><th style={{ padding: 8 }}>Siste betaling</th><th style={{ padding: 8 }}>Totalt betalt</th></tr></thead>
-              <tbody>{customers.map(c => (<tr key={c.org_id} style={{ borderTop: '1px solid #27272a' }}><td style={{ padding: '12px 12px 12px 0' }}>{c.name}</td><td style={{ padding: 8, color: '#a1a1aa' }}>{fmtDate(c.created_at)}</td><td style={{ padding: 8, color: '#a1a1aa' }}>{fmtDate(c.last_payment_at)}</td><td style={{ padding: 8 }}>{fmt(c.total_paid)} kr</td></tr>))}</tbody>
+              <thead><tr style={{ textAlign: 'left', color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}><th style={{ padding: '8px 12px 8px 0' }}>Organisasjon</th><th style={{ padding: 8 }}>Registrert</th><th style={{ padding: 8 }}>Siste betaling</th><th style={{ padding: 8 }}>Totalt betalt</th></tr></thead>
+              <tbody>{customers.map(c => (<tr key={c.org_id} style={{ borderTop: '1px solid var(--line)' }}><td style={{ padding: '12px 12px 12px 0' }}>{c.name}</td><td style={{ padding: 8, color: 'var(--ink-3)' }}>{fmtDate(c.created_at)}</td><td style={{ padding: 8, color: 'var(--ink-3)' }}>{fmtDate(c.last_payment_at)}</td><td style={{ padding: 8 }}>{fmt(c.total_paid)} kr</td></tr>))}</tbody>
             </table>
           </div>
         )}
