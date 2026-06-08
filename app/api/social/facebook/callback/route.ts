@@ -65,12 +65,12 @@ export async function GET(request: Request) {
 
     // 4. Save each page connection (service role bypasses RLS)
     const supabase = getServiceClient()
+    let savedCount = 0
     for (const page of pages) {
-      await supabase.from('social_connections').upsert(
+      const { error: upsertError } = await supabase.from('social_connections').upsert(
         {
           user_id:           state,
           platform:          'facebook',
-          platform_user_id:  state,
           page_id:           page.id,
           page_name:         page.name,
           access_token:      page.access_token,   // page-level token for posting
@@ -79,9 +79,19 @@ export async function GET(request: Request) {
         },
         { onConflict: 'user_id,platform,page_id' }
       )
+      if (upsertError) {
+        console.error('[fb/callback] upsert failed for page', page.id, upsertError)
+      } else {
+        savedCount++
+      }
     }
 
-    console.log(`[fb/callback] ✅ ${pages.length} page(s) connected for user ${state}`)
+    if (savedCount === 0) {
+      console.error('[fb/callback] No connections saved for user', state)
+      return NextResponse.redirect(`${SOCIAL_PAGE}?error=save_failed`)
+    }
+
+    console.log(`[fb/callback] ✅ ${savedCount} page(s) connected for user ${state}`)
     return NextResponse.redirect(`${SOCIAL_PAGE}?connected=facebook`)
   } catch (err) {
     console.error('[fb/callback] Error:', err)

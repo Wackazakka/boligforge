@@ -60,11 +60,10 @@ export async function GET(request: Request) {
     const supabase = getServiceClient()
 
     // 3. Save personal profile connection
-    await supabase.from('social_connections').upsert(
+    const { error: personError } = await supabase.from('social_connections').upsert(
       {
         user_id:           state,
         platform:          'linkedin',
-        platform_user_id:  personId,
         page_id:           personId,
         page_name:         personName,
         access_token:      tokenData.access_token,
@@ -73,6 +72,10 @@ export async function GET(request: Request) {
       },
       { onConflict: 'user_id,platform,page_id' }
     )
+    if (personError) {
+      console.error('[li/callback] Failed to save personal connection:', personError)
+      return NextResponse.redirect(`${SOCIAL_PAGE}?error=save_failed`)
+    }
 
     // 4. Optionally also save company pages (admin role)
     try {
@@ -96,7 +99,6 @@ export async function GET(request: Request) {
           {
             user_id:           state,
             platform:          'linkedin',
-            platform_user_id:  personId,
             page_id:           orgId,
             page_name:         `🏢 ${orgName}`,
             access_token:      tokenData.access_token,
