@@ -4,15 +4,22 @@ export const metadata = { title: 'ReelHome Backoffice' }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f10', color: '#f0f0f0', fontFamily: 'var(--sans, system-ui)' }}>
-      <nav style={{ borderBottom: '1px solid #222', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <Link href="/admin" style={{ fontWeight: 700, fontSize: '14px', color: '#f0f0f0', textDecoration: 'none', letterSpacing: '-0.01em' }}>
-          ⚡ ReelHome Backoffice
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
+      <nav style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <Link href="/admin" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }} aria-label="ReelHome Backoffice">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand-kit/reelhome-mark.svg" alt="" width={24} height={24} />
+          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+            ReelHome<span style={{ color: 'var(--blue)' }}>.ai</span> <span style={{ color: 'var(--muted)', fontWeight: 500 }}>Backoffice</span>
+          </span>
         </Link>
-        <Link href="/admin/sellers" style={{ fontSize: '13px', color: '#a1a1aa', textDecoration: 'none' }}>
+        <Link href="/admin" style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', fontWeight: 600 }}>
+          Oversikt
+        </Link>
+        <Link href="/admin/sellers" style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', fontWeight: 600 }}>
           Selgere
         </Link>
-        <Link href="/dashboard" style={{ fontSize: '12px', color: '#666', textDecoration: 'none', marginLeft: 'auto' }}>
+        <Link href="/dashboard" style={{ fontSize: 12, color: 'var(--muted)', textDecoration: 'none', marginLeft: 'auto' }}>
           → Dashboard
         </Link>
       </nav>
