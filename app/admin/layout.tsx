@@ -9,7 +9,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Link href="/admin" style={{ fontWeight: 700, fontSize: '14px', color: '#f0f0f0', textDecoration: 'none', letterSpacing: '-0.01em' }}>
           ⚡ ReelHome Backoffice
         </Link>
-        <Link href="/dashboard" style={{ fontSize: '12px', color: '#666', textDecoration: 'none' }}>
+        <Link href="/admin/sellers" style={{ fontSize: '13px', color: '#a1a1aa', textDecoration: 'none' }}>
+          Selgere
+        </Link>
+        <Link href="/dashboard" style={{ fontSize: '12px', color: '#666', textDecoration: 'none', marginLeft: 'auto' }}>
           → Dashboard
         </Link>
       </nav>
