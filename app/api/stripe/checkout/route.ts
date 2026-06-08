@@ -13,6 +13,20 @@ const PRICE_IDS: Record<string, string> = {
   office:  process.env.STRIPE_PRICE_OFFICE!,
 }
 
+// Find or create a reusable forever-duration percent-off coupon for the given percent.
+async function getOrCreateCoupon(stripe: Stripe, pct: number): Promise<string> {
+  const id = `reelhome-disc-${String(pct).replace('.', '_')}`
+  try {
+    return (await stripe.coupons.retrieve(id)).id
+  } catch {
+    try {
+      return (await stripe.coupons.create({ id, percent_off: pct, duration: 'forever', name: `ReelHome ${pct}% partnerrabatt` })).id
+    } catch {
+      return (await stripe.coupons.retrieve(id)).id
+    }
+  }
+}
+
 export async function POST(request: Request) {
   const user = await getUser()
   if (!user) {
@@ -51,6 +65,26 @@ export async function POST(request: Request) {
     stripe_customer_id?: string
   } | null
 
+  // Partnerrabatt: hvis org-en registrerte seg via en selgers rabatt-lenke
+  // (reelhome_org_referrals.discount_rate satt), gi den prosenten på abonnementet — for alltid.
+  // Provisjon beregnes deretter på det rabatterte beløpet som faktisk betales.
+  let discounts: { coupon: string }[] | undefined
+  if (org?.id) {
+    try {
+      const { data: refRow } = await supabase
+        .from('reelhome_org_referrals').select('discount_rate').eq('org_id', org.id).maybeSingle()
+      const rate = Number(refRow?.discount_rate ?? 0)
+      if (rate > 0 && rate <= 1) {
+        const pct = +(rate * 100).toFixed(2)
+        const couponId = await getOrCreateCoupon(getStripe(), pct)
+        discounts = [{ coupon: couponId }]
+      }
+    } catch (e) {
+      // best-effort — aldri blokker checkout hvis rabatt-oppslag feiler
+      console.error('[checkout] discount lookup failed:', (e as Error).message)
+    }
+  }
+
   // Bygg session-parametere
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
@@ -61,6 +95,7 @@ export async function POST(request: Request) {
         quantity: plan === 'office' ? quantity : 1,
       },
     ],
+    ...(discounts ? { discounts } : {}),
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?cancelled=1`,
     metadata: {
