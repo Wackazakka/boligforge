@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createOrgAction, createSoloOrgAction } from './actions'
 
@@ -20,6 +20,15 @@ export default function OnboardingPage() {
   const [accountType, setAccountType] = useState<AccountType>(null)
   const [orgError,  orgFormAction,  orgPending]  = useActionState(createOrgAction, null)
   const [soloError, soloFormAction, soloPending] = useActionState(createSoloOrgAction, null)
+  const [ref, setRef] = useState('')
+  const [discount, setDiscount] = useState('')
+
+  useEffect(() => {
+    try {
+      setRef(localStorage.getItem('reelhome_ref') || '')
+      setDiscount(localStorage.getItem('reelhome_discount') || '')
+    } catch { /* ignore */ }
+  }, [])
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
@@ -99,6 +108,8 @@ export default function OnboardingPage() {
           </p>
 
           <form action={soloFormAction} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <input type="hidden" name="ref" value={ref} />
+            <input type="hidden" name="discount" value={discount} />
             {soloError && <p className="app-error">{soloError}</p>}
 
             <button
@@ -135,6 +146,8 @@ export default function OnboardingPage() {
 
           <form action={orgFormAction} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <input type="hidden" name="accountType" value="team_admin" />
+            <input type="hidden" name="ref" value={ref} />
+            <input type="hidden" name="discount" value={discount} />
 
             <div>
               <label className="app-label" htmlFor="orgName">Firmanavn</label>

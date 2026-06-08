@@ -22,7 +22,9 @@ function slugify(name: string): string {
 async function provisionOrg(
   userId: string,
   orgName: string,
-  accountType: 'solo' | 'team_admin'
+  accountType: 'solo' | 'team_admin',
+  ref?: string | null,
+  wantsDiscount?: boolean
 ): Promise<string | null> {
   const slug        = `${slugify(orgName)}-${Math.random().toString(36).slice(2, 7)}`
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
@@ -93,6 +95,27 @@ async function provisionOrg(
     return creditsError.message
   }
 
+  // 4. Affiliate-attribusjon: knytt org-en til selgeren (first-touch) hvis kommet via ?ref=
+  if (ref) {
+    try {
+      const { data: seller } = await supabase
+        .from('reelhome_sellers')
+        .select('ref_code, active, discount_rate')
+        .ilike('ref_code', ref)
+        .maybeSingle()
+      if (seller && seller.active) {
+        const row: { org_id: string; seller_ref: string; discount_rate?: number } = {
+          org_id: org.id,
+          seller_ref: seller.ref_code as string,
+        }
+        if (wantsDiscount && Number(seller.discount_rate) > 0) row.discount_rate = Number(seller.discount_rate)
+        await supabase.from('reelhome_org_referrals').upsert(row, { onConflict: 'org_id', ignoreDuplicates: true })
+      }
+    } catch (e) {
+      console.error('provisionOrg: affiliate-attribusjon feilet', (e as Error).message)
+    }
+  }
+
   console.log(`provisionOrg: ferdig — org ${org.id}, bruker ${userId}`)
   return null
 }
@@ -110,7 +133,9 @@ export async function createOrgAction(
   const name = formData.get('orgName')?.toString().trim()
   if (!name) return 'Firmanavn er påkrevd'
 
-  const err = await provisionOrg(user.id, name, 'team_admin')
+  const ref = formData.get('ref')?.toString() || null
+  const wantsDiscount = formData.get('discount')?.toString() === '1'
+  const err = await provisionOrg(user.id, name, 'team_admin', ref, wantsDiscount)
   if (err) return err
 
   redirect('/onboarding/avatar')
@@ -122,7 +147,7 @@ export async function createOrgAction(
 // -----------------------------------------------------------------------
 export async function createSoloOrgAction(
   _prevState: string | null,
-  _formData: FormData
+  formData: FormData
 ): Promise<string | null> {
   const user = await getUser()
   if (!user) return 'Ikke innlogget – logg inn og prøv igjen'
@@ -135,7 +160,9 @@ export async function createSoloOrgAction(
 
   const orgName = displayName
 
-  const err = await provisionOrg(user.id, orgName, 'solo')
+  const ref = formData.get('ref')?.toString() || null
+  const wantsDiscount = formData.get('discount')?.toString() === '1'
+  const err = await provisionOrg(user.id, orgName, 'solo', ref, wantsDiscount)
   if (err) return err
 
   redirect('/onboarding/avatar')
