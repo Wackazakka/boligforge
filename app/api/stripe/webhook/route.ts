@@ -14,6 +14,12 @@ const getSupabase = () => createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
+// 'YYYY-MM' in Europe/Oslo for a unix-seconds timestamp (or now) — affiliate payment period.
+function osloPeriod(unixSeconds?: number): string {
+  const d = unixSeconds ? new Date(unixSeconds * 1000) : new Date()
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit' }).format(d)
+}
+
 export async function POST(request: Request) {
   const body = await request.text()
   const sig  = request.headers.get('stripe-signature')
@@ -82,6 +88,28 @@ export async function POST(request: Request) {
           }
 
           console.log(`Bruker ${userId} [${type}]: +${credits} ekstra videokreditter (nå ${current + credits})`)
+
+          // Affiliate-logg: logg topup-betalingen (tilskrevet brukerens org).
+          try {
+            if (session.amount_total != null) {
+              const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', userId).maybeSingle()
+              await supabase.from('reelhome_payments').upsert(
+                {
+                  org_id: (prof?.organization_id as string) ?? null,
+                  stripe_event_id: event.id,
+                  stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
+                  plan: 'topup',
+                  kind: 'topup',
+                  amount: session.amount_total / 100,
+                  currency: session.currency ?? 'nok',
+                  period: osloPeriod(event.created),
+                },
+                { onConflict: 'stripe_event_id', ignoreDuplicates: true }
+              )
+            }
+          } catch (e) {
+            console.error('[affiliate] topup-logg feilet:', (e as Error).message)
+          }
           break
         }
 
@@ -156,6 +184,41 @@ export async function POST(request: Request) {
         }
 
         console.log(`Kunde ${customerId} — abonnement kansellert`)
+        break
+      }
+
+      // ----------------------------------------------------------------
+      // Abonnement-faktura betalt → logg for affiliate-provisjon (per org)
+      // ----------------------------------------------------------------
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice
+        try {
+          const amount = (invoice.amount_paid ?? 0) / 100
+          if (amount > 0) {
+            const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
+            let orgId: string | null = null
+            if (customerId) {
+              const { data: org } = await supabase.from('organizations').select('id').eq('stripe_customer_id', customerId).maybeSingle()
+              orgId = (org?.id as string) ?? null
+            }
+            await supabase.from('reelhome_payments').upsert(
+              {
+                org_id: orgId,
+                stripe_event_id: event.id,
+                stripe_invoice_id: invoice.id,
+                stripe_customer_id: customerId,
+                plan: null,
+                kind: 'invoice',
+                amount,
+                currency: invoice.currency ?? 'nok',
+                period: osloPeriod(event.created),
+              },
+              { onConflict: 'stripe_event_id', ignoreDuplicates: true }
+            )
+          }
+        } catch (e) {
+          console.error('[affiliate] invoice.paid-logg feilet:', (e as Error).message)
+        }
         break
       }
 
