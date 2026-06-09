@@ -58,7 +58,10 @@ async function runCron(request: Request) {
     try {
       if (!post.connection_ids || post.connection_ids.length === 0) {
         console.error(`[cron] Post ${post.id}: no connections, skipping`)
-        await supabase.from('scheduled_publications').delete().eq('id', post.id)
+        // Marker som failed (ikke slett) så posten ikke forsvinner stille fra kalenderen.
+        await supabase.from('scheduled_publications')
+          .update({ status: 'failed', error_message: 'Ingen tilkoblinger valgt' })
+          .eq('id', post.id)
         results.push({ id: post.id, success: false, error: 'missing connections' })
         continue
       }
@@ -72,7 +75,11 @@ async function runCron(request: Request) {
 
       if (!connections || connections.length === 0) {
         console.error(`[cron] Post ${post.id}: connections no longer exist`)
-        await supabase.from('scheduled_publications').delete().eq('id', post.id)
+        // Vanlig etter at megler kobler til sosiale medier på nytt (nye connection-id-er).
+        // Marker failed med tydelig grunn i stedet for å slette posten.
+        await supabase.from('scheduled_publications')
+          .update({ status: 'failed', error_message: 'Tilkoblingen finnes ikke lenger (koblet til på nytt?)' })
+          .eq('id', post.id)
         results.push({ id: post.id, success: false, error: 'connections gone' })
         continue
       }

@@ -42,14 +42,28 @@ export async function publishVideoToConnections(opts: {
   const { userId, videoUrl, caption, connections, propertyId = null } = opts
   const supabase = getServiceClient()
 
+  // Legg ved lenke til annonsen (Hjem.no foretrukket, ellers Finn.no) i posten.
+  let listingUrl: string | null = null
+  if (propertyId) {
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('finn_url, hjem_url')
+      .eq('id', propertyId)
+      .maybeSingle()
+    listingUrl = prop?.hjem_url || prop?.finn_url || null
+  }
+  const fullCaption = listingUrl
+    ? `${caption ? caption + '\n\n' : ''}Se hele annonsen: ${listingUrl}`
+    : caption
+
   const results: PublishResult[] = await Promise.all(
     connections.map(async conn => {
       let result: { success: boolean; postId?: string; error?: string }
 
       if (conn.platform === 'facebook') {
-        result = await publishToFacebook(conn.page_id, conn.access_token, videoUrl, caption)
+        result = await publishToFacebook(conn.page_id, conn.access_token, videoUrl, fullCaption)
       } else if (conn.platform === 'linkedin') {
-        result = await publishToLinkedIn(conn.page_id, conn.access_token, videoUrl, caption)
+        result = await publishToLinkedIn(conn.page_id, conn.access_token, videoUrl, fullCaption)
       } else {
         result = { success: false, error: `Ukjent plattform: ${conn.platform}` }
       }
@@ -63,7 +77,7 @@ export async function publishVideoToConnections(opts: {
         connection_id: conn.id,
         platform:      conn.platform,
         page_name:     conn.page_name,
-        caption,
+        caption:       fullCaption,
         video_url:     videoUrl,
         post_id:       result.postId ?? null,
         status:        result.success ? 'published' : 'failed',
