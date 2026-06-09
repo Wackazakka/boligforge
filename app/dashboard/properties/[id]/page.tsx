@@ -1808,9 +1808,10 @@ export default function PropertyDetailPage() {
           </div>
         )}
 
-        {/* Videohistorikk — skjult mens fersk video vises i preview */}
-        {!videoUrl && (() => {
-          const unfiledVideos = pastVideos.filter(v => v.collection_ids.length === 0)
+        {/* Videohistorikk — vises også mens fersk video er i preview (uten å duplisere den),
+            slik at man beholder og kan velge mellom tidligere versjoner etter regenerering */}
+        {(() => {
+          const unfiledVideos = pastVideos.filter(v => v.collection_ids.length === 0 && v.video_url !== videoUrl)
           if (unfiledVideos.length === 0) return null
           return (
           <div className="app-card space-y-3">
