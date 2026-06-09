@@ -234,12 +234,12 @@ export default function ProfilePage() {
 
   // Krymp/nedskaler bilder i nettleseren FØR opplasting. Netlify-funksjoner kjører på
   // Lambda med ~6 MB payload-grense, og binær last base64-inflateres (×1.33) → reell
-  // grense ~4.5 MB. Mobilbilder er ofte større, så vi skalerer ned + komprimerer her.
+  // grense ~4.5 MB. Vi beholder HØYEST mulig kvalitet som fortsatt passer trygt under
+  // grensen — portretter holder 2048px slik at avataren får skarpe ansiktsdetaljer.
   async function prepImageForUpload(file: File, type: 'logo' | 'portrait'): Promise<File> {
     // Ikke rasteriser vektor/animasjon — last opp som de er (de er små).
     if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file
-    const maxDim = type === 'logo' ? 1000 : 1500
-    const outMime = type === 'logo' ? 'image/png' : 'image/jpeg' // logo kan ha transparens → PNG
+    const BUDGET = 3_500_000 // binært mål; base64 (×1.33) ≈ 4.65 MB → trygt under 6 MB
     try {
       const url = URL.createObjectURL(file)
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -248,23 +248,40 @@ export default function ProfilePage() {
         im.onerror = reject
         im.src = url
       })
-      const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight))
-      const w = Math.round(img.naturalWidth * scale)
-      const h = Math.round(img.naturalHeight * scale)
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) { URL.revokeObjectURL(url); return file }
-      ctx.drawImage(img, 0, 0, w, h)
       URL.revokeObjectURL(url)
-      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, outMime, 0.85))
-      if (!blob) return file
-      // Bruk komprimert versjon kun hvis den faktisk ble mindre (små bilder kan vokse).
-      if (blob.size >= file.size && scale === 1) return file
-      const ext = outMime === 'image/png' ? 'png' : 'jpg'
-      const name = file.name.replace(/\.[^.]+$/, '') + '.' + ext
-      return new File([blob], name, { type: outMime })
+
+      const render = (maxDim: number, mime: string, quality: number): Promise<Blob | null> => {
+        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight))
+        const w = Math.round(img.naturalWidth * scale)
+        const h = Math.round(img.naturalHeight * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return Promise.resolve(null)
+        ctx.drawImage(img, 0, 0, w, h)
+        return new Promise(res => canvas.toBlob(res, mime, quality))
+      }
+
+      if (type === 'logo') {
+        // Behold transparens → PNG. Logoer er små; nedskaler kun dimensjon ved behov.
+        const blob = await render(1000, 'image/png', 1)
+        if (!blob) return file
+        if (blob.size >= file.size && img.naturalWidth <= 1000 && img.naturalHeight <= 1000) return file
+        return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.png', { type: 'image/png' })
+      }
+
+      // Portrett: start på full kvalitet (2048px), trapp ned kun hvis vi sprenger budsjettet.
+      const attempts: Array<[number, number]> = [[2048, 0.92], [2048, 0.85], [2048, 0.8], [1600, 0.85], [1280, 0.82]]
+      let best: Blob | null = null
+      for (const [dim, q] of attempts) {
+        const blob = await render(dim, 'image/jpeg', q)
+        if (!blob) continue
+        best = blob
+        if (blob.size <= BUDGET) break
+      }
+      if (!best) return file
+      return new File([best], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
     } catch {
       return file // ved feil: fall tilbake til original (samme oppførsel som før)
     }
