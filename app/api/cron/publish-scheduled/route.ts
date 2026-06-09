@@ -20,6 +20,33 @@ type ScheduledRow = {
   scheduled_at: string
 }
 
+// En planlagt post skal ALDRI forsvinne sporløst. Hvis den ikke kan publiseres,
+// logg en tydelig feilrad i reelhome_publications i tillegg til å markere
+// scheduled_publications som 'failed'. Da har vi alltid et spor i historikken.
+async function markFailed(
+  supabase: ReturnType<typeof getServiceClient>,
+  post: ScheduledRow,
+  reason: string,
+) {
+  await supabase.from('scheduled_publications')
+    .update({ status: 'failed', error_message: reason })
+    .eq('id', post.id)
+
+  const { error: logErr } = await supabase.from('reelhome_publications').insert({
+    user_id:       post.user_id,
+    property_id:   post.property_id,
+    connection_id: post.connection_ids?.[0] ?? null,
+    platform:      'scheduled',
+    page_name:     null,
+    caption:       post.caption ?? '',
+    video_url:     post.video_url,
+    post_id:       null,
+    status:        'failed',
+    error:         reason,
+  })
+  if (logErr) console.error(`[cron] Post ${post.id}: kunne ikke logge feilrad:`, logErr.message)
+}
+
 async function runCron(request: Request) {
   // Optional shared secret — accepts Netlify's internal scheduler (no header)
   // or any caller presenting the correct secret.
@@ -59,9 +86,7 @@ async function runCron(request: Request) {
       if (!post.connection_ids || post.connection_ids.length === 0) {
         console.error(`[cron] Post ${post.id}: no connections, skipping`)
         // Marker som failed (ikke slett) så posten ikke forsvinner stille fra kalenderen.
-        await supabase.from('scheduled_publications')
-          .update({ status: 'failed', error_message: 'Ingen tilkoblinger valgt' })
-          .eq('id', post.id)
+        await markFailed(supabase, post, 'Ingen tilkoblinger valgt')
         results.push({ id: post.id, success: false, error: 'missing connections' })
         continue
       }
@@ -77,9 +102,7 @@ async function runCron(request: Request) {
         console.error(`[cron] Post ${post.id}: connections no longer exist`)
         // Vanlig etter at megler kobler til sosiale medier på nytt (nye connection-id-er).
         // Marker failed med tydelig grunn i stedet for å slette posten.
-        await supabase.from('scheduled_publications')
-          .update({ status: 'failed', error_message: 'Tilkoblingen finnes ikke lenger (koblet til på nytt?)' })
-          .eq('id', post.id)
+        await markFailed(supabase, post, 'Tilkoblingen finnes ikke lenger (koblet til på nytt?)')
         results.push({ id: post.id, success: false, error: 'connections gone' })
         continue
       }
@@ -103,10 +126,7 @@ async function runCron(request: Request) {
       results.push({ id: post.id, success })
     } catch (err) {
       console.error(`[cron] Error publishing post ${post.id}:`, err)
-      await supabase.from('scheduled_publications').update({
-        status: 'failed',
-        error_message: String(err),
-      }).eq('id', post.id)
+      await markFailed(supabase, post, String(err))
       results.push({ id: post.id, success: false, error: String(err) })
     }
   }
