@@ -232,11 +232,50 @@ export default function ProfilePage() {
     mr.stream.getTracks().forEach(t => t.stop())
   }
 
+  // Krymp/nedskaler bilder i nettleseren FØR opplasting. Netlify-funksjoner kjører på
+  // Lambda med ~6 MB payload-grense, og binær last base64-inflateres (×1.33) → reell
+  // grense ~4.5 MB. Mobilbilder er ofte større, så vi skalerer ned + komprimerer her.
+  async function prepImageForUpload(file: File, type: 'logo' | 'portrait'): Promise<File> {
+    // Ikke rasteriser vektor/animasjon — last opp som de er (de er små).
+    if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file
+    const maxDim = type === 'logo' ? 1000 : 1500
+    const outMime = type === 'logo' ? 'image/png' : 'image/jpeg' // logo kan ha transparens → PNG
+    try {
+      const url = URL.createObjectURL(file)
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const im = new Image()
+        im.onload = () => resolve(im)
+        im.onerror = reject
+        im.src = url
+      })
+      const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight))
+      const w = Math.round(img.naturalWidth * scale)
+      const h = Math.round(img.naturalHeight * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { URL.revokeObjectURL(url); return file }
+      ctx.drawImage(img, 0, 0, w, h)
+      URL.revokeObjectURL(url)
+      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, outMime, 0.85))
+      if (!blob) return file
+      // Bruk komprimert versjon kun hvis den faktisk ble mindre (små bilder kan vokse).
+      if (blob.size >= file.size && scale === 1) return file
+      const ext = outMime === 'image/png' ? 'png' : 'jpg'
+      const name = file.name.replace(/\.[^.]+$/, '') + '.' + ext
+      return new File([blob], name, { type: outMime })
+    } catch {
+      return file // ved feil: fall tilbake til original (samme oppførsel som før)
+    }
+  }
+
   async function handleUpload(file: File, type: 'logo' | 'portrait') {
     const setter = type === 'logo' ? setUploadingLogo : setUploadingPortrait
     setter(true)
+    const prepared = await prepImageForUpload(file, type)
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', prepared)
     fd.append('type', type)
     const res = await fetch('/api/profile/upload-image', { method: 'POST', body: fd })
     setter(false)
@@ -247,7 +286,11 @@ export default function ProfilePage() {
         void Promise.all(SETTINGS.map(s => handleGenerateSetting(s.id, url)))
       }
     } else {
-      alert('Opplasting feilet')
+      alert(
+        prepared.size > 4_500_000
+          ? 'Bildet er for stort selv etter komprimering. Prøv et mindre bilde.'
+          : 'Opplasting feilet. Prøv igjen eller bruk et mindre bilde.'
+      )
     }
   }
 
