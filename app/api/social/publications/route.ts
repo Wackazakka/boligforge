@@ -17,47 +17,15 @@ export async function GET() {
 
   const supabase = getServiceClient()
 
-  // Fetch from legacy publications table
-  const { data: legacyData } = await supabase
-    .from('publications')
-    .select('id, property_id, platform, page_name, caption, status, created_at')
+  // Historikk for publiserte OG feilede poster (immediate + cron logger begge til
+  // reelhome_publications). page_name/platform/status/error ligger direkte på raden.
+  const { data, error } = await supabase
+    .from('reelhome_publications')
+    .select('id, property_id, platform, page_name, caption, status, error, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(200)
 
-  // Also fetch published/failed from scheduled_publications (with connection info)
-  const { data: schedData } = await supabase
-    .from('scheduled_publications')
-    .select('id, property_id, connection_ids, caption, status, scheduled_at, created_at')
-    .eq('user_id', user.id)
-    .in('status', ['published', 'failed'])
-    .order('created_at', { ascending: false })
-    .limit(200)
-
-  // Fetch connections to resolve page names and platforms
-  const allConnIds = (schedData ?? []).flatMap(r => r.connection_ids ?? [])
-  const { data: conns } = allConnIds.length > 0
-    ? await supabase.from('social_connections').select('id, platform, page_name').in('id', allConnIds)
-    : { data: [] }
-  const connMap = new Map((conns ?? []).map(c => [c.id, c]))
-
-  const schedEntries = (schedData ?? []).flatMap(r =>
-    (r.connection_ids ?? []).map((cid: string) => {
-      const conn = connMap.get(cid)
-      return {
-        id:          `${r.id}:${cid}`,
-        property_id: r.property_id,
-        platform:    conn?.platform ?? 'unknown',
-        page_name:   conn?.page_name ?? 'Ukjent',
-        caption:     r.caption,
-        status:      r.status,
-        created_at:  r.created_at,
-      }
-    })
-  )
-
-  const all = [...(legacyData ?? []), ...schedEntries]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-
-  return NextResponse.json(all)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data ?? [])
 }

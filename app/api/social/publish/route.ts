@@ -54,8 +54,10 @@ export async function publishVideoToConnections(opts: {
         result = { success: false, error: `Ukjent plattform: ${conn.platform}` }
       }
 
-      // Log the outcome so it shows up in the calendar / history
-      await supabase.from('publications').insert({
+      // Log the outcome so it shows up in the calendar / history.
+      // reelhome_publications er ReelHome-eid (den delte `publications` er ContentForge sin
+      // og har feil skjema → tidligere feilet denne loggingen stille).
+      const { error: logErr } = await supabase.from('reelhome_publications').insert({
         user_id:       userId,
         property_id:   propertyId,
         connection_id: conn.id,
@@ -67,6 +69,7 @@ export async function publishVideoToConnections(opts: {
         status:        result.success ? 'published' : 'failed',
         error:         result.error ?? null,
       })
+      if (logErr) console.error('[publish] kunne ikke logge publisering:', logErr.message)
 
       return {
         connectionId: conn.id,
@@ -212,20 +215,9 @@ export async function POST(request: Request) {
 
   const allOk = results.every(r => r.success)
 
-  // Log each publish to calendar (one row per connection)
-  for (const conn of connections) {
-    const result = results.find(r => r.platform === conn.platform)
-    await supabase.from('scheduled_publications').insert({
-      user_id:        user.id,
-      property_id,
-      video_url,
-      caption,
-      connection_ids: [conn.id],
-      scheduled_at:   new Date().toISOString(),
-      platform:       'video',
-      status:         result?.success ? 'published' : 'failed',
-    }).then(({ error }) => { if (error) console.warn('[publish] log error:', error.message) })
-  }
+  // Historikk logges allerede til reelhome_publications inne i publishVideoToConnections.
+  // (scheduled_publications er kun for FREMTIDIGE planlagte poster — umiddelbare publiseringer
+  // skal ikke opprette rader der.)
 
   return NextResponse.json({ ok: allOk, results }, { status: allOk ? 200 : 207 })
 }
