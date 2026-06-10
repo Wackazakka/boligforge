@@ -55,8 +55,10 @@ async function run(request: Request) {
       )
       .join('<br>')
     try {
-      await new Resend(process.env.RESEND_API_KEY).emails.send({
-        from: 'ReelHome <noreply@reelhome.ai>',
+      // onboarding@resend.dev er Resends innebygde avsender som virker uten domene-
+      // verifisering (reelhome.ai/reelhome.no er ikke verifisert i Resend).
+      const { error: sendErr } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+        from: 'ReelHome <onboarding@resend.dev>',
         to,
         subject: `⚠️ ReelHome: ${stuck.length} planlagt video(er) ble ikke publisert`,
         html:
@@ -65,6 +67,7 @@ async function run(request: Request) {
           `<p>${rows}</p>` +
           `<p>Sjekk publiseringskalenderen i ReelHome.</p>`,
       })
+      if (sendErr) console.error('[watchdog] Resend avviste e-post:', sendErr)
     } catch (e) {
       console.error('[watchdog] e-post feilet:', e)
     }
