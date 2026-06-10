@@ -1,0 +1,34 @@
+name: Restore Drill Reminder
+
+# Kvartalsvis påminnelse om å kjøre en faktisk restore-øvelse. En backup er ikke
+# bevist før man har gjenopprettet fra den — integritetssjekk er ikke nok.
+# Sender Telegram-melding 4 ganger i året.
+
+on:
+  schedule:
+    - cron: '0 8 1 1,4,7,10 *'   # 08:00 UTC, 1. i jan/apr/jul/okt
+  workflow_dispatch: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram-påminnelse
+        env:
+          TG_TOKEN: ${{ secrets.BACKUP_TELEGRAM_BOT_TOKEN }}
+          TG_CHAT:  ${{ secrets.BACKUP_TELEGRAM_CHAT_ID }}
+        run: |
+          MSG="🔁 KVARTALSVIS RESTORE-ØVELSE
+
+På tide å bevise at backupene faktisk virker. Be Claude:
+
+1. Hent en DB-dump fra R2 (supabase-backups/db-backups/<prosjekt>/)
+2. Gjenopprett til et engangs/test-Supabase-prosjekt
+3. Bekreft at tabeller + rader kom med, og at en bruker kan logges inn
+4. Slett test-prosjektet
+
+Tar ~15 min. En backup er ikke bevist før den er gjenopprettet.
+(Se backup-system-doc i Mission Control for detaljer.)"
+          curl -s --max-time 20 "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${MSG}" > /dev/null && echo "Påminnelse sendt"
