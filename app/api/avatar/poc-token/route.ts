@@ -29,7 +29,7 @@ export async function POST() {
     body: JSON.stringify({
       mode: 'FULL',
       avatar_id: avatar.id,
-      avatar_persona: { voice_id: voiceId, language: 'en' },
+      avatar_persona: { voice_id: voiceId, language: 'no' },
     }),
   })
   const tokenJson = await tokenRes.json()

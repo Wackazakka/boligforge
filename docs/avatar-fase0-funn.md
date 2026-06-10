@@ -35,7 +35,17 @@ await session.stop();
 3. **DB-navngiving:** `agent_profiles.liveavatar_avatar_id/_voice_id`, `reelhome_avatar_sessions.liveavatar_session_id` (oppdatert i migrasjonen).
 4. **Token-ruten** (`/api/avatar/session/init`) kaller `POST https://api.liveavatar.com/v1/sessions/token` server-side med `LIVEAVATAR_API_KEY`, returnerer kun `session_token` til klienten.
 
-## Gjenstår i Fase 0
-- **Ekte avatar-talelatency** (tid speak → `AVATAR_SPEAK_STARTED`) må måles i browser med SDK-en — token-latency (~0,65 s) er kun halve bildet. Krever en liten PoC-side kjørt mot en isolert dev.
-- Storage-bucket `avatar-docs` (T0.4) — opprettes når migrasjonen kjøres mot isolert dev-DB.
-- Migrasjonen er skrevet (`supabase/migrations/20260609_avatar.sql`) men **ikke kjørt** mot noen DB ennå (isolasjon — venter på Supabase preview-branch eller lokal).
+## Resultater fra browser-PoC (oppdatert 2026-06-10)
+Alle Fase 0-spørsmålene er nå besvart med målinger i ekte browser:
+
+- **Talelatency: 0,6–1,1 s konsistent** (633/816/960/998/1031/1099 ms over flere sesjoner/dager) — godt innenfor målet. **Grønt lys.**
+- **STREAM_READY:** 2,3–7,6 s (varierer med last) — akseptabelt med en «kobler til megler…»-spinner.
+- **Innebygd STT VIRKER — Whisper strykes fra arkitekturen:** `voiceChat.start()` (publiserer mikrofonsporet, MÅ kalles — `startListening()` alene er kun server-signal) + `startListening()` → `USER_TRANSCRIPTION` leverer tekst. Med `language: 'no'` i avatar_persona kom norsk tale ut som **korrekt norsk** («Kommer du fra Lofoten?»). Med 'en' ble norsk feiltolket (italiensk!) — språkkonfig er kritisk.
+- **Avataren snakker norsk** uten problemer (repeat med norsk tekst + norsk persona).
+- **Svart video løst:** eksplisitt `videoEl.play()` etter `session.attach()` (autoplay-policy).
+- **Viktige driftsfunn:** (1) Claude-appens innebygde preview kan IKKE gi mikrofontilgang — test i ekte browser. (2) Kontoen går tom for kreditter ved mye testing — «Insufficient credits for session» ved session.start(). (3) repeat() før session.start() er ferdig gir «Session needs to be connected».
+
+## Gjenstår (overført til Fase 1)
+- Storage-bucket `avatar-docs` (T0.4) — opprettes sammen med migrasjonen.
+- Migrasjonen (`supabase/migrations/20260609_avatar.sql`) er **ikke kjørt** ennå. Blokkeringen (delt DB med ContentForge) forsvant 2026-06-10 da CF fikk eget prosjekt — kan nå kjøres trygt mot ReelHome-prosjektet.
+- Flette disse funnene inn i hovedplanen (`docs/avatar-implementeringsplan.md`) — bl.a. stryke Whisper-steget og oppdatere HeyGen→LiveAvatar.
