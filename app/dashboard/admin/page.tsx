@@ -161,6 +161,9 @@ export default function AdminPage() {
   const [error, setError]               = useState<string | null>(null)
   const [removing, setRemoving]         = useState<string | null>(null)
   const [templateAvatars, setTemplateAvatars] = useState<TemplateAvatar[]>([])
+  // Malmeglere er plattform-konfigurasjon (globale voice-ID-er) — vises kun for superadmin.
+  // Lagring håndheves uansett server-side (PATCH krever LARS_EMAIL).
+  const [isSuperadmin, setIsSuperadmin] = useState(false)
 
   async function loadMembers() {
     setLoading(true)
@@ -171,6 +174,7 @@ export default function AdminPage() {
     } else {
       const d = await res.json()
       setMembers(d.members ?? [])
+      setIsSuperadmin(!!d.is_superadmin)
     }
     setLoading(false)
   }
@@ -300,8 +304,8 @@ export default function AdminPage() {
         </div>
       </section>
 
-      {/* ── Malmeglere ── */}
-      {templateAvatars.length > 0 && (
+      {/* ── Malmeglere (kun superadmin — global plattform-konfigurasjon) ── */}
+      {isSuperadmin && templateAvatars.length > 0 && (
         <section>
           <div style={{ marginBottom: '20px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px' }}>Malmeglere</h2>
