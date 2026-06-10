@@ -369,6 +369,17 @@ export default function Home() {
               </ul>
               <a href="#" className="btn btn-ghost">Snakk med salg</a>
             </div>
+
+            {/* Enkeltvideo — fullbredde-kort */}
+            <div className="plan single">
+              <div className="single-info">
+                <div className="nm">Enkeltvideo</div>
+                <div className="for">Prøv uten abonnement</div>
+                <div className="desc">Én ferdig produsert visningsvideo med AI-avatar og stemme — betal per video, ingen binding.</div>
+              </div>
+              <div className="price"><span className="v">989</span><span className="cur">kr / video</span></div>
+              <Link href="/auth/signup" className="btn btn-ghost">Kjøp enkeltvideo</Link>
+            </div>
           </div>
         </div>
       </section>
