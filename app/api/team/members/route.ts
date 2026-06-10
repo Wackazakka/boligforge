@@ -12,6 +12,17 @@ function sb() {
   )
 }
 
+// Org-medlemskap leses fra organization_members — samme kilde som /api/org/* —
+// slik at Team- og Admin-sidene aldri spriker. profiles brukes kun til navn.
+async function getMembership(client: ReturnType<typeof sb>, userId: string) {
+  const { data } = await client
+    .from('organization_members')
+    .select('organization_id, role')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data
+}
+
 // ── GET — list org members ────────────────────────────────────────────────────
 export async function GET() {
   const user = await getUser()
@@ -19,33 +30,37 @@ export async function GET() {
 
   const client = sb()
 
-  // Get caller's org + role
-  const { data: profile } = await client
-    .from('profiles')
-    .select('organization_id, role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (!profile?.organization_id) {
+  const membership = await getMembership(client, user.id)
+  if (!membership?.organization_id) {
     return NextResponse.json({ error: 'Ikke tilknyttet en organisasjon' }, { status: 404 })
   }
-  if (profile.role !== 'admin') {
+  if (membership.role !== 'admin') {
     return NextResponse.json({ error: 'Kun admin kan se dette' }, { status: 403 })
   }
 
-  const orgId = profile.organization_id
+  const orgId = membership.organization_id
 
   // All members in org
   const { data: members, error } = await client
-    .from('profiles')
-    .select('id, full_name, role, created_at')
+    .from('organization_members')
+    .select('user_id, role, created_at')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  const memberIds = (members ?? []).map(m => m.user_id)
+
+  // Names from profiles
+  const { data: profiles } = memberIds.length
+    ? await client.from('profiles').select('id, full_name').in('id', memberIds)
+    : { data: [] }
+  const nameMap: Record<string, string> = {}
+  for (const p of profiles ?? []) {
+    if (p.full_name) nameMap[p.id] = p.full_name
+  }
+
   // Video counts per member
-  const memberIds = (members ?? []).map(m => m.id)
   const { data: videos } = memberIds.length
     ? await client.from('property_videos').select('user_id').in('user_id', memberIds)
     : { data: [] }
@@ -77,12 +92,12 @@ export async function GET() {
   const totalTotal = Object.values(creditMap).reduce((s, c) => s + c.total, 0)
 
   const enriched = (members ?? []).map(m => ({
-    id:          m.id,
-    full_name:   m.full_name ?? '(Ikke satt opp)',
-    email:       emailMap[m.id] ?? '—',
+    id:          m.user_id,
+    full_name:   nameMap[m.user_id] ?? '(Ikke satt opp)',
+    email:       emailMap[m.user_id] ?? '—',
     role:        m.role,
-    video_count: videoCountMap[m.id] ?? 0,
-    credits:     creditMap[m.id] ?? { used: 0, total: 0 },
+    video_count: videoCountMap[m.user_id] ?? 0,
+    credits:     creditMap[m.user_id] ?? { used: 0, total: 0 },
   }))
 
   return NextResponse.json({
@@ -101,14 +116,8 @@ export async function DELETE(request: Request) {
 
   const client = sb()
 
-  // Caller must be admin
-  const { data: profile } = await client
-    .from('profiles')
-    .select('organization_id, role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (!profile?.organization_id || profile.role !== 'admin') {
+  const membership = await getMembership(client, user.id)
+  if (!membership?.organization_id || membership.role !== 'admin') {
     return NextResponse.json({ error: 'Kun admin kan fjerne meglere' }, { status: 403 })
   }
 
@@ -118,22 +127,25 @@ export async function DELETE(request: Request) {
   }
 
   // Verify target belongs to same org
-  const { data: target } = await client
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', memberId)
-    .maybeSingle()
-
-  if (target?.organization_id !== profile.organization_id) {
+  const target = await getMembership(client, memberId)
+  if (target?.organization_id !== membership.organization_id) {
     return NextResponse.json({ error: 'Megleren tilhører ikke din organisasjon' }, { status: 403 })
   }
 
-  // Set organization_id to null (remove from org without deleting profile)
   const { error } = await client
+    .from('organization_members')
+    .delete()
+    .eq('user_id', memberId)
+    .eq('organization_id', membership.organization_id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Hold profiles i sync (kun hvis profilen peker på denne org-en)
+  await client
     .from('profiles')
     .update({ organization_id: null, role: null })
     .eq('id', memberId)
+    .eq('organization_id', membership.organization_id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }

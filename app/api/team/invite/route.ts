@@ -26,11 +26,12 @@ export async function POST(request: Request) {
 
   const client = sb()
 
-  // Verify caller is admin
+  // Verify caller is admin — organization_members er kilden til sannhet for
+  // org-medlemskap (samme som /api/org/* og team/members), ikke profiles.
   const { data: profile } = await client
-    .from('profiles')
+    .from('organization_members')
     .select('organization_id, role')
-    .eq('id', user.id)
+    .eq('user_id', user.id)
     .maybeSingle()
 
   if (!profile?.organization_id || profile.role !== 'admin') {

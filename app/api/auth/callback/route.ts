@@ -55,6 +55,21 @@ export async function GET(request: Request) {
       console.log(`[auth/callback] invited user ${user.id} linked to org ${invitedOrgId}`)
     }
 
+    // organization_members er kilden til sannhet for medlemskap (org-/team-sidene
+    // leser herfra) — uten denne raden er den inviterte usynlig i Admin/Team.
+    const { data: existingMembership } = await serviceClient
+      .from('organization_members')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('organization_id', invitedOrgId)
+      .maybeSingle()
+    if (!existingMembership) {
+      const { error: memberError } = await serviceClient
+        .from('organization_members')
+        .insert({ organization_id: invitedOrgId, user_id: user.id, role: 'member' })
+      if (memberError) console.error('[auth/callback] organization_members insert error', memberError)
+    }
+
     // Invited users skip the org-creation onboarding step and go straight to avatar
     return NextResponse.redirect(`${origin}/onboarding/avatar`)
   }

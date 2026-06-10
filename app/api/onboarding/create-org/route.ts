@@ -30,6 +30,30 @@ export async function POST(request: Request) {
 
   const supabase = getSupabase()
 
+  // Er brukeren allerede medlem av en org (organization_members = kilden til
+  // sannhet)? Da skal onboarding IKKE opprette en ny org og overskrive profilen
+  // — det var slik profiles og organization_members kom ut av sync. Synk heller
+  // profilen til eksisterende org og returner den.
+  const { data: existing } = await supabase
+    .from('organization_members')
+    .select('organization_id, role')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (existing?.organization_id) {
+    await supabase.from('profiles').upsert(
+      {
+        id:              user.id,
+        organization_id: existing.organization_id,
+        full_name:       user.user_metadata?.full_name ?? '',
+        role:            existing.role === 'admin' ? 'admin' : 'agent',
+      },
+      { onConflict: 'id' }
+    )
+    console.log(`Bruker ${user.id} er allerede medlem av org ${existing.organization_id} — hopper over org-opprettelse`)
+    return NextResponse.json({ org_id: existing.organization_id, already_member: true })
+  }
+
   // 1. Opprett org med Pro-plan og prøveperiode
   const { data: org, error: orgError } = await supabase
     .from('organizations')
@@ -54,6 +78,12 @@ export async function POST(request: Request) {
     console.error('upsert profile error:', profileError)
     return NextResponse.json({ error: profileError.message }, { status: 500 })
   }
+
+  // 2b. Registrer eieren i organization_members (kilden til sannhet for medlemskap)
+  const { error: memberError } = await supabase
+    .from('organization_members')
+    .insert({ organization_id: org.id, user_id: user.id, role: 'admin' })
+  if (memberError) console.error('organization_members insert error:', memberError)
 
   // 3. Opprett credits (10 videoer for Pro)
   const { error: creditsError } = await supabase
