@@ -28,7 +28,7 @@ async function markFailed(
   post: ScheduledRow,
   reason: string,
 ) {
-  await supabase.from('scheduled_publications')
+  await supabase.from('reelhome_scheduled_publications')
     .update({ status: 'failed', error_message: reason })
     .eq('id', post.id)
 
@@ -63,7 +63,7 @@ async function runCron(request: Request) {
   const supabase = getServiceClient()
 
   const { data: due, error } = await supabase
-    .from('scheduled_publications')
+    .from('reelhome_scheduled_publications')
     .select('id, user_id, property_id, video_url, caption, connection_ids, scheduled_at')
     .lte('scheduled_at', new Date().toISOString())
     .eq('status', 'pending')
@@ -120,7 +120,7 @@ async function runCron(request: Request) {
         console.error(`[cron] Post ${post.id} had failures:`, JSON.stringify(pubResults))
       }
 
-      await supabase.from('scheduled_publications').update({
+      await supabase.from('reelhome_scheduled_publications').update({
         status: success ? 'published' : 'failed',
       }).eq('id', post.id)
       results.push({ id: post.id, success })

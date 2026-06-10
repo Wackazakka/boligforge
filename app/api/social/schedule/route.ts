@@ -17,7 +17,7 @@ export async function GET() {
 
   const supabase = getServiceClient()
   const { data, error } = await supabase
-    .from('scheduled_publications')
+    .from('reelhome_scheduled_publications')
     .select('id, property_id, video_url, caption, connection_ids, scheduled_at, created_at')
     .eq('user_id', user.id)
     .eq('status', 'pending')
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await supabase
-    .from('scheduled_publications')
+    .from('reelhome_scheduled_publications')
     .insert({
       user_id:        user.id,
       property_id,
@@ -92,7 +92,7 @@ export async function DELETE(request: Request) {
 
   const supabase = getServiceClient()
   const { error } = await supabase
-    .from('scheduled_publications')
+    .from('reelhome_scheduled_publications')
     .delete()
     .eq('id', id)
     .eq('user_id', user.id)
