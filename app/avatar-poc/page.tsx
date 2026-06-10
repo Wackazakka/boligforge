@@ -104,15 +104,25 @@ export default function AvatarPocPage() {
     }
   }
 
-  function toggleListening() {
+  async function toggleListening() {
     const s = sessionRef.current
     if (!s) return
     try {
       if (listening) {
         s.stopListening()
+        s.voiceChat?.stop()
         setListening(false)
-        log('stopListening()')
+        log('stopListening() + voiceChat.stop()')
       } else {
+        // voiceChat.start() publiserer mikrofonsporet (utløser tillatelses-prompt);
+        // startListening() er kun server-signalet om å lytte.
+        log('voiceChat.start() — gi mikrofontillatelse i nettleseren…')
+        await s.voiceChat.start()
+        log(`voiceChat aktiv (state: ${s.voiceChat.state}, muted: ${s.voiceChat.isMuted})`)
+        if (s.voiceChat.isMuted) {
+          await s.voiceChat.unmute()
+          log('voiceChat.unmute()')
+        }
         s.startListening()
         setListening(true)
         log('startListening() — snakk til avataren nå')
