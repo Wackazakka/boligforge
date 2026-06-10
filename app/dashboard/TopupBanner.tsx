@@ -51,7 +51,7 @@ export default function TopupBanner({ remaining }: { remaining: number }) {
           whiteSpace: 'nowrap',
         }}
       >
-        {loading ? 'Venter…' : 'Kjøp topup'}
+        {loading ? 'Venter…' : 'Kjøp enkeltvideo (989 kr)'}
       </button>
     </div>
   )

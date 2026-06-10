@@ -18,14 +18,14 @@ const PLANS = [
   {
     id:       'starter',
     name:     'Starter',
-    price:    '1 047 kr/mnd',
+    price:    '2 090 kr/mnd',
     videos:   '3 videoer per måned',
     desc:     'For enkeltmeglere som vil komme i gang',
   },
   {
     id:       'pro',
     name:     'Pro',
-    price:    '1 990 kr/mnd',
+    price:    '3 990 kr/mnd',
     videos:   '10 videoer per måned',
     desc:     'For aktive meglere med høyt volum',
     featured: true,
@@ -33,27 +33,27 @@ const PLANS = [
   {
     id:       'office',
     name:     'Kontor',
-    price:    '999 kr/megler/mnd',
+    price:    '1 990 kr/megler/mnd',
     videos:   '7 videoer per megler',
     desc:     'For hele meglerhuset med quantity-prising',
   },
 ]
 
 const PLAN_LABELS: Record<string, { label: string; price: string }> = {
-  starter: { label: 'Starter',       price: 'kr 1 047/mnd' },
-  pro:     { label: 'Pro',           price: 'kr 1 990/mnd' },
-  office:  { label: 'Kontor',        price: 'kr 999/mnd per megler' },
+  starter: { label: 'Starter',       price: 'kr 2 090/mnd' },
+  pro:     { label: 'Pro',           price: 'kr 3 990/mnd' },
+  office:  { label: 'Kontor',        price: 'kr 1 990/mnd per megler' },
   trial:   { label: 'Prøveperiode',  price: '14 dager gratis' },
   free:    { label: 'Prøveperiode',  price: '14 dager gratis' },
 }
 
 // Plan-spesifikke topup-pakker (fast antall, fast pris)
 const TOPUP_PACKAGES: Record<string, { qty: number; pricePerUnit: number; total: number }> = {
-  starter: { qty: 3, pricePerUnit: 299, total: 897 },
-  pro:     { qty: 5, pricePerUnit: 249, total: 1245 },
-  office:  { qty: 5, pricePerUnit: 249, total: 1245 },
-  trial:   { qty: 3, pricePerUnit: 299, total: 897 },
-  free:    { qty: 3, pricePerUnit: 299, total: 897 },
+  starter: { qty: 1, pricePerUnit: 989, total: 989 },
+  pro:     { qty: 1, pricePerUnit: 989, total: 989 },
+  office:  { qty: 1, pricePerUnit: 989, total: 989 },
+  trial:   { qty: 1, pricePerUnit: 989, total: 989 },
+  free:    { qty: 1, pricePerUnit: 989, total: 989 },
 }
 
 export default function BillingPage() {
@@ -251,7 +251,7 @@ export default function BillingPage() {
               return (
                 <div className="app-card" id="extra-credits" style={{ padding: '24px', marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-                    Kjøp ekstra videoer
+                    Kjøp enkeltvideo
                   </h3>
                   <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>
                     Engangskjøp — kreditten utløper ikke og brukes opp før månedlige kreditter.
@@ -265,10 +265,10 @@ export default function BillingPage() {
                   }}>
                     <div>
                       <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)' }}>
-                        {pkg.qty} videoer
+                        1 video
                       </div>
                       <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
-                        {pkg.pricePerUnit} kr per video · totalt {pkg.total} kr
+                        {pkg.pricePerUnit} kr — engangskjøp
                       </div>
                     </div>
 

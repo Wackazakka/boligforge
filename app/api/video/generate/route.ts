@@ -57,7 +57,7 @@ export async function POST(request: Request) {
           {
             error: 'Ingen videokreditter igjen denne måneden',
             code: 'NO_CREDITS',
-            extra_credit_price_nok: credits.plan === 'pro' ? 249 : credits.plan === 'kontor' ? 199 : 299,
+            extra_credit_price_nok: 989,
           },
           { status: 402 }
         )

@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 const PLAN_DEFAULTS: Record<string, { included_per_month: number; extra_credit_price_nok: number }> = {
-  starter: { included_per_month: 3,  extra_credit_price_nok: 299 },
-  pro:     { included_per_month: 10, extra_credit_price_nok: 249 },
-  office:  { included_per_month: 7,  extra_credit_price_nok: 249 },
-  kontor:  { included_per_month: 7,  extra_credit_price_nok: 249 },
-  trial:   { included_per_month: 3,  extra_credit_price_nok: 299 },
-  free:    { included_per_month: 3,  extra_credit_price_nok: 299 },
+  starter: { included_per_month: 3,  extra_credit_price_nok: 989 },
+  pro:     { included_per_month: 10, extra_credit_price_nok: 989 },
+  office:  { included_per_month: 7,  extra_credit_price_nok: 989 },
+  kontor:  { included_per_month: 7,  extra_credit_price_nok: 989 },
+  trial:   { included_per_month: 3,  extra_credit_price_nok: 989 },
+  free:    { included_per_month: 3,  extra_credit_price_nok: 989 },
 }
 
 export async function GET() {

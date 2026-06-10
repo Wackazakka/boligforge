@@ -323,7 +323,7 @@ export default function Home() {
             <div className="plan">
               <div className="nm">Starter</div>
               <div className="for">For meglere som tester</div>
-              <div className="price"><span className="v">1 047</span><span className="cur">kr / mnd</span></div>
+              <div className="price"><span className="v">2 090</span><span className="cur">kr / mnd</span></div>
               <div className="desc">3 ferdig produserte videoer hver måned, full tilgang til avatarbiblioteket.</div>
               <ul>
                 <li><CheckIcon /> <span><b>3 videoer</b> per måned</span></li>
@@ -340,7 +340,7 @@ export default function Home() {
               <span className="badge">Mest populær</span>
               <div className="nm">Pro</div>
               <div className="for">For aktive meglere</div>
-              <div className="price"><span className="v">1 990</span><span className="cur">kr / mnd</span></div>
+              <div className="price"><span className="v">3 990</span><span className="cur">kr / mnd</span></div>
               <div className="desc">10 videoer i måneden, din egen stemmeklone og kontorprofil i hver film.</div>
               <ul>
                 <li><CheckIcon /> <span><b>10 videoer</b> per måned</span></li>
@@ -357,7 +357,7 @@ export default function Home() {
             <div className="plan">
               <div className="nm">Kontor</div>
               <div className="for">For hele meglerhuset</div>
-              <div className="price"><span className="v">999</span><span className="cur">kr / megler · mnd</span></div>
+              <div className="price"><span className="v">1 990</span><span className="cur">kr / megler · mnd</span></div>
               <div className="desc">7 videoer per megler hver måned, sentralisert merkevareprofil og dedikert oppfølging.</div>
               <ul>
                 <li><CheckIcon /> <span><b>7 videoer</b> per megler · mnd</span></li>

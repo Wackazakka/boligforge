@@ -9,26 +9,8 @@ const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-04-22.dahlia',
 })
 
-// Antall videoer per topup-pakke (brukes i webhook og metadata)
-const TOPUP_VIDEOS: Record<string, number> = {
-  starter: 3,
-  pro:     5,
-  office:  5,
-  trial:   3,
-  free:    3,
-}
-
-// Pre-opprettede Stripe price IDs per plan
-function priceIdForPlan(plan: string): string | null {
-  const map: Record<string, string | undefined> = {
-    starter: process.env.STRIPE_PRICE_TOPUP_STARTER,
-    pro:     process.env.STRIPE_PRICE_TOPUP_PRO,
-    office:  process.env.STRIPE_PRICE_TOPUP_OFFICE,
-    trial:   process.env.STRIPE_PRICE_TOPUP_STARTER,
-    free:    process.env.STRIPE_PRICE_TOPUP_STARTER,
-  }
-  return map[plan] ?? process.env.STRIPE_PRICE_TOPUP_STARTER ?? null
-}
+// Én enhetlig modell: alle ekstra-/enkeltvideoer koster 989 kr, uansett plan.
+const SINGLE_VIDEO_PRICE_NOK = 989
 
 export async function POST() {
   const user = await getUser()
@@ -49,18 +31,22 @@ export async function POST() {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  const plan   = vc?.plan ?? 'starter'
-  const priceId = priceIdForPlan(plan)
-  const videos  = TOPUP_VIDEOS[plan] ?? 3
-
-  if (!priceId) {
-    return NextResponse.json({ error: 'Topup price ID ikke konfigurert for plan: ' + plan }, { status: 500 })
-  }
+  const plan = vc?.plan ?? 'starter'
 
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: [{
+      quantity: 1,
+      price_data: {
+        currency:    'nok',
+        unit_amount: SINGLE_VIDEO_PRICE_NOK * 100,
+        product_data: {
+          name:        'Enkeltvideo — ReelHome',
+          description: `Engangskjøp av 1 videokreditt — ${SINGLE_VIDEO_PRICE_NOK} kr`,
+        },
+      },
+    }],
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?credits_purchased=1`,
     cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?cancelled=1`,
     customer_email: user.email,
@@ -68,7 +54,7 @@ export async function POST() {
       type:              'topup',
       user_id:           user.id,
       plan,
-      credits_purchased: String(videos),
+      credits_purchased: '1',
     },
   })
 

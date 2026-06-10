@@ -10,12 +10,13 @@ const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 // Plan-spesifikke topup-pakker. Prisen per video er aldri lavere enn 199 kr.
+// Én enhetlig modell: alle ekstra-/enkeltvideoer koster 989 kr, uansett plan.
 const TOPUP_PACKAGES: Record<string, { qty: number; pricePerUnit: number }> = {
-  starter: { qty: 3, pricePerUnit: 299 },  // 897 kr totalt
-  pro:     { qty: 5, pricePerUnit: 249 },  // 1 245 kr totalt
-  office:  { qty: 5, pricePerUnit: 249 },  // 1 245 kr totalt
-  trial:   { qty: 3, pricePerUnit: 299 },
-  free:    { qty: 3, pricePerUnit: 299 },
+  starter: { qty: 1, pricePerUnit: 989 },
+  pro:     { qty: 1, pricePerUnit: 989 },
+  office:  { qty: 1, pricePerUnit: 989 },
+  trial:   { qty: 1, pricePerUnit: 989 },
+  free:    { qty: 1, pricePerUnit: 989 },
 }
 
 export async function POST(request: Request) {
@@ -51,8 +52,8 @@ export async function POST(request: Request) {
           currency:    'nok',
           unit_amount: pkg.pricePerUnit * 100,  // øre
           product_data: {
-            name:        `${pkg.qty} ekstra videoer`,
-            description: `Enkeltvideoer for ReelHome — ${pkg.pricePerUnit} kr per video`,
+            name:        'Enkeltvideo — ReelHome',
+            description: `Engangskjøp av 1 videokreditt — ${pkg.pricePerUnit} kr`,
           },
         },
       },
