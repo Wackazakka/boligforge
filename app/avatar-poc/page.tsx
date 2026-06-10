@@ -20,6 +20,8 @@ export default function AvatarPocPage() {
   const [streamReadyMs, setStreamReadyMs] = useState<number | null>(null)
   const [latencies, setLatencies] = useState<number[]>([])
   const [logs, setLogs] = useState<Log[]>([])
+  const [listening, setListening] = useState(false)
+  const [transcripts, setTranscripts] = useState<{ who: string; text: string }[]>([])
 
   function log(msg: string) {
     const t = new Date().toLocaleTimeString('nb-NO')
@@ -40,7 +42,7 @@ export default function AvatarPocPage() {
         '@heygen/liveavatar-web-sdk'
       )
 
-      const session = new LiveAvatarSession(data.session_token, { voiceChat: false })
+      const session = new LiveAvatarSession(data.session_token, { voiceChat: true })
       sessionRef.current = session
 
       session.on(SessionEvent.SESSION_STREAM_READY, () => {
@@ -48,7 +50,24 @@ export default function AvatarPocPage() {
         setStreamReadyMs(ms)
         setStatus('Avatar klar — strøm aktiv')
         log(`STREAM_READY etter ${ms} ms fra start`)
-        if (videoRef.current) session.attach(videoRef.current)
+        if (videoRef.current) {
+          session.attach(videoRef.current)
+          // svart-video-fiks: eksplisitt play() etter attach (autoplay-policy)
+          videoRef.current.play().catch(err => log('video.play() avvist: ' + err?.message))
+        }
+      })
+      session.on(AgentEventsEnum.USER_SPEAK_STARTED, () => log('USER_SPEAK_STARTED — mikrofonen hører deg'))
+      session.on(AgentEventsEnum.USER_SPEAK_ENDED, () => log('USER_SPEAK_ENDED'))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e: any) => {
+        const text = e?.text ?? JSON.stringify(e)
+        log(`USER_TRANSCRIPTION: "${text}"`)
+        setTranscripts(prev => [{ who: 'Du', text }, ...prev].slice(0, 20))
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e: any) => {
+        const text = e?.text ?? ''
+        if (text) setTranscripts(prev => [{ who: 'Avatar', text }, ...prev].slice(0, 20))
       })
       session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => {
         if (speakT0.current != null) {
@@ -85,6 +104,24 @@ export default function AvatarPocPage() {
     }
   }
 
+  function toggleListening() {
+    const s = sessionRef.current
+    if (!s) return
+    try {
+      if (listening) {
+        s.stopListening()
+        setListening(false)
+        log('stopListening()')
+      } else {
+        s.startListening()
+        setListening(true)
+        log('startListening() — snakk til avataren nå')
+      }
+    } catch (e) {
+      log('lytte-feil: ' + (e instanceof Error ? e.message : String(e)))
+    }
+  }
+
   async function stop() {
     try {
       await sessionRef.current?.stop()
@@ -109,6 +146,9 @@ export default function AvatarPocPage() {
       <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
         <button onClick={start} style={btn('#2563eb')}>1. Start sesjon</button>
         <button onClick={speak} style={btn('#16a34a')}>2. Si testsetning</button>
+        <button onClick={toggleListening} style={btn(listening ? '#dc2626' : '#9333ea')}>
+          {listening ? '🎙 Stopp lytting' : '3. 🎙 Start lytting'}
+        </button>
         <button onClick={stop} style={btn('#6b7280')}>Stopp</button>
       </div>
 
@@ -124,6 +164,17 @@ export default function AvatarPocPage() {
         <div>Snitt tale-latency: <strong>{avg != null ? `${avg} ms` : '—'}</strong></div>
         <div>Målinger: <strong>{latencies.length > 0 ? latencies.map(l => `${l}ms`).join(', ') : '—'}</strong></div>
       </div>
+
+      {transcripts.length > 0 && (
+        <div style={{ margin: '12px 0', padding: 12, background: '#f3f4f6', borderRadius: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Transkripsjon (nyeste øverst)</div>
+          <ul style={{ fontSize: 13, lineHeight: 1.7, margin: 0, paddingLeft: 18 }}>
+            {transcripts.map((tr, i) => (
+              <li key={i}><strong>{tr.who}:</strong> {tr.text}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <details open>
         <summary style={{ cursor: 'pointer', fontSize: 13, color: '#555' }}>Hendelseslogg</summary>
