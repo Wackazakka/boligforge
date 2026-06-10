@@ -1,3 +1,14 @@
+> ## ✅ FASE 0 FULLFØRT — planen er delvis erstattet (2026-06-10)
+> PoC-en besvarte alle risikospørsmålene. **Les `avatar-fase0-funn.md` sammen med denne planen** — den overstyrer på følgende punkter:
+>
+> 1. **§5.1 HeyGen → LiveAvatar:** Det gamle HeyGen Streaming-API-et er dødt. Alt bruker nå `api.liveavatar.com` + `@heygen/liveavatar-web-sdk` (mode FULL, `repeat()`, `voiceChat.start()` + `startListening()`). Env: `LIVEAVATAR_API_KEY`.
+> 2. **§5.2 Whisper UTGÅR:** LiveAvatar har innebygd STT som virker på norsk (`language: 'no'` i avatar_persona — kritisk; 'en' feiltolker norsk). `USER_TRANSCRIPTION`-events erstatter hele Whisper-steget i dataflyten (§2.2).
+> 3. **Latency verifisert:** tale-latency 0,6–1,1 s konsistent (mål <2 s) — grønt lys. STREAM_READY 2,3–7,6 s → bruk «kobler til megler…»-spinner.
+> 4. **Fundament KJØRT (2026-06-10):** migrasjonen (`20260609_avatar.sql`) er kjørt mot ReelHome-prosjektet (eget prosjekt etter CF-separasjonen) — 7 tabeller + pgvector + `match_avatar_chunks` + RLS på plass. Storage-bucket `avatar-docs` (privat) opprettet.
+> 5. **PoC-kode:** `app/avatar-poc/page.tsx` + `app/api/avatar/poc-token/route.ts` på branch `feat/avatar-fase0` (ikke merget — token-ruten må gates før evt. merge, ellers kan hvem som helst brenne LiveAvatar-kreditter).
+>
+> **Status: klar for Fase 1 (MVP).**
+
 # ReelHome Avatar — Teknisk Spec (fase 2)
 
 **Versjon:** plan v1.0 · **Dato:** 2026-06-09 · **Repo:** `~/boligforge` (Next.js 16.2.6, Netlify) · **Supabase:** `jvnavubholyvihvytqkn` (delt med ContentForge) · **Forfatter-rolle:** arkitekt (read-only plan)
