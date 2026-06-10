@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     if (inviteError.message.includes('already been registered') || inviteError.message.includes('already exists')) {
       try {
         await getResend().emails.send({
-          from:    'ReelHome <hei@reelhome.no>',
+          from:    'ReelHome <hei@reelhome.ai>',
           to:      email.trim(),
           subject: `Du er invitert til ${orgName} på ReelHome`,
           html: `
