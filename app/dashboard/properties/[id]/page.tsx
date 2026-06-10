@@ -774,10 +774,11 @@ export default function PropertyDetailPage() {
     const tickerText = outro.images.length > 0
       ? (tickerParts.length > 0 ? tickerParts.join('  ·  ') : property?.title || property?.address || 'Se mer om denne boligen')
       : undefined
-    const logoUrl = freshLogoUrl || undefined
-    const outroPayload = (outro.images.length > 0 || logoUrl)
-      ? { ...outro, tickerText, ...(logoUrl ? { logoUrl } : {}) }
-      : undefined
+    // ReelHome-logo som standard sluttbilde når megleren ikke har lastet opp egen logo —
+    // ellers har musikken ingenting å fade ut over og videoen slutter brått.
+    const DEFAULT_OUTRO_LOGO = 'https://reelhome.ai/outro-logo.png'
+    const logoUrl = freshLogoUrl || DEFAULT_OUTRO_LOGO
+    const outroPayload = { ...outro, tickerText, logoUrl }
 
     // Ensure all non-still segments have audioUrl — generate TTS now for any that are missing,
     // so the worker always uses the approved voice rather than re-generating on its end.
