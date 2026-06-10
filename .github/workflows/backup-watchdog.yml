@@ -1,0 +1,74 @@
+name: Backup Watchdog
+
+# Uavhengig dødmannsknapp for Supabase-backupene. Kjører på GitHubs infrastruktur
+# (utenfor dropletten) og sjekker at R2 har en fersk DB-dump. Fanger: cron død,
+# droplet nede, backup-script brutt, R2-opplasting brutt — alt som gjør at den
+# nattlige kjeden slutter å produsere ferske backups. Varsler via Telegram.
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 09:00 UTC daglig — ~4,5t etter at backup-kjeden skal være ferdig (04:30)
+  workflow_dispatch: {}    # tillat manuell kjøring
+
+jobs:
+  check-backup-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sjekk at R2 har en fersk DB-backup
+        env:
+          R2_ACCESS_KEY_ID:     ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT:          ${{ secrets.R2_BACKUP_ENDPOINT }}
+          TG_TOKEN:             ${{ secrets.BACKUP_TELEGRAM_BOT_TOKEN }}
+          TG_CHAT:              ${{ secrets.BACKUP_TELEGRAM_CHAT_ID }}
+        run: |
+          python3 - <<'PY'
+          import os, hashlib, hmac, datetime, urllib.request, urllib.parse, xml.etree.ElementTree as ET, sys
+
+          AK=os.environ['R2_ACCESS_KEY_ID']; SK=os.environ['R2_SECRET_ACCESS_KEY']
+          EP=os.environ['R2_ENDPOINT'].rstrip('/'); HOST=EP.replace('https://','')
+          BUCKET='supabase-backups'; PREFIX='db-backups/'
+          MAX_AGE_H=28  # fersk = nyeste DB-dump lastet opp siste 28t (kjede kjører hver 24t)
+
+          def sign(k,m): return hmac.new(k,m.encode(),hashlib.sha256).digest()
+          def s3get(path, qs):
+              t=datetime.datetime.utcnow(); amz=t.strftime('%Y%m%dT%H%M%SZ'); ds=t.strftime('%Y%m%d')
+              ph=hashlib.sha256(b'').hexdigest()
+              cr=f"GET\n{path}\n{qs}\nhost:{HOST}\nx-amz-content-sha256:{ph}\nx-amz-date:{amz}\n\nhost;x-amz-content-sha256;x-amz-date\n{ph}"
+              scope=f"{ds}/auto/s3/aws4_request"
+              sts=f"AWS4-HMAC-SHA256\n{amz}\n{scope}\n{hashlib.sha256(cr.encode()).hexdigest()}"
+              key=sign(sign(sign(sign(('AWS4'+SK).encode(),ds),'auto'),'s3'),'aws4_request')
+              sig=hmac.new(key,sts.encode(),hashlib.sha256).hexdigest()
+              auth=f"AWS4-HMAC-SHA256 Credential={AK}/{scope}, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature={sig}"
+              req=urllib.request.Request(f"{EP}{path}?{qs}", headers={'Authorization':auth,'x-amz-date':amz,'x-amz-content-sha256':ph})
+              return urllib.request.urlopen(req, timeout=30).read()
+
+          def alert(msg):
+              try:
+                  urllib.request.urlopen(urllib.request.Request(
+                      f"https://api.telegram.org/bot{os.environ['TG_TOKEN']}/sendMessage",
+                      data=urllib.parse.urlencode({'chat_id':os.environ['TG_CHAT'],'text':msg}).encode()), timeout=15)
+              except Exception as e:
+                  print("Telegram-varsel feilet:", e)
+
+          try:
+              qs="list-type=2&"+urllib.parse.urlencode({'prefix':PREFIX})
+              body=s3get(f"/{BUCKET}", qs)
+              ns='{http://s3.amazonaws.com/doc/2006-03-01/}'
+              root=ET.fromstring(body)
+              times=[datetime.datetime.strptime(e.find(ns+'LastModified').text,'%Y-%m-%dT%H:%M:%S.%fZ')
+                     for e in root.findall(ns+'Contents')]
+              if not times:
+                  alert("🚨 BACKUP-VAKT: Ingen DB-backups funnet i R2 (supabase-backups/db-backups/). Backup-kjeden kan ha sluttet å kjøre. Sjekk dropletten.")
+                  print("INGEN backups funnet — varsel sendt"); sys.exit(1)
+              newest=max(times)
+              age_h=(datetime.datetime.utcnow()-newest).total_seconds()/3600
+              print(f"Nyeste DB-backup i R2: {newest} UTC ({age_h:.1f}t gammel)")
+              if age_h > MAX_AGE_H:
+                  alert(f"🚨 BACKUP-VAKT: Nyeste DB-backup i R2 er {age_h:.0f}t gammel (grense {MAX_AGE_H}t). Den nattlige backup-kjeden har sannsynligvis sluttet å kjøre — sjekk cron/droplet/R2.")
+                  print("STALE — varsel sendt"); sys.exit(1)
+              print(f"OK — backup er fersk ({age_h:.1f}t).")
+          except Exception as e:
+              alert(f"🚨 BACKUP-VAKT: Klarte ikke verifisere backup i R2 — {type(e).__name__}: {e}. Kan bety at R2 er utilgjengelig eller credentials er feil.")
+              print("FEIL:", e); sys.exit(1)
+          PY
