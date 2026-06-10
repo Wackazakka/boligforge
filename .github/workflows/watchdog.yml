@@ -1,0 +1,17 @@
+name: Scheduled Publish Watchdog
+
+# Uavhengig vakt (kjører på GitHub, ikke Netlify) som varsler på e-post hvis
+# planlagte videoer ikke blir publisert. Fanger opp regresjoner uansett årsak —
+# inkludert om Netlify-cron-en selv slutter å kjøre.
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # hvert 30. min (GitHub kan strupe — greit for varsling)
+  workflow_dispatch:          # manuell trigging
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for stuck scheduled posts
+        run: |
+          curl -s -X POST "https://reelhome.ai/api/cron/publish-watchdog" --max-time 60
