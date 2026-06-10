@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     // Note: cloned_voice_id is intentionally excluded here.
     // It must only be set via /api/profile/clone-voice to prevent
     // template voice IDs from overwriting the real cloned voice ID.
-    const { name, title, phone, email, website, voice_id, tone_of_voice, hashtags, portrait_url } = body
+    const { name, title, phone, email, website, voice_id, tone_of_voice, portrait_url } = body
 
     const supabase = await createSupabaseServerClient()
     const { error } = await supabase.from('agent_profiles').upsert(
@@ -23,7 +23,6 @@ export async function POST(request: Request) {
         website,
         default_voice_id: voice_id,
         tone_of_voice,
-        hashtags,
         ...(portrait_url !== undefined ? { portrait_url } : {}),
       },
       { onConflict: 'user_id' }

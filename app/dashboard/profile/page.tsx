@@ -65,7 +65,6 @@ type Profile = {
   voice_id?: string
   cloned_voice_id?: string
   tone_of_voice?: string
-  hashtags?: string
   logo_url?: string
   portrait_url?: string
   selected_avatar_url?: string
@@ -654,16 +653,6 @@ export default function ProfilePage() {
                   )
                 })}
               </div>
-            </div>
-            <div>
-              <label className="app-label">Standard hashtags</label>
-              <input
-                type="text"
-                value={profile.hashtags || ''}
-                onChange={e => set('hashtags', e.target.value)}
-                placeholder="#eiendom #boligforsalg #megler"
-                className="app-input"
-              />
             </div>
           </div>
         </section>
