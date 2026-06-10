@@ -26,6 +26,16 @@ const SETTINGS = [
   { id: 'neighborhood', label: 'Utendørs i boligfelt' },
 ]
 
+// Tone-instruks for manus-generering (brukes når stilen «Nøytral» er valgt).
+// Verdien lagres som tekst i agent_profiles.tone_of_voice — første preset matcher
+// onboarding-defaulten, så eksisterende meglere får riktig valg markert.
+const TONE_PRESETS = [
+  { label: 'Varm og profesjonell', value: 'Varm og profesjonell. Snakker klart og tydelig om boligens fordeler.' },
+  { label: 'Energisk og engasjerende', value: 'Energisk og engasjerende. Skaper entusiasme for boligen med levende språk og tempo.' },
+  { label: 'Rolig og tillitsvekkende', value: 'Rolig og tillitsvekkende. Trygg, ærlig og nøktern — bygger tillit uten salgssjargong.' },
+  { label: 'Saklig og presis', value: 'Saklig og presis. Faktabasert og ryddig, lar boligens kvaliteter tale for seg selv.' },
+]
+
 const AVATAR_R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
 const STANDARD_AVATARS = [
   { id: 'sofia',  name: 'Sofia' },
@@ -620,14 +630,30 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="app-label">Tone of voice</label>
-              <textarea
-                rows={3}
-                value={profile.tone_of_voice || ''}
-                onChange={e => set('tone_of_voice', e.target.value)}
-                placeholder="F.eks: Varm og profesjonell. Snakker klart og tydelig om boligens fordeler. Unngår salgssjargong og er ærlig."
-                className="app-textarea"
-              />
+              <label className="app-label">Tone i manus</label>
+              <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>
+                Brukes når manus genereres med stilen «Nøytral». Velg den som passer deg best.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {TONE_PRESETS.map(p => {
+                  const selected = profile.tone_of_voice === p.value
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => set('tone_of_voice', p.value)}
+                      style={{
+                        textAlign: 'left', padding: '10px 12px', borderRadius: '10px', cursor: 'pointer',
+                        border: selected ? '2px solid var(--blue)' : '1px solid var(--line)',
+                        background: selected ? 'var(--surface-2)' : 'var(--surface)',
+                      }}
+                    >
+                      <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{p.label}</span>
+                      <span className="text-xs block" style={{ color: 'var(--muted)' }}>{p.value}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div>
               <label className="app-label">Standard hashtags</label>
