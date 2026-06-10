@@ -1555,7 +1555,12 @@ export default function PropertyDetailPage() {
                         <span className="text-sm">{outro.musicUrl === f.url ? '♪' : '○'}</span>
                         <span className="text-sm flex-1 truncate">{f.name}</span>
                         <button
-                          onClick={e => { e.stopPropagation(); toggleMusicPreview(f.url) }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            toggleMusicPreview(f.url)
+                            // Hør velger også fila (Stopp endrer ikke valget) — sparer brukeren for to klikk
+                            setOutro(o => ({ ...o, musicUrl: f.url }))
+                          }}
                           style={{ fontSize: '10px', color: playingMusicUrl === f.url ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0' }}
                         >{playingMusicUrl === f.url ? '■ Stopp' : '▶ Hør'}</button>
                         <button
@@ -1613,7 +1618,12 @@ export default function PropertyDetailPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={e => { e.stopPropagation(); toggleMusicPreview(url) }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            toggleMusicPreview(url)
+                            // Hør velger også sporet (Stopp endrer ikke valget) — sparer brukeren for to klikk
+                            setAmbienceType(id)
+                          }}
                           style={{ fontSize: '10px', color: isPlaying ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 8px', flexShrink: 0 }}
                         >
                           {isPlaying ? '■ Stopp' : '▶ Hør'}
