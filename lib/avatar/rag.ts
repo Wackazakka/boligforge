@@ -72,15 +72,41 @@ export async function keywordChunks(
   propertyId: string,
   term: string,
   limit = 10
-): Promise<RetrievedChunk[]> {
+): Promise<(RetrievedChunk & { document_id?: string; chunk_index?: number | null })[]> {
   const { data, error } = await client
     .from('reelhome_avatar_chunks')
-    .select('id, content, kind, page')
+    .select('id, content, kind, page, document_id, chunk_index')
     .eq('property_id', propertyId)
     .ilike('content', `%${term}%`)
     .limit(limit)
   if (error) throw new Error(`keywordChunks: ${error.message}`)
   return (data ?? []).map(d => ({ ...d, similarity: 1 }))
+}
+
+// Nabo-chunks: lister (f.eks. avviksoversikter) fortsetter ofte over chunk-
+// grensen — hent biten før/etter hvert nøkkelordtreff så fortsettelsen kommer med.
+export async function neighborChunks(
+  client: SupabaseClient,
+  hits: { document_id?: string; chunk_index?: number | null }[]
+): Promise<RetrievedChunk[]> {
+  const wanted = new Map<string, Set<number>>()
+  for (const h of hits) {
+    if (!h.document_id || h.chunk_index == null) continue
+    const s = wanted.get(h.document_id) ?? new Set<number>()
+    s.add(h.chunk_index - 1)
+    s.add(h.chunk_index + 1)
+    wanted.set(h.document_id, s)
+  }
+  const out: RetrievedChunk[] = []
+  for (const [docId, idxs] of wanted) {
+    const { data } = await client
+      .from('reelhome_avatar_chunks')
+      .select('id, content, kind, page')
+      .eq('document_id', docId)
+      .in('chunk_index', [...idxs].filter(i => i >= 0))
+    for (const d of data ?? []) out.push({ ...d, similarity: 0.9 })
+  }
+  return out
 }
 
 // ── Fakta-blokk fra properties-tabellen (strukturert grunnsannhet) ────────────

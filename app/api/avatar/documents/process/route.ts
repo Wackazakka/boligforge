@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       document_id: doc.id,
       property_id: doc.property_id,
       kind: doc.kind,
+      chunk_index: i,
       content,
       embedding: JSON.stringify(embeddings[i]),
     }))

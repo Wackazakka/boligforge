@@ -13,7 +13,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getUser } from '../../../../lib/supabase/server'
-import { serviceClient, retrieveChunks, keywordChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
+import { serviceClient, retrieveChunks, keywordChunks, neighborChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
 import { isCostQuestion, buildCostBaseSection } from '../../../../lib/avatar/costbase'
 
 export const runtime = 'nodejs'
@@ -71,11 +71,19 @@ export async function POST(request: Request) {
   let chunks: Awaited<ReturnType<typeof retrieveChunks>> = []
   try {
     chunks = await retrieveChunks(client, propertyId, question, isEnumeration || kwTerms.length ? 10 : 6)
+    const allKw: Awaited<ReturnType<typeof keywordChunks>> = []
     for (const term of kwTerms) {
       const kw = await keywordChunks(client, propertyId, term, 40)
-      for (const c of kw) if (!chunks.some(x => x.id === c.id)) chunks.push(c)
+      for (const c of kw) {
+        if (!chunks.some(x => x.id === c.id)) chunks.push(c)
+        allKw.push(c)
+      }
     }
-    chunks = chunks.slice(0, 32)
+    // naboer til nøkkelordtreff (lister fortsetter over chunk-grenser)
+    for (const n of await neighborChunks(client, allKw)) {
+      if (!chunks.some(x => x.id === n.id)) chunks.push(n)
+    }
+    chunks = chunks.slice(0, 36)
   } catch (e) {
     console.error('[avatar/ask] retrieval feilet (fortsetter med kun fakta):', e)
   }

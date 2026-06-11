@@ -167,6 +167,9 @@ export default function AvatarTestPage() {
                 {d.status === 'failed' && <span style={{ color: '#dc2626' }}>❌ feilet: {d.error}</span>}
                 {(d.status === 'pending' || d.status === 'processing') && <span style={{ color: '#d97706' }}>⏳ {d.status}</span>}
                 {' '}
+                <button onClick={async () => { setDocMsg('Re-prosesserer…'); const r = await fetch('/api/avatar/documents/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: d.id }) }); const j = await r.json(); setDocMsg(r.ok ? `✅ Re-prosessert: ${j.pages} sider → ${j.chunks} biter` : `Feil: ${j.error}`); loadDocs(propertyId) }}
+                  style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>re-prosesser</button>
+                {' '}
                 <button onClick={async () => { await fetch('/api/avatar/documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: d.id }) }); loadDocs(propertyId) }}
                   style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>slett</button>
               </li>
