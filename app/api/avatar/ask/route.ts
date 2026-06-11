@@ -63,10 +63,12 @@ export async function POST(request: Request) {
   try {
     chunks = await retrieveChunks(client, propertyId, question, isEnumeration || tgTerms.length ? 10 : 6)
     for (const term of tgTerms) {
-      const kw = await keywordChunks(client, propertyId, term, 10)
+      // hent ALLE chunks som inneholder termen — en 118-siders rapport kan ha
+      // TG2 i 20-30 biter, og fullstendighet er hele poenget med spørsmålet
+      const kw = await keywordChunks(client, propertyId, term, 40)
       for (const c of kw) if (!chunks.some(x => x.id === c.id)) chunks.push(c)
     }
-    chunks = chunks.slice(0, 16)
+    chunks = chunks.slice(0, 32)
   } catch (e) {
     console.error('[avatar/ask] retrieval feilet (fortsetter med kun fakta):', e)
   }

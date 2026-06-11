@@ -150,7 +150,12 @@ export default function AvatarTestPage() {
       </select>
 
       <div style={{ border: '1px solid #ddd', borderRadius: 10, padding: 16, marginBottom: 16, background: '#fff' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>📄 Kunnskapsbase for denne boligen</div>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>
+          📄 Kunnskapsbase for: {properties.find(p => p.id === propertyId)?.address ?? 'valgt eiendom'}
+        </div>
+        <p style={{ fontSize: 12, color: '#b45309', margin: '0 0 10px' }}>
+          Dokumentene under tilhører eiendommen valgt øverst. Last kun opp dokumenter som gjelder denne boligen — bytt eiendom i nedtrekkslisten først hvis dokumentet gjelder en annen.
+        </p>
         {docs.length === 0 ? (
           <p style={{ fontSize: 13, color: '#999', margin: '0 0 10px' }}>Ingen dokumenter ennå — last opp salgsoppgave/tilstandsrapport, så kan avataren svare på detaljspørsmål.</p>
         ) : (
