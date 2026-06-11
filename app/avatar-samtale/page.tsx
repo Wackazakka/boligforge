@@ -36,6 +36,7 @@ function Samtale() {
   const [errMsg, setErrMsg] = useState('')
   const [micOn, setMicOn] = useState(false)
   const [interim, setInterim] = useState('')
+  const [typed, setTyped] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -258,6 +259,17 @@ function Samtale() {
           </div>
           {interim && <p style={{ color: '#2563eb', fontSize: 13, marginTop: 8, fontStyle: 'italic' }}>«{interim}»</p>}
           {errMsg && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{errMsg}</p>}
+          {status !== 'idle' && status !== 'avsluttet' && status !== 'kobler' && status !== 'feil' && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input
+                value={typed}
+                onChange={e => setTyped(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && typed.trim() && !busyRef.current) { try { sessionRef.current?.interrupt() } catch {}; handleQuestion(typed); setTyped('') } }}
+                placeholder="…eller skriv spørsmålet her"
+                style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid #ccc', fontSize: 13 }}
+              />
+            </div>
+          )}
         </div>
 
         <div style={{ flex: '1 1 320px', minWidth: 300, border: '1px solid #ddd', borderRadius: 12, padding: 14, maxHeight: 480, overflowY: 'auto', background: '#fafafa' }}>
