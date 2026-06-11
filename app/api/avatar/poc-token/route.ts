@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
+import { getUser } from '../../../../lib/supabase/server'
 
 // PoC-only token-rute for LiveAvatar (fase 0 latency-test).
 // Server-side: holder LIVEAVATAR_API_KEY hemmelig, returnerer kun en kortlivet session_token.
 const LA_BASE = 'https://api.liveavatar.com'
 
 export async function POST() {
+  // Gated: oppretter LiveAvatar-sesjoner (koster kreditter) — kun innloggede brukere
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const key = process.env.LIVEAVATAR_API_KEY
   if (!key) return NextResponse.json({ error: 'LIVEAVATAR_API_KEY mangler' }, { status: 500 })
 
