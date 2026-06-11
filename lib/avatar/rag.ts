@@ -131,6 +131,7 @@ export function buildPropertyFacts(p: any): string {
     p.energy_label && `Energimerke: ${p.energy_label}`,
     p.floor && `Etasje: ${p.floor}`,
     p.viewing_dates && `Visningsdatoer: ${p.viewing_dates}`,
+    p.neighborhood_facts && `\nNABOLAG (beregnet fra Kartverket/Entur):\n${p.neighborhood_facts}`,
   ].filter(Boolean)
   return facts.join('\n')
 }

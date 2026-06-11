@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getUser } from '../../../../../lib/supabase/server'
 import { serviceClient, chunkText, embedTexts } from '../../../../../lib/avatar/rag'
+import { fetchNeighborhoodFacts } from '../../../../../lib/avatar/neighborhood'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -172,7 +173,9 @@ export async function POST(request: Request) {
         if (tu) {
           const f = tu.input as { adresse: string; tittel?: string; prisantydning?: number; totalpris?: number; bra?: number; soverom?: number; rom?: number; byggeaar?: number; boligtype?: string }
           extractedAddress = f.adresse
+          const neighborhood = await fetchNeighborhoodFacts(f.adresse)
           await client.from('properties').update({
+            ...(neighborhood && { neighborhood_facts: neighborhood }),
             address: f.adresse,
             title: f.tittel ?? null,
             price: f.prisantydning ?? null,
