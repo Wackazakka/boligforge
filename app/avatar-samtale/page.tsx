@@ -22,7 +22,6 @@ function Samtale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
   const finalTextRef = useRef('')
-  const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const micActiveRef = useRef(false)
   const busyRef = useRef(false)
 
@@ -54,39 +53,22 @@ function Samtale() {
     rec.continuous = false
     rec.interimResults = true
     finalTextRef.current = ''
-    const maybeSend = () => {
-      if (!micActiveRef.current || busyRef.current) return
-      const text = finalTextRef.current.trim()
-      if (!text) return
-      finalTextRef.current = ''
-      setInterim('')
-      try { rec.stop() } catch {}
-      handleQuestion(text)
-    }
+    // Push-to-talk (Dr. Hanni-flyten): brukeren snakker ferdig og trykker
+    // «Ferdig» — først DA sendes spørsmålet. Ingen auto-send på pauser.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (event: any) => {
       if (!micActiveRef.current) return // events etter at mic er slått av
       let interimT = ''
-      let gotFinal = false
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const txt = event.results[i][0].transcript
-        if (event.results[i].isFinal) { finalTextRef.current += txt + ' '; gotFinal = true }
+        if (event.results[i].isFinal) finalTextRef.current += txt + ' '
         else interimT += txt
       }
       setInterim((finalTextRef.current + interimT).trim())
-      // send kort tid etter siste FINALE resultat — venter ikke på onend
-      // (Chrome holder av og til økten åpen lenge etter at setningen er ferdig)
-      if (gotFinal) {
-        if (sendTimerRef.current) clearTimeout(sendTimerRef.current)
-        sendTimerRef.current = setTimeout(maybeSend, 900)
-      }
     }
     rec.onend = () => {
-      if (!micActiveRef.current || busyRef.current) return
-      if (finalTextRef.current.trim()) {
-        maybeSend()
-      } else {
-        // stillhet/pause uten innhold — start lyttingen på nytt (Dr. Hanni-mønster)
+      // pauser i talen: bare fortsett å lytte til brukeren trykker Ferdig
+      if (micActiveRef.current && !busyRef.current) {
         try { rec.start() } catch {}
       }
     }
@@ -167,7 +149,7 @@ function Samtale() {
       // hilsen først NÅ — repeat() før start() er ferdig gir 'Session needs to be connected'
       setStatus('snakker')
       try {
-        session.repeat(`Hei og velkommen til digital visning av ${address || 'denne boligen'}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Hva lurer du på?`)
+        session.repeat(`Hei og velkommen til digital visning av ${address || 'denne boligen'}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Trykk på mikrofonknappen, still spørsmålet ditt, og trykk ferdig når du er klar.`)
       } catch (e) {
         console.error('hilsen feilet:', e)
         setStatus('klar')
@@ -188,13 +170,18 @@ function Samtale() {
         micActiveRef.current = false
       }
     } else {
+      // «Ferdig» trykket: stopp lyttingen og send det som ble sagt
       micActiveRef.current = false
       setMicOn(false)
-      setInterim('')
-      finalTextRef.current = ''
-      if (sendTimerRef.current) clearTimeout(sendTimerRef.current)
       pauseListening()
-      setStatus('klar')
+      const text = finalTextRef.current.trim()
+      finalTextRef.current = ''
+      setInterim('')
+      if (text) {
+        handleQuestion(text)
+      } else {
+        setStatus('klar')
+      }
     }
   }
 
@@ -207,7 +194,7 @@ function Samtale() {
 
   const statusLabel: Record<typeof status, string> = {
     idle: 'Klar til å starte', kobler: 'Kobler til megler…', klar: 'Tilkoblet',
-    lytter: '🎙 Lytter — bare snakk', tenker: '🧠 Tenker…', snakker: '💬 Avataren snakker',
+    lytter: '🎙 Lytter — trykk «Ferdig» når du har stilt spørsmålet', tenker: '🧠 Tenker…', snakker: '💬 Avataren snakker',
     avsluttet: 'Samtalen er avsluttet', feil: 'Noe gikk galt',
   }
 
@@ -227,8 +214,8 @@ function Samtale() {
               <button onClick={start} style={btn('#2563eb')}>Start samtale</button>
             )}
             {status !== 'idle' && status !== 'avsluttet' && status !== 'kobler' && status !== 'feil' && (
-              <button onClick={toggleMic} style={btn(micOn ? '#dc2626' : '#9333ea')}>
-                {micOn ? '🔇 Slå av mikrofonen' : '🎙 Slå på mikrofonen'}
+              <button onClick={toggleMic} style={btn(micOn ? '#16a34a' : '#9333ea')}>
+                {micOn ? '✅ Ferdig — send spørsmålet' : '🎙 Trykk og still spørsmålet'}
               </button>
             )}
             {status !== 'idle' && status !== 'avsluttet' && (
