@@ -198,6 +198,12 @@ export default function AvatarTestPage() {
       </div>
 
       <label style={{ fontSize: 13, fontWeight: 600 }}>Eiendom</label>
+      {propertyId && (
+        <a href={`/avatar-samtale?property=${propertyId}`}
+          style={{ float: 'right', fontSize: 13, fontWeight: 600, color: '#9333ea', textDecoration: 'none' }}>
+          🎥 Snakk med avataren →
+        </a>
+      )}
       <select
         value={propertyId}
         onChange={e => { setPropertyId(e.target.value); setTurns([]); loadDocs(e.target.value) }}
