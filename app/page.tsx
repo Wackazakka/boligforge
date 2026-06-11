@@ -327,7 +327,7 @@ export default function Home() {
               <div className="desc">3 ferdig produserte videoer hver måned.</div>
               <ul>
                 <li><CheckIcon /> <span><b>3 videoer</b> per måned</span></li>
-                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar per megler</li>
                 <li><CheckIcon /> Personlig stemmeklone inkludert</li>
                 <li><CheckIcon /> 1080p · 16:9</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
@@ -346,7 +346,7 @@ export default function Home() {
               <div className="desc">10 ferdig produserte videoer hver måned.</div>
               <ul>
                 <li><CheckIcon /> <span><b>10 videoer</b> per måned</span></li>
-                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar per megler</li>
                 <li><CheckIcon /> Personlig stemmeklone inkludert</li>
                 <li><CheckIcon /> 1080p · 16:9</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
@@ -365,7 +365,7 @@ export default function Home() {
               <div className="desc">7 ferdig produserte videoer per megler hver måned.</div>
               <ul>
                 <li><CheckIcon /> <span><b>7 videoer</b> per megler · mnd</span></li>
-                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar per megler</li>
                 <li><CheckIcon /> Personlig stemmeklone inkludert</li>
                 <li><CheckIcon /> 1080p · 16:9</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
