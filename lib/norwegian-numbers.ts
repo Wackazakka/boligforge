@@ -55,10 +55,33 @@ function yearToNorwegian(y: number): string {
   return numberToNorwegian(y)
 }
 
+const ORDINALS = ['', 'første', 'andre', 'tredje', 'fjerde', 'femte', 'sjette', 'sjuende',
+                  'åttende', 'niende', 'tiende', 'ellevte', 'tolvte', 'trettende', 'fjortende', 'femtende']
+
+// Postnummer leses parvis på norsk: 1275 -> «tolv syttifem», 0563 -> «null fem sekstitre»
+function postalCodeToNorwegian(code: string): string {
+  const a = Number(code.slice(0, 2))
+  const b = Number(code.slice(2))
+  const first = a === 0 ? 'null null' : a < 10 ? `null ${below1000(a)}` : below1000(a)
+  if (b === 0) return `${first} hundre`
+  const second = b < 10 ? `null ${below1000(b)}` : below1000(b)
+  return `${first} ${second}`
+}
+
 // Vask en hel svartekst til taleform: tall, TG-koder, enheter.
 // Brukes på avatar-svar FØR repeat() — chat-visningen beholder originalen.
 export function speakifyForTTS(text: string): string {
   let s = text
+
+  // ordenstall foran etasje: «1. etasjen» -> «første etasjen»
+  s = s.replace(/\b(\d{1,2})\.\s*(etasje\w*|etg\.?)/gi, (_m, d, e) => {
+    const ord = ORDINALS[Number(d)]
+    return ord ? `${ord} ${/etg/i.test(e) ? 'etasje' : e}` : _m
+  })
+
+  // postnummer (fire siffer foran stedsnavn) leses parvis — FØR årstallsregelen,
+  // så «2010 Strømmen» blir «tjue ti», ikke «to tusen og ti»
+  s = s.replace(/\b(\d{4})\b(?=,?\s+[A-ZÆØÅ][a-zæøå])/g, m => postalCodeToNorwegian(m))
 
   // TG-koder -> naturlig norsk
   s = s.replace(/\bTG\s?-?IU\b/gi, 'tilstandsgrad ikke undersøkt')
