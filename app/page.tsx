@@ -335,10 +335,9 @@ export default function Home() {
               <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
             </div>
 
-            {/* Pro */}
-            <div className="plan featured">
-              <span className="badge">Mest populær</span>
-              <div className="nm">Pro</div>
+            {/* Aktiv */}
+            <div className="plan">
+              <div className="nm">Aktiv</div>
               <div className="for">For aktive meglere</div>
               <div className="price"><span className="v">3 990</span><span className="cur">kr / mnd</span></div>
               <div className="desc">10 videoer i måneden, din egen stemmeklone og kontorprofil i hver film.</div>
@@ -350,12 +349,12 @@ export default function Home() {
                 <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
                 <li><CheckIcon /> Analyse av seeradferd</li>
               </ul>
-              <Link href="/auth/signup" className="btn btn-blue">Velg Pro <ArrowIcon /></Link>
+              <Link href="/auth/signup" className="btn btn-ghost">Velg Aktiv</Link>
             </div>
 
-            {/* Kontor */}
+            {/* Pro */}
             <div className="plan">
-              <div className="nm">Kontor</div>
+              <div className="nm">Pro</div>
               <div className="for">For hele meglerhuset</div>
               <div className="price"><span className="v">1 990</span><span className="cur">kr / megler · mnd</span></div>
               <div className="desc">7 videoer per megler hver måned, sentralisert merkevareprofil og dedikert oppfølging.</div>
