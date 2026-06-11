@@ -22,6 +22,7 @@ function Samtale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
   const finalTextRef = useRef('')
+  const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const micActiveRef = useRef(false)
   const busyRef = useRef(false)
 
@@ -53,22 +54,37 @@ function Samtale() {
     rec.continuous = false
     rec.interimResults = true
     finalTextRef.current = ''
+    const maybeSend = () => {
+      if (!micActiveRef.current || busyRef.current) return
+      const text = finalTextRef.current.trim()
+      if (!text) return
+      finalTextRef.current = ''
+      setInterim('')
+      try { rec.stop() } catch {}
+      handleQuestion(text)
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (event: any) => {
+      if (!micActiveRef.current) return // events etter at mic er slått av
       let interimT = ''
+      let gotFinal = false
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const txt = event.results[i][0].transcript
-        if (event.results[i].isFinal) finalTextRef.current += txt + ' '
+        if (event.results[i].isFinal) { finalTextRef.current += txt + ' '; gotFinal = true }
         else interimT += txt
       }
       setInterim((finalTextRef.current + interimT).trim())
+      // send kort tid etter siste FINALE resultat — venter ikke på onend
+      // (Chrome holder av og til økten åpen lenge etter at setningen er ferdig)
+      if (gotFinal) {
+        if (sendTimerRef.current) clearTimeout(sendTimerRef.current)
+        sendTimerRef.current = setTimeout(maybeSend, 900)
+      }
     }
     rec.onend = () => {
       if (!micActiveRef.current || busyRef.current) return
-      const text = finalTextRef.current.trim()
-      if (text) {
-        setInterim('')
-        handleQuestion(text)
+      if (finalTextRef.current.trim()) {
+        maybeSend()
       } else {
         // stillhet/pause uten innhold — start lyttingen på nytt (Dr. Hanni-mønster)
         try { rec.start() } catch {}
@@ -175,6 +191,8 @@ function Samtale() {
       micActiveRef.current = false
       setMicOn(false)
       setInterim('')
+      finalTextRef.current = ''
+      if (sendTimerRef.current) clearTimeout(sendTimerRef.current)
       pauseListening()
       setStatus('klar')
     }

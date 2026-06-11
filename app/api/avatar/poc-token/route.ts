@@ -20,8 +20,15 @@ export async function POST() {
   const avatarsJson = await avatarsRes.json()
   const results: Array<{ id: string; type: string; status: string; name: string }> =
     avatarsJson?.data?.results ?? []
+  // Deterministisk valg: samme avatar (og dermed samme stemme) hver økt.
+  // Tilfeldig førstevalg ga ny stemme/dialekt når lista endret rekkefølge.
+  const PREFERRED_AVATAR = process.env.AVATAR_LIVEAVATAR_ID // kan pinnes via env
+  const active = results.filter(a => a.type === 'VIDEO' && a.status === 'ACTIVE')
   const avatar =
-    results.find(a => a.type === 'VIDEO' && a.status === 'ACTIVE') ?? results[0]
+    (PREFERRED_AVATAR && active.find(a => a.id === PREFERRED_AVATAR)) ||
+    active.find(a => /ann/i.test(a.name)) ||
+    [...active].sort((a, b) => a.id.localeCompare(b.id))[0] ||
+    results[0]
   if (!avatar) return NextResponse.json({ error: 'Ingen offentlig avatar tilgjengelig' }, { status: 502 })
 
   // 2. Opprett sesjons-token i FULL-modus — vi styrer teksten avataren sier (repeat()).
