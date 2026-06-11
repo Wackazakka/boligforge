@@ -171,6 +171,15 @@ export default function PropertyDetailPage() {
   const [classifyingImages, setClassifyingImages] = useState(false)
   const [openGalleryForSegment, setOpenGalleryForSegment] = useState<number | null>(null)
 
+  // ── AI-megler tab ──
+  const [activeTab, setActiveTab] = useState<'video' | 'ai-megler'>('video')
+  type AvatarDoc = { id: string; filename: string; status: string; created_at: string }
+  const [avatarDocs, setAvatarDocs] = useState<AvatarDoc[]>([])
+  const [avatarDocsLoading, setAvatarDocsLoading] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarProcessing, setAvatarProcessing] = useState<string | null>(null)
+  const [copyDone, setCopyDone] = useState(false)
+
   // ── Folder panel for the freshly generated video ──
   // The just-finished video lives in pastVideos (re-fetched when polling completes),
   // so we resolve its real DB id by matching the URL, then reuse /api/collections/assign.
@@ -386,6 +395,16 @@ export default function PropertyDetailPage() {
       if (Array.isArray(d)) setCollections(d)
     })
   }, [id])
+
+  useEffect(() => {
+    if (activeTab !== 'ai-megler' || !id) return
+    setAvatarDocsLoading(true)
+    fetch(`/api/avatar/documents?propertyId=${id}`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setAvatarDocs(d) })
+      .catch(() => {})
+      .finally(() => setAvatarDocsLoading(false))
+  }, [activeTab, id])
 
   function splitIntoSegments(text: string) {
     const raw = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
@@ -844,6 +863,63 @@ export default function PropertyDetailPage() {
     startPolling(data.jobId)
   }
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarUploading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/avatar/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId: id, filename: file.name, contentType: file.type }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Opprettelse feilet')
+      await fetch(data.upload.url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+      setAvatarProcessing(data.document.id)
+      const procRes = await fetch('/api/avatar/documents/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: data.document.id, propertyId: id }),
+      })
+      if (!procRes.ok) throw new Error('Prosessering feilet')
+      const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
+      const list = await listRes.json()
+      if (Array.isArray(list)) setAvatarDocs(list)
+    } catch (err) {
+      setError(`AI-megler opplasting feilet: ${String(err)}`)
+    } finally {
+      setAvatarUploading(false)
+      setAvatarProcessing(null)
+      e.target.value = ''
+    }
+  }
+
+  async function handleAvatarDeleteDoc(docId: string) {
+    if (!confirm('Slette dette dokumentet fra AI-meglerens kunnskapsbase?')) return
+    await fetch(`/api/avatar/documents?id=${docId}`, { method: 'DELETE' })
+    setAvatarDocs(prev => prev.filter(d => d.id !== docId))
+  }
+
+  async function handleAvatarReprocess(docId: string) {
+    setAvatarProcessing(docId)
+    try {
+      await fetch('/api/avatar/documents/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: docId, propertyId: id }),
+      })
+      const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
+      const list = await listRes.json()
+      if (Array.isArray(list)) setAvatarDocs(list)
+    } catch {
+      setError('Reprosessering feilet')
+    } finally {
+      setAvatarProcessing(null)
+    }
+  }
+
   function formatPrice(p: number | null) {
     if (!p) return '—'
     return new Intl.NumberFormat('nb-NO').format(p) + ' kr'
@@ -981,6 +1057,27 @@ export default function PropertyDetailPage() {
             ))}
           </div>
         ) : null}
+
+        {/* ── Tab-bar ── */}
+        <div style={{ display: 'flex', borderBottom: '2px solid var(--line)' }}>
+          {(['video', 'ai-megler'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '10px 20px', fontSize: '14px', fontWeight: 600,
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: `2px solid ${activeTab === tab ? 'var(--ink)' : 'transparent'}`,
+                marginBottom: '-2px',
+                color: activeTab === tab ? 'var(--ink)' : 'var(--muted)',
+              }}
+            >
+              {tab === 'video' ? 'Presentasjonsvideo' : 'AI-megler'}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'video' && (<>
 
         {/* ── Presenter + bakgrunn (unified) ── */}
         <div className="app-card" style={{ padding: '16px 20px' }}>
@@ -1935,6 +2032,100 @@ export default function PropertyDetailPage() {
           </div>
           )
         })()}
+
+        </>)}
+
+        {activeTab === 'ai-megler' && (
+          <div className="space-y-4">
+
+            {/* Dokumenter */}
+            <div className="app-card space-y-4">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Kunnskapsbase</h2>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>Last opp salgsoppgave og tilstandsrapport — AI-megleren svarer kun fra disse.</p>
+                </div>
+                <label className={`cursor-pointer app-btn-primary text-sm ${avatarUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                  style={{ padding: '8px 16px' }}>
+                  {avatarUploading ? 'Laster opp...' : '+ Last opp PDF'}
+                  <input type="file" accept=".pdf" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
+                </label>
+              </div>
+              {avatarDocsLoading && (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>Laster...</p>
+              )}
+              {!avatarDocsLoading && avatarDocs.length === 0 && (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                  Ingen dokumenter lastet opp ennå. Last opp salgsoppgave og tilstandsrapport for å aktivere AI-megleren.
+                </p>
+              )}
+              <div className="space-y-2">
+                {avatarDocs.map(doc => (
+                  <div key={doc.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '10px 12px', borderRadius: '8px',
+                    background: 'var(--surface-2)', border: '1px solid var(--line)',
+                  }}>
+                    <span style={{ fontSize: '18px', flexShrink: 0 }}>📄</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)', margin: 0 }}>{doc.filename}</p>
+                      <p style={{ fontSize: '11px', margin: 0, color: doc.status === 'processed' ? '#16a34a' : 'var(--muted)' }}>
+                        {avatarProcessing === doc.id ? '⏳ Prosesserer...' : doc.status === 'processed' ? '✅ Prosessert' : `⏳ ${doc.status}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleAvatarReprocess(doc.id)}
+                      disabled={avatarProcessing === doc.id}
+                      style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', flexShrink: 0 }}
+                    >Reprosesser</button>
+                    <button
+                      onClick={() => handleAvatarDeleteDoc(doc.id)}
+                      style={{ fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', flexShrink: 0 }}
+                    >Slett</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Kjøperlenke */}
+            <div className="app-card space-y-3">
+              <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Kjøperlenke</h2>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Del denne lenken med interessenter — de kan snakke direkte med AI-megleren om denne boligen.
+              </p>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <code style={{
+                  flex: 1, minWidth: 200, padding: '10px 12px', borderRadius: '8px', fontSize: '13px',
+                  background: 'var(--surface-2)', border: '1px solid var(--line)',
+                  color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
+                }}>
+                  {typeof window !== 'undefined' ? window.location.origin : 'https://reelhome.ai'}/avatar-samtale?property={id}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/avatar-samtale?property=${id}`)
+                    setCopyDone(true)
+                    setTimeout(() => setCopyDone(false), 2000)
+                  }}
+                  className="app-btn-secondary"
+                  style={{ padding: '10px 16px', fontSize: '13px', flexShrink: 0 }}
+                >
+                  {copyDone ? '✓ Kopiert' : 'Kopier lenke'}
+                </button>
+              </div>
+              <a
+                href={`/avatar-samtale?property=${id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="app-btn-secondary"
+                style={{ fontSize: '13px', textDecoration: 'none', display: 'inline-block', padding: '8px 16px' }}
+              >
+                Test AI-megleren →
+              </a>
+            </div>
+
+          </div>
+        )}
 
       </div>
 
