@@ -1,8 +1,9 @@
 'use client'
 
 // Kjøper-klienten (Fase 1, B5): live stemmesamtale med megler-avataren.
-// LiveAvatar (video/stemme/ører, mønstre fra avatar-poc) + hjernen (/api/avatar/ask).
-// Samtale-loop: lytt -> transkripsjon (debounce) -> ask -> repeat(svar) -> lytt igjen.
+// LiveAvatar = ansikt + stemme (repeat). Ører = nettleserens SpeechRecognition
+// (no-NO) — Dr. Hanni-teknikken, langt bedre norsk enn LiveAvatars STT.
+// Samtale-loop: lytt -> finalt transkript -> ask -> repeat(svar) -> lytt igjen.
 // Gated: getUser via API-rutene (visningstoken-gating kommer i Spor C).
 
 import { Suspense, useEffect, useRef, useState } from 'react'
@@ -18,8 +19,9 @@ function Samtale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sessionRef = useRef<any>(null)
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
-  const fragmentsRef = useRef<string[]>([])
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
+  const finalTextRef = useRef('')
   const micActiveRef = useRef(false)
   const busyRef = useRef(false)
 
@@ -28,6 +30,7 @@ function Samtale() {
   const [turns, setTurns] = useState<Turn[]>([])
   const [errMsg, setErrMsg] = useState('')
   const [micOn, setMicOn] = useState(false)
+  const [interim, setInterim] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -39,18 +42,59 @@ function Samtale() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turns, status])
 
+  function startRecognition() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any
+    const SR = w.webkitSpeechRecognition || w.SpeechRecognition
+    if (!SR) { setErrMsg('Talegjenkjenning støttes ikke i denne nettleseren — bruk Chrome eller Safari.'); return false }
+    const rec = new SR()
+    recognitionRef.current = rec
+    rec.lang = 'no-NO'
+    rec.continuous = false
+    rec.interimResults = true
+    finalTextRef.current = ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (event: any) => {
+      let interimT = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const txt = event.results[i][0].transcript
+        if (event.results[i].isFinal) finalTextRef.current += txt + ' '
+        else interimT += txt
+      }
+      setInterim((finalTextRef.current + interimT).trim())
+    }
+    rec.onend = () => {
+      if (!micActiveRef.current || busyRef.current) return
+      const text = finalTextRef.current.trim()
+      if (text) {
+        setInterim('')
+        handleQuestion(text)
+      } else {
+        // stillhet/pause uten innhold — start lyttingen på nytt (Dr. Hanni-mønster)
+        try { rec.start() } catch {}
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (event: any) => {
+      if (event.error === 'not-allowed') setErrMsg('Mikrofontilgang ble avvist — tillat mikrofon og prøv igjen.')
+    }
+    try { rec.start(); return true } catch { return false }
+  }
+
   function pauseListening() {
-    try { sessionRef.current?.stopListening() } catch {}
+    try { recognitionRef.current?.stop() } catch {}
   }
   function resumeListening() {
     if (!micActiveRef.current || busyRef.current) return
-    try { sessionRef.current?.startListening(); setStatus('lytter') } catch {}
+    setStatus('lytter')
+    startRecognition()
   }
 
   async function handleQuestion(question: string) {
     const q = question.trim()
     if (!q || busyRef.current) return
     busyRef.current = true
+    finalTextRef.current = ''
     pauseListening()
     setStatus('tenker')
     setTurns(prev => [...prev, { role: 'user', content: q }])
@@ -76,17 +120,6 @@ function Samtale() {
     }
   }
 
-  function onTranscription(text: string) {
-    if (!text?.trim()) return
-    fragmentsRef.current.push(text.trim())
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      const combined = fragmentsRef.current.join(' ')
-      fragmentsRef.current = []
-      handleQuestion(combined)
-    }, 1600)
-  }
-
   async function start() {
     if (!propertyId) { setErrMsg('Mangler eiendom (?property=…)'); return }
     setStatus('kobler')
@@ -97,7 +130,8 @@ function Samtale() {
       if (!res.ok) throw new Error(data.error || 'token-feil')
 
       const { LiveAvatarSession, SessionEvent, AgentEventsEnum } = await import('@heygen/liveavatar-web-sdk')
-      const session = new LiveAvatarSession(data.session_token, { voiceChat: true })
+      // voiceChat av: ørene er nettleserens SpeechRecognition, ikke LiveAvatar
+      const session = new LiveAvatarSession(data.session_token, { voiceChat: false })
       sessionRef.current = session
 
       session.on(SessionEvent.SESSION_STREAM_READY, () => {
@@ -111,8 +145,6 @@ function Samtale() {
         setStatus(micActiveRef.current ? 'lytter' : 'klar')
         resumeListening()
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e: any) => onTranscription(e?.text ?? ''))
       session.on(SessionEvent.SESSION_DISCONNECTED, () => setStatus('avsluttet'))
 
       await session.start()
@@ -130,27 +162,21 @@ function Samtale() {
     }
   }
 
-  async function toggleMic() {
-    const s = sessionRef.current
-    if (!s) return
-    try {
-      if (!micOn) {
-        // første gang: start voice chat (utløser tillatelses-prompt)
-        if (s.voiceChat.state !== 'ACTIVE') await s.voiceChat.start()
-        if (s.voiceChat.isMuted) await s.voiceChat.unmute()
-        micActiveRef.current = true
+  function toggleMic() {
+    if (!micOn) {
+      micActiveRef.current = true
+      if (startRecognition()) {
         setMicOn(true)
-        s.startListening()
         setStatus('lytter')
       } else {
         micActiveRef.current = false
-        setMicOn(false)
-        try { s.stopListening() } catch {}
-        try { await s.voiceChat.mute() } catch {}
-        setStatus('klar')
       }
-    } catch (e) {
-      setErrMsg('Mikrofon: ' + (e instanceof Error ? e.message : String(e)))
+    } else {
+      micActiveRef.current = false
+      setMicOn(false)
+      setInterim('')
+      pauseListening()
+      setStatus('klar')
     }
   }
 
@@ -194,6 +220,7 @@ function Samtale() {
               <button onClick={() => window.location.reload()} style={btn('#2563eb')}>Start ny samtale</button>
             )}
           </div>
+          {interim && <p style={{ color: '#2563eb', fontSize: 13, marginTop: 8, fontStyle: 'italic' }}>«{interim}»</p>}
           {errMsg && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{errMsg}</p>}
         </div>
 
