@@ -68,6 +68,72 @@ export async function POST(request: Request) {
       .update({ status: 'ready', pages: totalPages, error: null })
       .eq('id', doc.id)
 
+    // KANONISK AVVIKSOVERSIKT (løser leverandør-dialektene): Claude leser hele
+    // dokumentet og bygger en strukturert TG-liste som lagres som syntetisk
+    // chunk — TG-spørsmål henter den alltid (TG-merker er ofte BILDER i PDF-ene
+    // og kategorifraser varierer per takstleverandør; tekstsøk alene mister avvik).
+    try {
+      const claudeX = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+      const fullForExtraction = fullText.slice(0, 350000)
+      const ext = await claudeX.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 4000,
+        tools: [{
+          name: 'registrer_avviksliste',
+          description: 'Registrer ALLE tilstandsgrad-avvik (TG1/TG2/TG3/TGIU) funnet i tilstandsrapporten/salgsoppgaven. Vær uttømmende — hvert eneste avvik skal med.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              avvik: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    bygningsdel: { type: 'string', description: 'F.eks. "Utvendig > Vinduer" eller "Våtrom > 1. etasje > Bad"' },
+                    tg: { type: 'string', enum: ['TG1', 'TG2', 'TG3', 'TGIU'] },
+                    beskrivelse: { type: 'string', description: 'Kort hva avviket er (fra rapportens vurdering)' },
+                    kostnadsanslag: { type: 'string', description: 'Rapportens kostnadsestimat hvis oppgitt, f.eks. "Under 10 000" eller "50 000 - 100 000"' },
+                  },
+                  required: ['bygningsdel', 'tg', 'beskrivelse'],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ['avvik'],
+            additionalProperties: false,
+          },
+        }],
+        tool_choice: { type: 'tool', name: 'registrer_avviksliste' },
+        messages: [{ role: 'user', content: `Gå gjennom hele dette dokumentet (salgsoppgave/tilstandsrapport) og registrer ALLE tilstandsgrad-avvik. Ikke utelat noen — let i både sammendrag og detaljseksjoner:\n\n${fullForExtraction}` }],
+      })
+      const extTool = ext.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
+      const avvik = (extTool?.input as { avvik?: { bygningsdel: string; tg: string; beskrivelse: string; kostnadsanslag?: string }[] })?.avvik ?? []
+      if (avvik.length > 0) {
+        const byTg = (tg: string) => avvik.filter(a => a.tg === tg)
+        const fmt = (a: { bygningsdel: string; beskrivelse: string; kostnadsanslag?: string }) =>
+          `- ${a.bygningsdel}: ${a.beskrivelse}${a.kostnadsanslag ? ` (kostnadsanslag: ${a.kostnadsanslag})` : ''}`
+        const summary = [
+          `KOMPLETT AVVIKSOVERSIKT (strukturert fra hele rapporten — ${avvik.length} avvik totalt):`,
+          ...(byTg('TG3').length ? [`TG3 — store/alvorlige avvik (${byTg('TG3').length} stk):`, ...byTg('TG3').map(fmt)] : []),
+          ...(byTg('TG2').length ? [`TG2 — avvik som kan kreve tiltak (${byTg('TG2').length} stk):`, ...byTg('TG2').map(fmt)] : []),
+          ...(byTg('TGIU').length ? [`TGIU — ikke undersøkt (${byTg('TGIU').length} stk):`, ...byTg('TGIU').map(fmt)] : []),
+          ...(byTg('TG1').length ? [`TG1 — mindre avvik (${byTg('TG1').length} stk):`, ...byTg('TG1').map(fmt)] : []),
+        ].join('\n')
+        const [sumEmb] = await embedTexts([summary.slice(0, 8000)])
+        await client.from('reelhome_avatar_chunks').insert({
+          document_id: doc.id,
+          property_id: doc.property_id,
+          kind: doc.kind,
+          chunk_index: -1,
+          content: summary,
+          embedding: JSON.stringify(sumEmb),
+        })
+        console.log(`[avatar/process] avviksoversikt: ${avvik.length} avvik ekstrahert`)
+      }
+    } catch (e) {
+      console.error('[avatar/process] avviks-ekstraksjon feilet (chunks er likevel lagret):', e)
+    }
+
     // «Eiendom fra salgsoppgave»: hvis eiendommen er en stubb, ekstraher
     // boligfakta fra dokumentets første del og fyll eiendomsraden.
     let extractedAddress: string | null = null

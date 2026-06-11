@@ -58,14 +58,20 @@ export async function POST(request: Request) {
   // spørsmål (f.eks. TG2-avvik spredt over hele rapporten — semantikk alene
   // henter bare de «likeste» bitene og mister resten).
   const isEnumeration = /\b(alle|hvilke|oversikt|liste|list opp|samtlige)\b/i.test(question)
-  const tgDigits = [...question.matchAll(/\bTG\s?-?([0-3])\b/gi)].map(m => m[1])
+  // muntlige varianter fra tale-transkripsjon: «TG to», «tilstandsgrad tre» osv.
+  const normalized = question
+    .replace(/\b(TG|tilstandsgrad)[\s-]?(null|en|én|ett)\b/gi, 'TG1')
+    .replace(/\b(TG|tilstandsgrad)[\s-]?to\b/gi, 'TG2')
+    .replace(/\b(TG|tilstandsgrad)[\s-]?tre\b/gi, 'TG3')
+    .replace(/\btilstandsgrad[\s-]?([0-3])\b/gi, 'TG$1')
+  const tgDigits = [...normalized.matchAll(/\bTG\s?-?([0-3])\b/gi)].map(m => m[1])
   // Rapportene skriver gradene på flere måter (TG2 / TG 2 / Tilstandsgrad 2) og
   // grupperer avvik under kategorifraser UTEN «TG2» i teksten («avvik som ikke
   // krever umiddelbare tiltak» — funnet ved testing 2026-06-11). Søk alle varianter.
   const kwTerms: string[] = []
   for (const n of tgDigits) kwTerms.push(`TG${n}`, `TG ${n}`, `Tilstandsgrad ${n}`)
-  if (tgDigits.length > 0 || /\bavvik|tilstand/i.test(question)) {
-    kwTerms.push('kan kreve tiltak', 'ikke krever umiddelbare tiltak')
+  if (tgDigits.length > 0 || /\bavvik|tilstand|mangler|feil\b/i.test(question)) {
+    kwTerms.push('kan kreve tiltak', 'ikke krever umiddelbare tiltak', 'KOMPLETT AVVIKSOVERSIKT')
   }
 
   let chunks: Awaited<ReturnType<typeof retrieveChunks>> = []
