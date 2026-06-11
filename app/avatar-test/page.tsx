@@ -39,6 +39,53 @@ export default function AvatarTestPage() {
     if (res.ok) setDocs((await res.json()).documents ?? [])
   }
 
+  const newPropRef = useRef<HTMLInputElement>(null)
+  const [creatingProp, setCreatingProp] = useState(false)
+
+  async function createPropertyFromPdf() {
+    const file = newPropRef.current?.files?.[0]
+    if (!file) { setDocMsg('Velg en salgsoppgave-PDF først'); return }
+    setCreatingProp(true)
+    setDocMsg('Oppretter eiendom fra salgsoppgaven…')
+    try {
+      const reg = await fetch('/api/avatar/property-from-pdf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name }),
+      })
+      const regData = await reg.json()
+      if (!reg.ok) throw new Error(regData.error)
+
+      setDocMsg(`Laster opp ${(file.size / 1024 / 1024).toFixed(1)} MB…`)
+      const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+      const { error: upErr } = await supabase.storage.from('avatar-docs')
+        .uploadToSignedUrl(regData.upload.path, regData.upload.token, file, { contentType: 'application/pdf' })
+      if (upErr) throw new Error(upErr.message)
+
+      setDocMsg('Bygger kunnskapsbase og henter boligfakta fra PDF-en…')
+      const proc = await fetch('/api/avatar/documents/process', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: regData.documentId }),
+      })
+      const procData = await proc.json()
+      if (!proc.ok) throw new Error(procData.error)
+      setDocMsg(`✅ Eiendom opprettet: ${procData.extractedAddress ?? '(adresse ikke funnet)'} — ${procData.pages} sider → ${procData.chunks} biter`)
+
+      // last eiendomslisten på nytt og velg den nye
+      const list = await (await fetch('/api/properties/list')).json()
+      if (Array.isArray(list)) {
+        setProperties(list)
+        setPropertyId(regData.propertyId)
+        setTurns([])
+        loadDocs(regData.propertyId)
+      }
+      if (newPropRef.current) newPropRef.current.value = ''
+    } catch (e) {
+      setDocMsg(`Feil: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setCreatingProp(false)
+    }
+  }
+
   async function uploadDoc() {
     const file = fileRef.current?.files?.[0]
     if (!file || !propertyId) return
@@ -135,6 +182,20 @@ export default function AvatarTestPage() {
         Skriv spørsmål som om du var en interessent på digital visning. Svaret er det avataren ville sagt høyt.
         Prøv også å si at du vil på visning — da skal den be om navnet ditt og registrere deg.
       </p>
+
+      <div style={{ border: '1px dashed #2563eb', borderRadius: 10, padding: 12, marginBottom: 16, background: '#eff6ff' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>➕ Ny eiendom fra salgsoppgave</div>
+        <p style={{ fontSize: 12, color: '#555', margin: '0 0 8px' }}>
+          Last opp en salgsoppgave-PDF — eiendommen opprettes automatisk med adresse, pris og fakta hentet fra dokumentet.
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input ref={newPropRef} type="file" accept="application/pdf" style={{ fontSize: 13 }} />
+          <button onClick={createPropertyFromPdf} disabled={creatingProp}
+            style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: creatingProp ? 0.6 : 1 }}>
+            {creatingProp ? 'Oppretter…' : 'Opprett eiendom'}
+          </button>
+        </div>
+      </div>
 
       <label style={{ fontSize: 13, fontWeight: 600 }}>Eiendom</label>
       <select
