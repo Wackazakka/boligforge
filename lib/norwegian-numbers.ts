@@ -8,7 +8,7 @@ const ONES = ['', 'én', 'to', 'tre', 'fire', 'fem', 'seks', 'sju', 'åtte', 'ni
 const TENS = ['', '', 'tjue', 'tretti', 'førti', 'femti', 'seksti', 'sytti', 'åtti', 'nitti']
 
 // below1000 med konfigurerbar separator (bindestreker hjelper TTS-rytmen)
-export function below1000(n: number, tensSep = 'og', hundredSep = '-og-'): string {
+export function below1000(n: number, tensSep = '', hundredSep = '-og-'): string {
   if (n === 0) return ''
   if (n < 20) return ONES[n]
   if (n < 100) {
@@ -29,9 +29,9 @@ export function numberToNorwegian(num: number): string {
   const thou = Math.floor((num % 1_000_000) / 1_000)
   const rest = num % 1_000
   const parts: string[] = []
-  if (mill > 0) parts.push(mill === 1 ? 'én million' : `${below1000(mill, 'og', '-og-')} millioner`)
-  if (thou > 0) parts.push(thou === 1 ? 'tusen' : `${below1000(thou, 'og', '-og-')} tusen`)
-  if (rest > 0) parts.push(below1000(rest, 'og', '-og-'))
+  if (mill > 0) parts.push(mill === 1 ? 'én million' : `${below1000(mill)} millioner`)
+  if (thou > 0) parts.push(thou === 1 ? 'tusen' : `${below1000(thou)} tusen`)
+  if (rest > 0) parts.push(below1000(rest))
   return parts.join(' ')
 }
 
@@ -45,7 +45,7 @@ export function priceToNorwegian(num: number): string {
 export function sizeToNorwegian(num: number): string {
   if (!num || isNaN(num)) return String(num)
   const n = Math.round(num)
-  if (n < 1000) return below1000(n, '-', '-og-')
+  if (n < 1000) return below1000(n, '', '-og-')
   return String(n)
 }
 
