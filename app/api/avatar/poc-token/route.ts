@@ -33,15 +33,23 @@ export async function POST() {
 
   // 2. Opprett sesjons-token i FULL-modus — vi styrer teksten avataren sier (repeat()).
   //    LITE tillater ikke repeat() (innebygd samtale-agent). FULL krever avatar_persona m/ voice.
+  // Norsk stemme: AVATAR_VOICE_ID er en LiveAvatar-bundet ElevenLabs-stemme
+  // (Mia — norsk kvinne). Uten den: avatarens engelske default (rar dialekt).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const voiceId = (avatar as any).default_voice?.id
+  const voiceId = process.env.AVATAR_VOICE_ID || (avatar as any).default_voice?.id
   const tokenRes = await fetch(`${LA_BASE}/v1/sessions/token`, {
     method: 'POST',
     headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       mode: 'FULL',
       avatar_id: avatar.id,
-      avatar_persona: { voice_id: voiceId, language: 'no' },
+      avatar_persona: {
+        voice_id: voiceId,
+        language: 'no',
+        ...(process.env.AVATAR_VOICE_ID && {
+          voice_settings: { model: 'eleven_flash_v2_5', stability: 0.75, similarity_boost: 0.75, speed: 1.0 },
+        }),
+      },
     }),
   })
   const tokenJson = await tokenRes.json()
