@@ -49,3 +49,18 @@ Alle Fase 0-spørsmålene er nå besvart med målinger i ekte browser:
 - Storage-bucket `avatar-docs` (T0.4) — opprettes sammen med migrasjonen.
 - Migrasjonen (`supabase/migrations/20260609_avatar.sql`) er **ikke kjørt** ennå. Blokkeringen (delt DB med ContentForge) forsvant 2026-06-10 da CF fikk eget prosjekt — kan nå kjøres trygt mot ReelHome-prosjektet.
 - Flette disse funnene inn i hovedplanen (`docs/avatar-implementeringsplan.md`) — bl.a. stryke Whisper-steget og oppdatere HeyGen→LiveAvatar.
+
+## Gjenbrukskart fra søsterprodukter (utforsket 2026-06-10)
+
+**Dr. Hanni (Wackazakka/dr-hanni) — RAG-skjelettet finnes allerede:**
+- `netlify/functions/import-knowledge.js`: PDF/tekst → chunking (400 ord) → batch-embedding (OpenAI `text-embedding-3-small`, 1536 dim — samme som vår migrasjon) → pgvector. **Portes nesten 1:1** til vår `reelhome_avatar_chunks`.
+- `netlify/functions/search-knowledge.js`: embed spørsmål → RPC-søk → top-k. Matcher vår `match_avatar_chunks`.
+- `netlify/functions/session-1-chat.js`: Claude-dialogloop (Sonnet) med kontekst-injeksjon og **[REPLY]/[KNOWLEDGE]-dobbeltsvar** (svar + strukturert ekstraksjon i samme kall) — nøyaktig mønsteret avatar-svaret + visning-lead-fangst trenger. Gotcha derfra: sanitiser alternerende user/assistant-turer.
+- ElevenLabs-TTS m/ norsk stemme + privat audio-bucket-mønster (vår `avatar-docs` følger samme RLS-oppsett).
+
+**SummonIt (Wackazakka/software-factory) — validerings-/ekstraksjonsmønstre:**
+- `netlify/functions/_outcomes.js`: generate→grade(haiku)→retry-loop. Adopteres for å validere ekstraherte visning-påmeldinger (navn/telefon/e-post) før insert.
+- Advarsel derfra: marker-/regex-parsing (`---SPEC---`) er skjørt — vi bruker heller **Claude tool use** for lead-ekstraksjon (strukturert og validert ved generering).
+- Ingen RAG i SummonIt (bekreftet) — Dr. Hanni er kilden for det.
+
+**Konsekvens for Fase 1-estimatet:** ingestion-pipeline, retrieval og dialogloop er i stor grad porteringsarbeid, ikke nybygg — estimatet på 4–6 uker kan trolig kuttes betydelig.
