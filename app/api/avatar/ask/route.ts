@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     for (const n of await neighborChunks(client, allKw)) {
       if (!chunks.some(x => x.id === n.id)) chunks.push(n)
     }
-    chunks = chunks.slice(0, 36)
+    chunks = chunks.slice(0, 44)
   } catch (e) {
     console.error('[avatar/ask] retrieval feilet (fortsetter med kun fakta):', e)
   }
@@ -147,10 +147,16 @@ export async function POST(request: Request) {
       response = await claude.messages.create({ model: MODEL, max_tokens: 1000, system, tools: [LEAD_TOOL], messages })
     }
 
+    // Taletekst-vask: modellen sniker inn markdown tross instruks — strippes
+    // maskinelt (avataren leser teksten ordrett høyt).
     const answer = response.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map(b => b.text)
       .join(' ')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/(^|\s)\*([^*\n]+)\*(?=[\s.,!?]|$)/g, '$1$2')
+      .replace(/^#{1,4}\s+/gm, '')
+      .replace(/^\s*[-•]\s+/gm, '')
       .trim()
 
     return NextResponse.json({

@@ -89,12 +89,14 @@ export async function neighborChunks(
   client: SupabaseClient,
   hits: { document_id?: string; chunk_index?: number | null }[]
 ): Promise<RetrievedChunk[]> {
+  // ±3: NS3600-rapporter har detaljseksjonene (Vurdering av avvik / tiltak /
+  // kostnadsestimat) rett ETTER oversiktslisten — radius 1 fanget bare listen.
+  const RADIUS = 3
   const wanted = new Map<string, Set<number>>()
   for (const h of hits) {
     if (!h.document_id || h.chunk_index == null) continue
     const s = wanted.get(h.document_id) ?? new Set<number>()
-    s.add(h.chunk_index - 1)
-    s.add(h.chunk_index + 1)
+    for (let d = -RADIUS; d <= RADIUS; d++) if (d !== 0) s.add(h.chunk_index + d)
     wanted.set(h.document_id, s)
   }
   const out: RetrievedChunk[] = []
