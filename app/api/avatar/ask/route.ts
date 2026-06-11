@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getUser } from '../../../../lib/supabase/server'
 import { serviceClient, retrieveChunks, keywordChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
+import { isCostQuestion, buildCostBaseSection } from '../../../../lib/avatar/costbase'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -73,11 +74,13 @@ export async function POST(request: Request) {
     console.error('[avatar/ask] retrieval feilet (fortsetter med kun fakta):', e)
   }
 
-  const system = buildAvatarSystemPrompt({
+  let system = buildAvatarSystemPrompt({
     agentName: property.agent_id ? 'meglerens digitale assistent' : 'den digitale visningsassistenten',
     facts: buildPropertyFacts(property),
     chunks,
   })
+  // Kuratert kostnadsbase (nivå 2) — kun ved kostnadsspørsmål, alltid m/ forbehold
+  if (isCostQuestion(question)) system += '\n' + buildCostBaseSection()
 
   const messages: Anthropic.MessageParam[] = [
     ...(Array.isArray(history) ? (history as HistoryItem[]).slice(-12) : []),
