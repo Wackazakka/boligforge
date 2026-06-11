@@ -27,6 +27,7 @@ function Samtale() {
   const [address, setAddress] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
   const [errMsg, setErrMsg] = useState('')
+  const [micOn, setMicOn] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -128,15 +129,25 @@ function Samtale() {
     }
   }
 
-  async function enableMic() {
+  async function toggleMic() {
     const s = sessionRef.current
     if (!s) return
     try {
-      await s.voiceChat.start()
-      if (s.voiceChat.isMuted) await s.voiceChat.unmute()
-      micActiveRef.current = true
-      s.startListening()
-      setStatus('lytter')
+      if (!micOn) {
+        // første gang: start voice chat (utløser tillatelses-prompt)
+        if (s.voiceChat.state !== 'ACTIVE') await s.voiceChat.start()
+        if (s.voiceChat.isMuted) await s.voiceChat.unmute()
+        micActiveRef.current = true
+        setMicOn(true)
+        s.startListening()
+        setStatus('lytter')
+      } else {
+        micActiveRef.current = false
+        setMicOn(false)
+        try { s.stopListening() } catch {}
+        try { await s.voiceChat.mute() } catch {}
+        setStatus('klar')
+      }
     } catch (e) {
       setErrMsg('Mikrofon: ' + (e instanceof Error ? e.message : String(e)))
     }
@@ -144,6 +155,7 @@ function Samtale() {
 
   async function end() {
     micActiveRef.current = false
+    setMicOn(false)
     try { await sessionRef.current?.stop() } catch {}
     setStatus('avsluttet')
   }
@@ -169,11 +181,16 @@ function Samtale() {
             {status === 'idle' && (
               <button onClick={start} style={btn('#2563eb')}>Start samtale</button>
             )}
-            {(status === 'klar' || status === 'snakker') && !micActiveRef.current && (
-              <button onClick={enableMic} style={btn('#9333ea')}>🎙 Slå på mikrofonen</button>
+            {status !== 'idle' && status !== 'avsluttet' && status !== 'kobler' && status !== 'feil' && (
+              <button onClick={toggleMic} style={btn(micOn ? '#dc2626' : '#9333ea')}>
+                {micOn ? '🔇 Slå av mikrofonen' : '🎙 Slå på mikrofonen'}
+              </button>
             )}
             {status !== 'idle' && status !== 'avsluttet' && (
-              <button onClick={end} style={btn('#6b7280')}>Avslutt</button>
+              <button onClick={end} style={btn('#6b7280')}>Avslutt samtalen</button>
+            )}
+            {(status === 'avsluttet' || status === 'feil') && (
+              <button onClick={() => window.location.reload()} style={btn('#2563eb')}>Start ny samtale</button>
             )}
           </div>
           {errMsg && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{errMsg}</p>}
