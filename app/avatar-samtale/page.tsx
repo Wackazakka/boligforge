@@ -8,6 +8,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { speakifyForTTS } from '../../lib/norwegian-numbers'
 
 type Turn = { role: 'user' | 'assistant'; content: string; lead?: boolean }
 
@@ -117,7 +118,7 @@ function Samtale() {
       historyRef.current = historyRef.current.slice(-12)
       setTurns(prev => [...prev, { role: 'assistant', content: d.answer, lead: d.leadCaptured }])
       setStatus('snakker')
-      sessionRef.current?.repeat(d.answer)
+      sessionRef.current?.repeat(d.speech || d.answer)
       // lytting gjenopptas av AVATAR_SPEAK_ENDED
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : String(e))
@@ -159,7 +160,7 @@ function Samtale() {
       // hilsen først NÅ — repeat() før start() er ferdig gir 'Session needs to be connected'
       setStatus('snakker')
       try {
-        session.repeat(`Hei og velkommen til digital visning av ${address || 'denne boligen'}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Trykk på mikrofonknappen, still spørsmålet ditt, og trykk ferdig når du er klar.`)
+        session.repeat(`Hei og velkommen til digital visning av ${speakifyForTTS(address) || 'denne boligen'}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Trykk på mikrofonknappen, still spørsmålet ditt, og trykk ferdig når du er klar.`)
       } catch (e) {
         console.error('hilsen feilet:', e)
         setStatus('klar')

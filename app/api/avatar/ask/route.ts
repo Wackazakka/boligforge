@@ -15,6 +15,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getUser } from '../../../../lib/supabase/server'
 import { serviceClient, retrieveChunks, keywordChunks, neighborChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
 import { isCostQuestion, buildCostBaseSection } from '../../../../lib/avatar/costbase'
+import { speakifyForTTS } from '../../../../lib/norwegian-numbers'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -170,8 +171,10 @@ export async function POST(request: Request) {
       .replace(/^\s*[-•]\s+/gm, '')
       .trim()
 
+    const finalAnswer = answer || 'Beklager, kan du gjenta spørsmålet?'
     return NextResponse.json({
-      answer: answer || 'Beklager, kan du gjenta spørsmålet?',
+      answer: finalAnswer,
+      speech: speakifyForTTS(finalAnswer),
       leadCaptured,
       sources: chunks.map(c => ({ id: c.id, kind: c.kind, page: c.page, similarity: Math.round(c.similarity * 100) / 100 })),
       model: MODEL,
