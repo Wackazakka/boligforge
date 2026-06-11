@@ -97,12 +97,6 @@ function Samtale() {
   function pauseListening() {
     try { recognitionRef.current?.abort() } catch {}
   }
-  function resumeListening() {
-    if (!micActiveRef.current || busyRef.current) return
-    setStatus('lytter')
-    startRecognition()
-  }
-
   async function handleQuestion(question: string) {
     const q = question.trim()
     if (!q || busyRef.current) return
@@ -155,8 +149,9 @@ function Samtale() {
         setStatus('klar')
       })
       session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => {
+        // push-to-talk: ingen auto-resume (ville nullstilt påbegynt spørsmål
+        // etter avbrytelse) — brukeren styrer mikrofonen selv
         setStatus(micActiveRef.current ? 'lytter' : 'klar')
-        resumeListening()
       })
       session.on(SessionEvent.SESSION_DISCONNECTED, () => setStatus('avsluttet'))
 
@@ -177,6 +172,8 @@ function Samtale() {
 
   function toggleMic() {
     if (!micOn) {
+      // barge-in: klikk mens avataren snakker avbryter svaret hennes
+      try { sessionRef.current?.interrupt() } catch {}
       micActiveRef.current = true
       if (startRecognition()) {
         setMicOn(true)
@@ -228,9 +225,9 @@ function Samtale() {
             {status === 'idle' && (
               <button onClick={start} style={btn('#2563eb')}>Start samtale</button>
             )}
-            {status !== 'idle' && status !== 'avsluttet' && status !== 'kobler' && status !== 'feil' && (
+            {status !== 'idle' && status !== 'avsluttet' && status !== 'kobler' && status !== 'feil' && status !== 'tenker' && (
               <button onClick={toggleMic} style={btn(micOn ? '#16a34a' : '#9333ea')}>
-                {micOn ? '✅ Ferdig — send spørsmålet' : '🎙 Trykk og still spørsmålet'}
+                {micOn ? '✅ Ferdig — send spørsmålet' : status === 'snakker' ? '🎙 Avbryt og still nytt spørsmål' : '🎙 Trykk og still spørsmålet'}
               </button>
             )}
             {status !== 'idle' && status !== 'avsluttet' && (
