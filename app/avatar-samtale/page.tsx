@@ -25,6 +25,10 @@ function Samtale() {
   const finalTextRef = useRef('')
   const micActiveRef = useRef(false)
   const busyRef = useRef(false)
+  const lastActivityRef = useRef(0)
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // hvor lenge avataren venter tålmodig i stillhet før økten får sovne
+  const IDLE_GRACE_MS = 10 * 60 * 1000
 
   const [status, setStatus] = useState<'idle' | 'kobler' | 'klar' | 'lytter' | 'tenker' | 'snakker' | 'avsluttet' | 'feil'>('idle')
   const [address, setAddress] = useState('')
@@ -102,6 +106,7 @@ function Samtale() {
     const q = question.trim()
     if (!q || busyRef.current) return
     busyRef.current = true
+    lastActivityRef.current = Date.now()
     finalTextRef.current = ''
     pauseListening()
     setStatus('tenker')
@@ -154,9 +159,20 @@ function Samtale() {
         // etter avbrytelse) — brukeren styrer mikrofonen selv
         setStatus(micActiveRef.current ? 'lytter' : 'klar')
       })
-      session.on(SessionEvent.SESSION_DISCONNECTED, () => setStatus('avsluttet'))
+      session.on(SessionEvent.SESSION_DISCONNECTED, () => {
+        if (keepAliveRef.current) clearInterval(keepAliveRef.current)
+        setStatus('avsluttet')
+      })
 
       await session.start()
+      // tålmodighet: ping keep-alive så lenge siste aktivitet er < 10 min gammel —
+      // tenkepauser er greit, men evig tomgang brenner kreditter
+      lastActivityRef.current = Date.now()
+      keepAliveRef.current = setInterval(() => {
+        if (Date.now() - lastActivityRef.current < IDLE_GRACE_MS) {
+          try { session.keepAlive() } catch {}
+        }
+      }, 45_000)
       // hilsen først NÅ — repeat() før start() er ferdig gir 'Session needs to be connected'
       setStatus('snakker')
       try {
@@ -173,6 +189,7 @@ function Samtale() {
 
   function toggleMic() {
     if (!micOn) {
+      lastActivityRef.current = Date.now()
       // barge-in: klikk mens avataren snakker avbryter svaret hennes
       try { sessionRef.current?.interrupt() } catch {}
       micActiveRef.current = true
@@ -199,6 +216,7 @@ function Samtale() {
   }
 
   async function end() {
+    if (keepAliveRef.current) clearInterval(keepAliveRef.current)
     micActiveRef.current = false
     setMicOn(false)
     try { await sessionRef.current?.stop() } catch {}
@@ -208,7 +226,7 @@ function Samtale() {
   const statusLabel: Record<typeof status, string> = {
     idle: 'Klar til å starte', kobler: 'Kobler til megler…', klar: 'Tilkoblet',
     lytter: '🎙 Lytter — trykk «Ferdig» når du har stilt spørsmålet', tenker: '🧠 Tenker…', snakker: '💬 Avataren snakker',
-    avsluttet: 'Samtalen er avsluttet', feil: 'Noe gikk galt',
+    avsluttet: 'Samtalen tok en pause — trykk «Start ny samtale» for å fortsette', feil: 'Noe gikk galt',
   }
 
   return (
