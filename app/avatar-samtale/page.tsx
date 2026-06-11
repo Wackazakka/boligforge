@@ -106,13 +106,6 @@ function Samtale() {
           videoRef.current.play().catch(() => {})
         }
         setStatus('klar')
-        // velkomsthilsen
-        setTimeout(() => {
-          try {
-            setStatus('snakker')
-            session.repeat(`Hei og velkommen til digital visning av ${address || 'denne boligen'}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Hva lurer du på?`)
-          } catch {}
-        }, 400)
       })
       session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => {
         setStatus(micActiveRef.current ? 'lytter' : 'klar')
@@ -123,6 +116,14 @@ function Samtale() {
       session.on(SessionEvent.SESSION_DISCONNECTED, () => setStatus('avsluttet'))
 
       await session.start()
+      // hilsen først NÅ — repeat() før start() er ferdig gir 'Session needs to be connected'
+      setStatus('snakker')
+      try {
+        session.repeat(`Hei og velkommen til digital visning av ${address || 'denne boligen'}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Hva lurer du på?`)
+      } catch (e) {
+        console.error('hilsen feilet:', e)
+        setStatus('klar')
+      }
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : String(e))
       setStatus('feil')
