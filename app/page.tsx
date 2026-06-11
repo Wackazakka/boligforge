@@ -370,6 +370,22 @@ export default function Home() {
               <a href="#" className="btn btn-ghost">Snakk med salg</a>
             </div>
 
+            {/* AI-megler */}
+            <div className="plan">
+              <div className="nm">AI-megler</div>
+              <div className="for">Alltid tilgjengelig for kjøperne</div>
+              <div className="price"><span className="v">999</span><span className="cur">kr / mnd</span></div>
+              <div className="desc">En AI-klon av megleren svarer kjøpernes spørsmål fra salgsoppgaven — døgnet rundt, på norsk.</div>
+              <ul>
+                <li><CheckIcon /> <span><b>4,50 kr / min</b> streaming</span></li>
+                <li><CheckIcon /> Svar fra salgsoppgave og tilstandsrapport</li>
+                <li><CheckIcon /> Norsk stemme og avatar</li>
+                <li><CheckIcon /> Interessentregistrering inkludert</li>
+                <li><CheckIcon /> Unik kjøperlenke per eiendom</li>
+              </ul>
+              <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
+            </div>
+
             {/* Enkeltvideo — fullbredde-kort */}
             <div className="plan single">
               <div className="single-info">
