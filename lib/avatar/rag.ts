@@ -66,6 +66,23 @@ export async function retrieveChunks(
   return data ?? []
 }
 
+// ── Nøkkelord-søk (hybrid m/ semantisk — fanger opplistinger som «alle TG2») ──
+export async function keywordChunks(
+  client: SupabaseClient,
+  propertyId: string,
+  term: string,
+  limit = 10
+): Promise<RetrievedChunk[]> {
+  const { data, error } = await client
+    .from('reelhome_avatar_chunks')
+    .select('id, content, kind, page')
+    .eq('property_id', propertyId)
+    .ilike('content', `%${term}%`)
+    .limit(limit)
+  if (error) throw new Error(`keywordChunks: ${error.message}`)
+  return (data ?? []).map(d => ({ ...d, similarity: 1 }))
+}
+
 // ── Fakta-blokk fra properties-tabellen (strukturert grunnsannhet) ────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildPropertyFacts(p: any): string {
@@ -109,7 +126,9 @@ DOKUMENTUTDRAG (fra prospekt/tilstandsrapport — bruk til detaljspørsmål):
 ${kilder}
 
 REGLER:
-1. Svar KUN basert på boligfakta og dokumentutdragene over. Hvis svaret ikke finnes der, si ærlig: «Det har jeg ikke informasjon om her — det kan megleren svare på» og tilby å notere spørsmålet.
+1. Svar KUN basert på boligfakta og dokumentutdragene over. Hvis svaret ikke finnes der, si ærlig: «Det har jeg ikke informasjon om her — det kan megleren svare på» og tilby å notere spørsmålet. Men: hvis informasjonen FINNES i utdragene, svar fullstendig selv — henvis aldri til megleren da.
+1b. Ved oversikts-/listespørsmål (f.eks. «hvilke TG2-avvik er det?», «hva er alle manglene?»): gå gjennom ALLE relevante punkter i utdragene og nevn hvert enkelt kort (bygningsdel + hva avviket er). Det er bedre å bli litt lang enn å utelate avvik.
+1c. Ren taletekst: ALDRI markdown, stjerner, punktlister eller annen formatering — avataren leser teksten høyt ordrett.
 2. Aldri gjett på priser, mål, tilstand eller juridiske forhold.
 3. Ved spørsmål om tilstandsrapportens TG-verdier: referer nøyaktig det som står.
 4. Hvis interessenten vil på visning, bli kontaktet eller legge igjen kontaktinfo: bruk verktøyet registrer_interessent.

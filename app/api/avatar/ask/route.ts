@@ -13,7 +13,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getUser } from '../../../../lib/supabase/server'
-import { serviceClient, retrieveChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
+import { serviceClient, retrieveChunks, keywordChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -53,9 +53,20 @@ export async function POST(request: Request) {
   const { data: property } = await client.from('properties').select('*').eq('id', propertyId).maybeSingle()
   if (!property) return NextResponse.json({ error: 'Ukjent eiendom' }, { status: 404 })
 
+  // Hybrid retrieval: semantisk søk + eksakt nøkkelordsøk for opplistings-
+  // spørsmål (f.eks. TG2-avvik spredt over hele rapporten — semantikk alene
+  // henter bare de «likeste» bitene og mister resten).
+  const isEnumeration = /\b(alle|hvilke|oversikt|liste|list opp|samtlige)\b/i.test(question)
+  const tgTerms = [...question.matchAll(/\bTG\s?-?([0-3])\b/gi)].map(m => `TG${m[1]}`)
+
   let chunks: Awaited<ReturnType<typeof retrieveChunks>> = []
   try {
-    chunks = await retrieveChunks(client, propertyId, question)
+    chunks = await retrieveChunks(client, propertyId, question, isEnumeration || tgTerms.length ? 10 : 6)
+    for (const term of tgTerms) {
+      const kw = await keywordChunks(client, propertyId, term, 10)
+      for (const c of kw) if (!chunks.some(x => x.id === c.id)) chunks.push(c)
+    }
+    chunks = chunks.slice(0, 16)
   } catch (e) {
     console.error('[avatar/ask] retrieval feilet (fortsetter med kun fakta):', e)
   }
@@ -77,7 +88,7 @@ export async function POST(request: Request) {
   try {
     let response = await claude.messages.create({
       model: MODEL,
-      max_tokens: 600,
+      max_tokens: 1000,
       system,
       tools: [LEAD_TOOL],
       messages,
@@ -114,7 +125,7 @@ export async function POST(request: Request) {
       }
       messages.push({ role: 'user', content: results })
 
-      response = await claude.messages.create({ model: MODEL, max_tokens: 600, system, tools: [LEAD_TOOL], messages })
+      response = await claude.messages.create({ model: MODEL, max_tokens: 1000, system, tools: [LEAD_TOOL], messages })
     }
 
     const answer = response.content
