@@ -68,10 +68,13 @@ export default function DashboardNav() {
         })}
       </div>
 
-      {/* Logg ut — høyre */}
-      <button onClick={handleLogout} className="app-btn-ghost ml-auto text-xs">
-        Logg ut
-      </button>
+      {/* Priser + Logg ut — høyre */}
+      <div className="ml-auto flex items-center gap-3">
+        <a href="/#priser" className="app-nav-link text-xs">Priser</a>
+        <button onClick={handleLogout} className="app-btn-ghost text-xs">
+          Logg ut
+        </button>
+      </div>
     </nav>
   )
 }
