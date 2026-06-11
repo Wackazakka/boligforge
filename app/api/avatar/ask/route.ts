@@ -129,6 +129,7 @@ export async function POST(request: Request) {
             buyer_name: inp.navn,
             buyer_phone: inp.telefon ?? null,
             buyer_email: inp.epost ?? null,
+            buyer_message: inp.melding ?? null,
             consent_at: new Date().toISOString(),
             expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           })
