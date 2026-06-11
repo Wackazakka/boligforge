@@ -370,6 +370,21 @@ export default function Home() {
               <a href="#" className="btn btn-ghost">Snakk med salg</a>
             </div>
 
+            {/* Enkeltvideo */}
+            <div className="plan">
+              <div className="nm">Enkeltvideo</div>
+              <div className="for">Prøv uten abonnement</div>
+              <div className="price"><span className="v">989</span><span className="cur">kr / video</span></div>
+              <div className="desc">Én ferdig produsert visningsvideo med AI-avatar og stemme — betal per video, ingen binding.</div>
+              <ul>
+                <li><CheckIcon /> Ingen abonnement nødvendig</li>
+                <li><CheckIcon /> AI-avatar og stemmeklone</li>
+                <li><CheckIcon /> 1080p · 9:16, 16:9, 1:1</li>
+                <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
+              </ul>
+              <Link href="/auth/signup" className="btn btn-ghost">Kjøp enkeltvideo</Link>
+            </div>
+
             {/* AI-megler */}
             <div className="plan">
               <div className="nm">AI-megler</div>
@@ -384,17 +399,6 @@ export default function Home() {
                 <li><CheckIcon /> Unik kjøperlenke per eiendom</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
-            </div>
-
-            {/* Enkeltvideo — fullbredde-kort */}
-            <div className="plan single">
-              <div className="single-info">
-                <div className="nm">Enkeltvideo</div>
-                <div className="for">Prøv uten abonnement</div>
-                <div className="desc">Én ferdig produsert visningsvideo med AI-avatar og stemme — betal per video, ingen binding.</div>
-              </div>
-              <div className="price"><span className="v">989</span><span className="cur">kr / video</span></div>
-              <Link href="/auth/signup" className="btn btn-ghost">Kjøp enkeltvideo</Link>
             </div>
           </div>
         </div>
