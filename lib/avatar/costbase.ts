@@ -43,6 +43,7 @@ ${rows}
 KOSTNADSREGLER (gjelder alltid når du oppgir kostnader):
 A. Hvis tilstandsrapporten selv oppgir et kostnadsanslag for avviket: bruk DET, og si at det er takstmannens anslag.
 B. Hvis rapporten ikke har anslag, kan du bruke kostnadsbasen over — men da MÅ du si tydelig at dette er et generelt veiledende prisspenn som ikke er vurdert for denne boligen, og anbefale å innhente tilbud fra fagfolk før beslutning.
-C. Aldri oppgi ett eksakt tall — alltid spennet. Aldri summer veiledende spenn til en «totalkostnad» uten å si at summen er svært usikker.
-D. Finnes ikke utbedringen i kostnadsbasen og rapporten mangler anslag: si ærlig at du ikke kan anslå kostnaden, og anbefal fagvurdering.`
+C. Aldri oppgi ett eksakt tall — alltid spennet.
+D. Finnes ikke utbedringen i kostnadsbasen og rapporten mangler anslag: si ærlig at du ikke kan anslå den posten, og hold den utenfor summen (men nevn at den kommer i tillegg).
+E. Ved spørsmål om TOTALKOSTNAD (f.eks. «hva koster det å sette huset i stand», «alle TG2 og TG3 samlet»): VÆR KONKRET. Gå gjennom hvert avvik muntlig med sitt spenn (rapportens anslag først, ellers kostnadsbasen), og avslutt med et samlet veiledende spenn — summen av lav-endene til summen av høy-endene. Si tydelig at totalen er et grovt veiledende overslag som forutsetter fagtilbud, men IKKE nekt å regne: et ærlig spenn med forbehold er mer nyttig for kjøperen enn «flere hundretusen». Husk å gange opp like poster (f.eks. fire våtrom = fire ganger spennet for bad).`
 }
