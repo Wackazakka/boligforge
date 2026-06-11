@@ -324,13 +324,16 @@ export default function Home() {
               <div className="nm">Starter</div>
               <div className="for">For meglere som tester</div>
               <div className="price"><span className="v">2 090</span><span className="cur">kr / mnd</span></div>
-              <div className="desc">3 ferdig produserte videoer hver måned, full tilgang til avatarbiblioteket.</div>
+              <div className="desc">3 ferdig produserte videoer hver måned.</div>
               <ul>
                 <li><CheckIcon /> <span><b>3 videoer</b> per måned</span></li>
                 <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> Personlig stemmeklone inkludert</li>
                 <li><CheckIcon /> 1080p · 16:9</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendering (5–10 min)</li>
+                <li><CheckIcon /> Egen meglerprofil og logo</li>
+                <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
             </div>
@@ -340,14 +343,16 @@ export default function Home() {
               <div className="nm">Aktiv</div>
               <div className="for">For aktive meglere</div>
               <div className="price"><span className="v">3 990</span><span className="cur">kr / mnd</span></div>
-              <div className="desc">10 videoer i måneden, din egen stemmeklone og kontorprofil i hver film.</div>
+              <div className="desc">10 ferdig produserte videoer hver måned.</div>
               <ul>
                 <li><CheckIcon /> <span><b>10 videoer</b> per måned</span></li>
-                <li><CheckIcon /> <b>Personlig stemmeklone</b> inkludert</li>
-                <li><CheckIcon /> 4K-rendring · prioritert kø</li>
+                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> Personlig stemmeklone inkludert</li>
+                <li><CheckIcon /> 1080p · 16:9</li>
+                <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
+                <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
-                <li><CheckIcon /> Analyse av seeradferd</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Velg Aktiv</Link>
             </div>
@@ -357,14 +362,16 @@ export default function Home() {
               <div className="nm">Pro</div>
               <div className="for">For hele meglerhuset</div>
               <div className="price"><span className="v">1 990</span><span className="cur">kr / megler · mnd</span></div>
-              <div className="desc">7 videoer per megler hver måned, sentralisert merkevareprofil og dedikert oppfølging.</div>
+              <div className="desc">7 ferdig produserte videoer per megler hver måned.</div>
               <ul>
                 <li><CheckIcon /> <span><b>7 videoer</b> per megler · mnd</span></li>
-                <li><CheckIcon /> Stemmeklone for hver megler</li>
-                <li><CheckIcon /> <b>Skreddersydd</b> avatar mulig</li>
-                <li><CheckIcon /> Sentralisert merkevareprofil</li>
-                <li><CheckIcon /> SSO · admin · fakturasamling</li>
-                <li><CheckIcon /> Dedikert kundeansvarlig</li>
+                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> Personlig stemmeklone inkludert</li>
+                <li><CheckIcon /> 1080p · 16:9</li>
+                <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
+                <li><CheckIcon /> Standard rendering (5–10 min)</li>
+                <li><CheckIcon /> Egen meglerprofil og logo</li>
+                <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
               </ul>
               <a href="#" className="btn btn-ghost">Snakk med salg</a>
             </div>
