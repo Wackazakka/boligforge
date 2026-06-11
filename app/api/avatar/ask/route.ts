@@ -73,6 +73,10 @@ export async function POST(request: Request) {
   if (tgDigits.length > 0 || /\bavvik|tilstand|mangler|feil\b/i.test(question)) {
     kwTerms.push('kan kreve tiltak', 'ikke krever umiddelbare tiltak', 'KOMPLETT AVVIKSOVERSIKT')
   }
+  // områdepris-spørsmål: rapportene har ofte en 'Sammenlignbare salg'-tabell
+  if (/gjennomsnitt|kvadratmeterpris|prisnivå|området|nabolag|sammenlign|markedet/i.test(question)) {
+    kwTerms.push('Sammenlignbare salg', 'sammenlignbare')
+  }
 
   let chunks: Awaited<ReturnType<typeof retrieveChunks>> = []
   try {
