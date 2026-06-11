@@ -47,6 +47,9 @@ function Samtale() {
     const w = window as any
     const SR = w.webkitSpeechRecognition || w.SpeechRecognition
     if (!SR) { setErrMsg('Talegjenkjenning støttes ikke i denne nettleseren — bruk Chrome eller Safari.'); return false }
+    // drep en eventuell gammel instans først (to samtidige gjenkjennere
+    // får Chrome til å avbryte den nye i stillhet -> «hører meg ikke»)
+    try { recognitionRef.current?.abort() } catch {}
     const rec = new SR()
     recognitionRef.current = rec
     rec.lang = 'no-NO'
@@ -72,15 +75,27 @@ function Samtale() {
         try { rec.start() } catch {}
       }
     }
+    rec.onstart = () => setErrMsg('')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onerror = (event: any) => {
-      if (event.error === 'not-allowed') setErrMsg('Mikrofontilgang ble avvist — tillat mikrofon og prøv igjen.')
+      console.error('[stt] feil:', event.error)
+      if (event.error === 'not-allowed') {
+        setErrMsg('Mikrofontilgang ble avvist — tillat mikrofon og prøv igjen.')
+        micActiveRef.current = false
+        setMicOn(false)
+        setStatus('klar')
+      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        setErrMsg(`Mikrofon-feil (${event.error}) — trykk mikrofonknappen igjen.`)
+        micActiveRef.current = false
+        setMicOn(false)
+        setStatus('klar')
+      }
     }
     try { rec.start(); return true } catch { return false }
   }
 
   function pauseListening() {
-    try { recognitionRef.current?.stop() } catch {}
+    try { recognitionRef.current?.abort() } catch {}
   }
   function resumeListening() {
     if (!micActiveRef.current || busyRef.current) return

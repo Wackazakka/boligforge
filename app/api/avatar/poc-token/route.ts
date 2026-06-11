@@ -13,22 +13,24 @@ export async function POST() {
   const key = process.env.LIVEAVATAR_API_KEY
   if (!key) return NextResponse.json({ error: 'LIVEAVATAR_API_KEY mangler' }, { status: 500 })
 
-  // 1. Hent en offentlig, aktiv VIDEO-avatar (PoC bruker en ferdig avatar).
-  const avatarsRes = await fetch(`${LA_BASE}/v1/avatars/public?page_size=20`, {
-    headers: { 'X-API-KEY': key },
-  })
-  const avatarsJson = await avatarsRes.json()
-  const results: Array<{ id: string; type: string; status: string; name: string }> =
-    avatarsJson?.data?.results ?? []
-  // Deterministisk valg: samme avatar (og dermed samme stemme) hver økt.
-  // Tilfeldig førstevalg ga ny stemme/dialekt når lista endret rekkefølge.
-  const PREFERRED_AVATAR = process.env.AVATAR_LIVEAVATAR_ID // kan pinnes via env
-  const active = results.filter(a => a.type === 'VIDEO' && a.status === 'ACTIVE')
-  const avatar =
-    (PREFERRED_AVATAR && active.find(a => a.id === PREFERRED_AVATAR)) ||
-    active.find(a => /ann/i.test(a.name)) ||
-    [...active].sort((a, b) => a.id.localeCompare(b.id))[0] ||
-    results[0]
+  // Pinnet avatar (env) hopper over liste-kallet — raskere oppkobling.
+  const PREFERRED_AVATAR = process.env.AVATAR_LIVEAVATAR_ID
+  let avatar: { id: string; name: string } | undefined
+  if (PREFERRED_AVATAR) {
+    avatar = { id: PREFERRED_AVATAR, name: 'pinned' }
+  } else {
+    const avatarsRes = await fetch(`${LA_BASE}/v1/avatars/public?page_size=20`, {
+      headers: { 'X-API-KEY': key },
+    })
+    const avatarsJson = await avatarsRes.json()
+    const results: Array<{ id: string; type: string; status: string; name: string }> =
+      avatarsJson?.data?.results ?? []
+    const active = results.filter(a => a.type === 'VIDEO' && a.status === 'ACTIVE')
+    avatar =
+      active.find(a => /ann/i.test(a.name)) ||
+      [...active].sort((a, b) => a.id.localeCompare(b.id))[0] ||
+      results[0]
+  }
   if (!avatar) return NextResponse.json({ error: 'Ingen offentlig avatar tilgjengelig' }, { status: 502 })
 
   // 2. Opprett sesjons-token i FULL-modus — vi styrer teksten avataren sier (repeat()).
@@ -36,7 +38,7 @@ export async function POST() {
   // Norsk stemme: AVATAR_VOICE_ID er en LiveAvatar-bundet ElevenLabs-stemme
   // (Mia — norsk kvinne). Uten den: avatarens engelske default (rar dialekt).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const voiceId = process.env.AVATAR_VOICE_ID || (avatar as any).default_voice?.id
+  const voiceId = process.env.AVATAR_VOICE_ID || (avatar as any).default_voice?.id || undefined
   const tokenRes = await fetch(`${LA_BASE}/v1/sessions/token`, {
     method: 'POST',
     headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
