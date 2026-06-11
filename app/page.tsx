@@ -327,10 +327,10 @@ export default function Home() {
               <div className="desc">3 ferdig produserte videoer hver måned, full tilgang til avatarbiblioteket.</div>
               <ul>
                 <li><CheckIcon /> <span><b>3 videoer</b> per måned</span></li>
-                <li><CheckIcon /> Tilgang til 12 AI-avatarer</li>
-                <li><CheckIcon /> 1080p · 9:16, 16:9, 1:1</li>
+                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> 1080p · 16:9</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
-                <li><CheckIcon /> Standard rendring (~5 min)</li>
+                <li><CheckIcon /> Standard rendering (5–10 min)</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
             </div>
