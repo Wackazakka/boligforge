@@ -58,14 +58,20 @@ export async function POST(request: Request) {
   // spørsmål (f.eks. TG2-avvik spredt over hele rapporten — semantikk alene
   // henter bare de «likeste» bitene og mister resten).
   const isEnumeration = /\b(alle|hvilke|oversikt|liste|list opp|samtlige)\b/i.test(question)
-  const tgTerms = [...question.matchAll(/\bTG\s?-?([0-3])\b/gi)].map(m => `TG${m[1]}`)
+  const tgDigits = [...question.matchAll(/\bTG\s?-?([0-3])\b/gi)].map(m => m[1])
+  // Rapportene skriver gradene på flere måter (TG2 / TG 2 / Tilstandsgrad 2) og
+  // grupperer avvik under kategorifraser UTEN «TG2» i teksten («avvik som ikke
+  // krever umiddelbare tiltak» — funnet ved testing 2026-06-11). Søk alle varianter.
+  const kwTerms: string[] = []
+  for (const n of tgDigits) kwTerms.push(`TG${n}`, `TG ${n}`, `Tilstandsgrad ${n}`)
+  if (tgDigits.length > 0 || /\bavvik|tilstand/i.test(question)) {
+    kwTerms.push('kan kreve tiltak', 'ikke krever umiddelbare tiltak')
+  }
 
   let chunks: Awaited<ReturnType<typeof retrieveChunks>> = []
   try {
-    chunks = await retrieveChunks(client, propertyId, question, isEnumeration || tgTerms.length ? 10 : 6)
-    for (const term of tgTerms) {
-      // hent ALLE chunks som inneholder termen — en 118-siders rapport kan ha
-      // TG2 i 20-30 biter, og fullstendighet er hele poenget med spørsmålet
+    chunks = await retrieveChunks(client, propertyId, question, isEnumeration || kwTerms.length ? 10 : 6)
+    for (const term of kwTerms) {
       const kw = await keywordChunks(client, propertyId, term, 40)
       for (const c of kw) if (!chunks.some(x => x.id === c.id)) chunks.push(c)
     }
