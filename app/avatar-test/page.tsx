@@ -5,8 +5,18 @@
 // Blir senere erstattet av kjøper-klienten (B5) + Avatar-fanen (A3).
 
 import { useEffect, useRef, useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 
 type Property = { id: string; address: string | null; price: number | null }
+type AvatarDoc = { id: string; kind: string; filename: string; status: string; error: string | null; pages: number | null; created_at: string }
+
+const DOC_KINDS = [
+  { id: 'prospekt', label: 'Salgsoppgave / prospekt' },
+  { id: 'tilstandsrapport', label: 'Tilstandsrapport (takst)' },
+  { id: 'energiattest', label: 'Energiattest' },
+  { id: 'vedlegg', label: 'Vedlegg' },
+  { id: 'annet', label: 'Annet' },
+]
 type Turn = { role: 'user' | 'assistant'; content: string; ms?: number; lead?: boolean; sources?: number }
 
 export default function AvatarTestPage() {
@@ -17,6 +27,63 @@ export default function AvatarTestPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const [docs, setDocs] = useState<AvatarDoc[]>([])
+  const [docKind, setDocKind] = useState('tilstandsrapport')
+  const [uploading, setUploading] = useState(false)
+  const [docMsg, setDocMsg] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function loadDocs(pid: string) {
+    if (!pid) return
+    const res = await fetch(`/api/avatar/documents?propertyId=${pid}`)
+    if (res.ok) setDocs((await res.json()).documents ?? [])
+  }
+
+  async function uploadDoc() {
+    const file = fileRef.current?.files?.[0]
+    if (!file || !propertyId) return
+    if (!file.name.toLowerCase().endsWith('.pdf')) { setDocMsg('Kun PDF støttes foreløpig'); return }
+    setUploading(true)
+    setDocMsg('Registrerer dokument…')
+    try {
+      // 1) registrer + få signert opplastings-URL
+      const reg = await fetch('/api/avatar/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId, kind: docKind, filename: file.name }),
+      })
+      const regData = await reg.json()
+      if (!reg.ok) throw new Error(regData.error)
+
+      // 2) last opp direkte til Storage (omgår serverens størrelsesgrense)
+      setDocMsg(`Laster opp ${(file.size / 1024 / 1024).toFixed(1)} MB…`)
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const { error: upErr } = await supabase.storage
+        .from('avatar-docs')
+        .uploadToSignedUrl(regData.upload.path, regData.upload.token, file, { contentType: 'application/pdf' })
+      if (upErr) throw new Error(`Opplasting: ${upErr.message}`)
+
+      // 3) prosesser (tekst → kunnskapsbase)
+      setDocMsg('Bygger kunnskapsbase (tekst → søkbare biter)…')
+      const proc = await fetch('/api/avatar/documents/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: regData.document.id }),
+      })
+      const procData = await proc.json()
+      if (!proc.ok) throw new Error(procData.error)
+      setDocMsg(`✅ Klar! ${procData.pages} sider → ${procData.chunks} søkbare biter`)
+      if (fileRef.current) fileRef.current.value = ''
+    } catch (e) {
+      setDocMsg(`Feil: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setUploading(false)
+      loadDocs(propertyId)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/properties/list')
@@ -24,7 +91,7 @@ export default function AvatarTestPage() {
       .then(d => {
         if (Array.isArray(d)) {
           setProperties(d)
-          if (d.length > 0) setPropertyId(d[0].id)
+          if (d.length > 0) { setPropertyId(d[0].id); loadDocs(d[0].id) }
         } else setError(d.error || 'Kunne ikke hente eiendommer — er du innlogget?')
       })
       .catch(() => setError('Kunne ikke hente eiendommer'))
@@ -72,7 +139,7 @@ export default function AvatarTestPage() {
       <label style={{ fontSize: 13, fontWeight: 600 }}>Eiendom</label>
       <select
         value={propertyId}
-        onChange={e => { setPropertyId(e.target.value); setTurns([]) }}
+        onChange={e => { setPropertyId(e.target.value); setTurns([]); loadDocs(e.target.value) }}
         style={{ display: 'block', width: '100%', padding: 10, margin: '6px 0 16px', borderRadius: 8, border: '1px solid #ccc', fontSize: 14 }}
       >
         {properties.map(p => (
@@ -81,6 +148,39 @@ export default function AvatarTestPage() {
           </option>
         ))}
       </select>
+
+      <div style={{ border: '1px solid #ddd', borderRadius: 10, padding: 16, marginBottom: 16, background: '#fff' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>📄 Kunnskapsbase for denne boligen</div>
+        {docs.length === 0 ? (
+          <p style={{ fontSize: 13, color: '#999', margin: '0 0 10px' }}>Ingen dokumenter ennå — last opp salgsoppgave/tilstandsrapport, så kan avataren svare på detaljspørsmål.</p>
+        ) : (
+          <ul style={{ fontSize: 13, margin: '0 0 10px', paddingLeft: 18 }}>
+            {docs.map(d => (
+              <li key={d.id} style={{ marginBottom: 4 }}>
+                <strong>{d.filename}</strong> ({DOC_KINDS.find(k => k.id === d.kind)?.label ?? d.kind}) —{' '}
+                {d.status === 'ready' && <span style={{ color: '#16a34a' }}>✅ klar{d.pages ? ` (${d.pages} sider)` : ''}</span>}
+                {d.status === 'failed' && <span style={{ color: '#dc2626' }}>❌ feilet: {d.error}</span>}
+                {(d.status === 'pending' || d.status === 'processing') && <span style={{ color: '#d97706' }}>⏳ {d.status}</span>}
+                {' '}
+                <button onClick={async () => { await fetch('/api/avatar/documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: d.id }) }); loadDocs(propertyId) }}
+                  style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>slett</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select value={docKind} onChange={e => setDocKind(e.target.value)}
+            style={{ padding: 8, borderRadius: 8, border: '1px solid #ccc', fontSize: 13 }}>
+            {DOC_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}
+          </select>
+          <input ref={fileRef} type="file" accept="application/pdf" style={{ fontSize: 13 }} />
+          <button onClick={uploadDoc} disabled={uploading}
+            style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}>
+            {uploading ? 'Jobber…' : 'Last opp'}
+          </button>
+        </div>
+        {docMsg && <p style={{ fontSize: 12, color: docMsg.startsWith('Feil') ? '#dc2626' : '#555', marginTop: 8 }}>{docMsg}</p>}
+      </div>
 
       <div style={{ border: '1px solid #ddd', borderRadius: 10, padding: 16, minHeight: 220, maxHeight: 420, overflowY: 'auto', background: '#fafafa' }}>
         {turns.length === 0 && (
