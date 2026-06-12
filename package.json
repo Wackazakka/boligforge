@@ -12,7 +12,6 @@
     "@anthropic-ai/sdk": "^0.97.1",
     "@aws-sdk/client-s3": "^3.1049.0",
     "@fal-ai/client": "^1.10.1",
-    "@heygen/liveavatar-web-sdk": "^0.0.18",
     "@stripe/stripe-js": "^9.6.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.0",

@@ -179,6 +179,10 @@ export default function PropertyDetailPage() {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarProcessing, setAvatarProcessing] = useState<string | null>(null)
   const [copyDone, setCopyDone] = useState(false)
+  const [avatarWarning, setAvatarWarning] = useState<{ documentAddress: string; propertyAddress: string } | null>(null)
+  const [avatarCfg, setAvatarCfg] = useState({ enabled: false, gate_mode: 'contact', viewing_date: '', token_expiry_hours: 48 })
+  const [avatarCfgSaved, setAvatarCfgSaved] = useState(false)
+  const [avatarCfgSaving, setAvatarCfgSaving] = useState(false)
 
   // ── Folder panel for the freshly generated video ──
   // The just-finished video lives in pastVideos (re-fetched when polling completes),
@@ -404,7 +408,31 @@ export default function PropertyDetailPage() {
       .then(d => { if (Array.isArray(d)) setAvatarDocs(d) })
       .catch(() => {})
       .finally(() => setAvatarDocsLoading(false))
+    fetch(`/api/avatar/config?propertyId=${id}`)
+      .then(r => r.json())
+      .then(c => { if (c) setAvatarCfg({ enabled: !!c.enabled, gate_mode: c.gate_mode ?? 'contact', viewing_date: c.viewing_date ?? '', token_expiry_hours: c.token_expiry_hours ?? 48 }) })
+      .catch(() => {})
   }, [activeTab, id])
+
+  async function saveAvatarConfig(next: Partial<typeof avatarCfg>) {
+    const merged = { ...avatarCfg, ...next }
+    setAvatarCfg(merged)
+    setAvatarCfgSaving(true)
+    setAvatarCfgSaved(false)
+    try {
+      await fetch('/api/avatar/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId: id, ...merged, viewing_date: merged.viewing_date || null }),
+      })
+      setAvatarCfgSaved(true)
+      setTimeout(() => setAvatarCfgSaved(false), 2000)
+    } catch {
+      setError('Lagring av AI-megler-innstillinger feilet')
+    } finally {
+      setAvatarCfgSaving(false)
+    }
+  }
 
   function splitIntoSegments(text: string) {
     const raw = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
@@ -868,6 +896,7 @@ export default function PropertyDetailPage() {
     if (!file) return
     setAvatarUploading(true)
     setError('')
+    setAvatarWarning(null)
     try {
       const res = await fetch('/api/avatar/documents', {
         method: 'POST',
@@ -883,7 +912,9 @@ export default function PropertyDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: data.document.id, propertyId: id }),
       })
-      if (!procRes.ok) throw new Error('Prosessering feilet')
+      const procData = await procRes.json().catch(() => ({}))
+      if (!procRes.ok) throw new Error(procData.error || 'Prosessering feilet')
+      if (procData.addressWarning) setAvatarWarning(procData.addressWarning)
       const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
       const list = await listRes.json()
       if (Array.isArray(list)) setAvatarDocs(list)
@@ -904,12 +935,15 @@ export default function PropertyDetailPage() {
 
   async function handleAvatarReprocess(docId: string) {
     setAvatarProcessing(docId)
+    setAvatarWarning(null)
     try {
-      await fetch('/api/avatar/documents/process', {
+      const procRes = await fetch('/api/avatar/documents/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: docId, propertyId: id }),
       })
+      const procData = await procRes.json().catch(() => ({}))
+      if (procData.addressWarning) setAvatarWarning(procData.addressWarning)
       const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
       const list = await listRes.json()
       if (Array.isArray(list)) setAvatarDocs(list)
@@ -2038,6 +2072,50 @@ export default function PropertyDetailPage() {
         {activeTab === 'ai-megler' && (
           <div className="space-y-4">
 
+            {/* Tilgangsstyring */}
+            <div className="app-card space-y-3">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>AI-megler — tilgang</h2>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>Bestem om og hvordan kjøpere slipper inn til den digitale visningen.</p>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={avatarCfg.enabled} onChange={e => saveAvatarConfig({ enabled: e.target.checked })} />
+                  <span style={{ color: 'var(--ink)' }}>{avatarCfg.enabled ? 'På' : 'Av'}</span>
+                </label>
+              </div>
+              {avatarCfg.enabled && (
+                <div style={{ display: 'grid', gap: 12, maxWidth: 420 }}>
+                  <label style={{ display: 'grid', gap: 4, fontSize: 13, color: 'var(--muted)' }}>
+                    Krav for tilgang
+                    <select value={avatarCfg.gate_mode} onChange={e => saveAvatarConfig({ gate_mode: e.target.value })}
+                      style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14, background: 'var(--surface)', color: 'var(--ink)' }}>
+                      <option value="consent">Kun samtykke (lavest terskel)</option>
+                      <option value="contact">Navn, e-post og telefon</option>
+                      <option value="viewing">Påmelding til visning</option>
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 4, fontSize: 13, color: 'var(--muted)' }}>
+                    Visningsdato (valgfri — styrer token-utløp)
+                    <input type="date" value={avatarCfg.viewing_date} onChange={e => saveAvatarConfig({ viewing_date: e.target.value })}
+                      style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14, background: 'var(--surface)', color: 'var(--ink)' }} />
+                  </label>
+                  <label style={{ display: 'grid', gap: 4, fontSize: 13, color: 'var(--muted)' }}>
+                    Lenken gyldig i
+                    <select value={avatarCfg.token_expiry_hours} onChange={e => saveAvatarConfig({ token_expiry_hours: Number(e.target.value) })}
+                      style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14, background: 'var(--surface)', color: 'var(--ink)' }}>
+                      <option value={24}>24 timer</option>
+                      <option value={48}>48 timer</option>
+                      <option value={72}>72 timer</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+              <p className="text-xs" style={{ color: avatarCfgSaved ? '#16a34a' : 'var(--muted)' }}>
+                {avatarCfgSaving ? 'Lagrer…' : avatarCfgSaved ? '✓ Lagret' : 'Endringer lagres automatisk.'}
+              </p>
+            </div>
+
             {/* Dokumenter */}
             <div className="app-card space-y-4">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
@@ -2051,6 +2129,12 @@ export default function PropertyDetailPage() {
                   <input type="file" accept=".pdf" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
                 </label>
               </div>
+              {avatarWarning && (
+                <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#fef3c7', border: '1px solid #f59e0b', fontSize: '13px', color: '#92400e', lineHeight: 1.5 }}>
+                  <strong>⚠️ Mulig feil dokument.</strong> Dokumentet ser ut til å gjelde <strong>{avatarWarning.documentAddress}</strong>, men denne eiendommen er <strong>{avatarWarning.propertyAddress}</strong>. Sjekk at du lastet opp riktig fil — ellers svarer AI-megleren med feil boligs data.
+                  <button onClick={() => setAvatarWarning(null)} style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: '13px' }}>Lukk</button>
+                </div>
+              )}
               {avatarDocsLoading && (
                 <p className="text-sm" style={{ color: 'var(--muted)' }}>Laster...</p>
               )}
@@ -2099,11 +2183,11 @@ export default function PropertyDetailPage() {
                   background: 'var(--surface-2)', border: '1px solid var(--line)',
                   color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
                 }}>
-                  {typeof window !== 'undefined' ? window.location.origin : 'https://reelhome.ai'}/avatar-samtale?property={id}
+                  {typeof window !== 'undefined' ? window.location.origin : 'https://reelhome.ai'}/avatar-did?property={id}
                 </code>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/avatar-samtale?property=${id}`)
+                    navigator.clipboard.writeText(`${window.location.origin}/avatar-did?property=${id}`)
                     setCopyDone(true)
                     setTimeout(() => setCopyDone(false), 2000)
                   }}
@@ -2114,7 +2198,7 @@ export default function PropertyDetailPage() {
                 </button>
               </div>
               <a
-                href={`/avatar-samtale?property=${id}`}
+                href={`/avatar-did?property=${id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="app-btn-secondary"

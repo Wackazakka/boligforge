@@ -1,6 +1,7 @@
 import Link from "next/link";
 import VideoHero from "./VideoHero";
 import MusicTracks from "./MusicTracks";
+import PricingCTA from "./PricingCTA";
 
 const R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
 const PRESETS_BASE = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/presets'
@@ -335,7 +336,7 @@ export default function Home() {
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
               </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
+              <PricingCTA plan="starter" />
             </div>
 
             {/* Aktiv */}
@@ -354,7 +355,7 @@ export default function Home() {
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
               </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Velg Aktiv</Link>
+              <PricingCTA plan="aktiv" />
             </div>
 
             {/* Pro */}
@@ -373,7 +374,7 @@ export default function Home() {
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
               </ul>
-              <a href="#" className="btn btn-ghost">Snakk med salg</a>
+              <PricingCTA plan="pro" />
             </div>
 
             {/* Enkeltvideo */}
@@ -388,7 +389,7 @@ export default function Home() {
                 <li><CheckIcon /> 1080p · 9:16, 16:9, 1:1</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
               </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Kjøp enkeltvideo</Link>
+              <PricingCTA plan="enkelt" />
             </div>
 
             {/* AI-megler */}

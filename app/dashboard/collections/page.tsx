@@ -481,9 +481,30 @@ export default function CollectionsPage() {
                   />
                 )}
 
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', marginTop: '8px' }}>
-                  Publiser til
-                </p>
+                {(() => {
+                  const validIds = publishConnections
+                    .filter(c => !c.token_expires_at || new Date(c.token_expires_at) > new Date())
+                    .map(c => c.id)
+                  const allSelected = validIds.length > 0 && validIds.every(id => publishSelected.has(id))
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', marginTop: '8px' }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                        Publiser til
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setPublishSelected(allSelected ? new Set() : new Set(validIds))}
+                        style={{
+                          fontSize: '12px', fontWeight: 600, color: '#2563eb',
+                          background: '#eff6ff', border: '1px solid #bfdbfe',
+                          borderRadius: '6px', cursor: 'pointer', padding: '4px 10px', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {allSelected ? 'Fjern alle' : 'Velg alle'}
+                      </button>
+                    </div>
+                  )
+                })()}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                   {publishConnections.map(conn => {
                     const expired = conn.token_expires_at ? new Date(conn.token_expires_at) < new Date() : false

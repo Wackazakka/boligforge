@@ -12,7 +12,7 @@
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { getUser } from '../../../../lib/supabase/server'
+import { resolveAvatarAccess } from '../../../../lib/avatar/access'
 import { serviceClient, retrieveChunks, keywordChunks, neighborChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
 import { isCostQuestion, buildCostBaseSection } from '../../../../lib/avatar/costbase'
 import { speakifyForTTS } from '../../../../lib/norwegian-numbers'
@@ -43,11 +43,11 @@ const LEAD_TOOL: Anthropic.Tool = {
 type HistoryItem = { role: 'user' | 'assistant'; content: string }
 
 export async function POST(request: Request) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { propertyId, question, history } = await request.json()
+  const { propertyId, question, history, viewingToken } = await request.json()
   if (!propertyId || !question) return NextResponse.json({ error: 'Mangler propertyId/question' }, { status: 400 })
+
+  const access = await resolveAvatarAccess(propertyId, viewingToken)
+  if (!access.ok) return NextResponse.json({ error: 'Ingen gyldig tilgang' }, { status: 401 })
 
   const client = serviceClient()
 

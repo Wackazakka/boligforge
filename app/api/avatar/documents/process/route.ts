@@ -192,7 +192,47 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, pages: totalPages, chunks: chunks.length, extractedAddress })
+    // ADRESSE-GUARDRAIL: for eksisterende (ikke-stubb) eiendommer — sjekk at dokumentet
+    // faktisk gjelder denne eiendommen. Fanger feil-opplastede dokumenter før de når kjøper
+    // (f.eks. Jotneveien-42-rapport lastet opp på Oslogata-35-eiendommen).
+    let addressWarning: { documentAddress: string; propertyAddress: string } | null = null
+    if (prop?.address && !prop.address.startsWith('⏳')) {
+      try {
+        const claudeAddr = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+        const head = chunks.slice(0, 5).join('\n\n').slice(0, 16000)
+        const resp = await claudeAddr.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 300,
+          tools: [{
+            name: 'sjekk_adresse',
+            description: 'Sjekk om dokumentet gjelder den oppgitte eiendommen.',
+            input_schema: {
+              type: 'object',
+              properties: {
+                document_adresse: { type: 'string', description: 'Adressen dokumentet selv handler om (gate, nr, sted)' },
+                gjelder_eiendommen: { type: 'boolean', description: 'true hvis dokumentet handler om SAMME eiendom som den oppgitte adressen, ellers false' },
+              },
+              required: ['document_adresse', 'gjelder_eiendommen'],
+              additionalProperties: false,
+            },
+          }],
+          tool_choice: { type: 'tool', name: 'sjekk_adresse' },
+          messages: [{ role: 'user', content: `Eiendommen i systemet har adresse: "${prop.address}".\n\nGjelder dokumentet under den SAMME eiendommen? Hent også dokumentets egen adresse.\n\n${head}` }],
+        })
+        const tu = resp.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
+        if (tu) {
+          const f = tu.input as { document_adresse: string; gjelder_eiendommen: boolean }
+          if (f.gjelder_eiendommen === false) {
+            addressWarning = { documentAddress: f.document_adresse, propertyAddress: prop.address }
+            console.warn(`[avatar/process] ADRESSE-MISMATCH: dok "${f.document_adresse}" vs eiendom "${prop.address}"`)
+          }
+        }
+      } catch (e) {
+        console.error('[avatar/process] adresse-sjekk feilet (ignorert):', e)
+      }
+    }
+
+    return NextResponse.json({ success: true, pages: totalPages, chunks: chunks.length, extractedAddress, addressWarning })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     await client.from('reelhome_avatar_documents').update({ status: 'failed', error: msg }).eq('id', doc.id)
