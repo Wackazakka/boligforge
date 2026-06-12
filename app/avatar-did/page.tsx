@@ -27,6 +27,9 @@ function Samtale() {
   const streamIdRef = useRef<string>('')
   const sessionIdRef = useRef<string>('')
   const greetedRef = useRef(false)
+  const connectedRef = useRef(false)
+  const pendingGreetRef = useRef(false)
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const viewingTokenRef = useRef<string | null>(null)
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +37,9 @@ function Samtale() {
   const finalTextRef = useRef('')
   const micActiveRef = useRef(false)
   const busyRef = useRef(false)
+  const speakQueueRef = useRef<string[]>([])
+  const speakingRef = useRef(false)
+  const speakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [status, setStatus] = useState<'idle' | 'kobler' | 'klar' | 'lytter' | 'tenker' | 'snakker' | 'avsluttet' | 'feil'>('idle')
   const [address, setAddress] = useState('')
@@ -51,6 +57,13 @@ function Samtale() {
   const [signupBusy, setSignupBusy] = useState(false)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turns, status])
+
+  // Forhåndsvarm D-ID-strømmen så snart porten er passert (megler eller gyldig token),
+  // så «Start samtale» blir tilnærmet umiddelbart i stedet for ~10 sek venting.
+  useEffect(() => {
+    if (gate === 'open' || gate === 'megler') connectStream()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate])
 
   // Port-sjekk ved last
   useEffect(() => {
@@ -150,10 +163,40 @@ function Samtale() {
 
   function pauseListening() { try { recognitionRef.current?.abort() } catch {} }
 
+  // Talekø: send neste bit FØRST når forrige er ferdig — ellers spiller D-ID dem oppå
+  // hverandre (forvrengt lyd/bilde). Drevet av D-IDs stream-signal (onSpeechDone) med
+  // et sjenerøst tids-fallback i tilfelle signalet uteblir.
+  function pumpSpeak() {
+    if (speakingRef.current) return
+    const next = speakQueueRef.current.shift()
+    if (next === undefined) return
+    speakingRef.current = true
+    if (videoRef.current) videoRef.current.muted = false // slå på lyd igjen for ny tale
+    didCall({ action: 'speak', streamId: streamIdRef.current, session_id: sessionIdRef.current, input: next })
+      .catch(e => console.error('speak feilet:', e))
+    if (speakTimerRef.current) clearTimeout(speakTimerRef.current)
+    const estMs = (next.length / 12) * 1000 + 1200 // ~realistisk talevarighet + liten buffer
+    speakTimerRef.current = setTimeout(() => { speakingRef.current = false; pumpSpeak() }, estMs)
+  }
+
+  function onSpeechDone() {
+    if (speakTimerRef.current) clearTimeout(speakTimerRef.current)
+    speakingRef.current = false
+    pumpSpeak()
+  }
+
+  // Barge-in: tøm køen (resten av et langt svar droppes). Gjeldende bit spiller ferdig
+  // — vi kan ikke stoppe D-ID midt i tale — men ny tale starter ikke før den er ferdig.
+  function interruptSpeak() {
+    speakQueueRef.current = []
+    if (speakTimerRef.current) clearTimeout(speakTimerRef.current)
+    if (videoRef.current) videoRef.current.muted = true // umiddelbar stillhet ved barge-in
+  }
+
   function speak(text: string) {
     if (!streamIdRef.current || !sessionIdRef.current) return
-    didCall({ action: 'speak', streamId: streamIdRef.current, session_id: sessionIdRef.current, input: text })
-      .catch(e => console.error('speak feilet:', e))
+    speakQueueRef.current = chunkForSpeak(text)
+    pumpSpeak()
   }
 
   async function handleQuestion(question: string) {
@@ -187,17 +230,38 @@ function Samtale() {
 
   function greetOnce() {
     if (greetedRef.current) return
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current) // samtalen i gang → ikke koble ned
     greetedRef.current = true
     setStatus('snakker')
     speak(`Hei og velkommen til digital visning av ${speakifyForTTS(address) || 'denne boligen'}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Trykk på mikrofonknappen, still spørsmålet ditt, og trykk ferdig når du er klar.`)
     setStatus('klar')
   }
 
-  async function start() {
-    if (!propertyId) { setErrMsg('Mangler eiendom (?property=…)'); return }
-    setStatus('kobler')
-    setErrMsg('')
-    greetedRef.current = false
+  // Koble ned en forhåndsvarmet strøm som ingen tok i bruk (sparer D-ID-streamingtid).
+  function teardownStream() {
+    if (streamIdRef.current && sessionIdRef.current) {
+      didCall({ action: 'delete', streamId: streamIdRef.current, session_id: sessionIdRef.current }).catch(() => {})
+    }
+    try { pcRef.current?.close() } catch {}
+    pcRef.current = null
+    connectedRef.current = false
+    streamIdRef.current = ''
+    sessionIdRef.current = ''
+  }
+
+  // Tomgangs-timeout: hvis ingen starter samtalen innen 90 sek, koble ned den varme
+  // strømmen så den ikke står og brenner credits for en kjøper som forlot siden.
+  function startIdleTimer() {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    idleTimerRef.current = setTimeout(() => {
+      if (!greetedRef.current) teardownStream()
+    }, 90_000)
+  }
+
+  // Forhåndsvarming: koble opp WebRTC-strømmen ved sidelast (uten å snakke), så selve
+  // «Start»-klikket blir tilnærmet umiddelbart. Hilsen krever brukerklikk (lyd-gesture).
+  async function connectStream() {
+    if (!propertyId || pcRef.current) return
     try {
       const createRes = await didCall({ action: 'create' })
       const s = await createRes.json()
@@ -214,14 +278,29 @@ function Samtale() {
       }
       pc.ontrack = (e) => {
         if (videoRef.current && e.streams[0]) {
+          videoRef.current.muted = true // stille tomgang under forhåndsvarming; hilsen slår på lyd
           videoRef.current.srcObject = e.streams[0]
           videoRef.current.play().catch(() => {})
         }
       }
       pc.onconnectionstatechange = () => {
         const st = pc.connectionState
-        if (st === 'connected') { setStatus('klar'); greetOnce() }
-        else if (st === 'failed' || st === 'closed') setStatus('feil')
+        if (st === 'connected') {
+          connectedRef.current = true
+          if (pendingGreetRef.current) { pendingGreetRef.current = false; greetOnce() }
+          else startIdleTimer() // forhåndsvarmet, venter på Start → koble ned hvis ingen starter
+        } else if (st === 'failed' || st === 'closed') {
+          connectedRef.current = false
+          if (greetedRef.current) setStatus('feil') // bare vis feil hvis samtalen var i gang
+        }
+      }
+      // D-ID sender 'stream/done:{...}' over en data channel når gjeldende bit er ferdig
+      // snakket → send neste kø-bit. (Fallback-timer dekker om formatet avviker.)
+      pc.ondatachannel = (ev) => {
+        ev.channel.onmessage = (msg) => {
+          const m = String((msg as MessageEvent).data ?? '')
+          if (m.includes('stream/done')) onSpeechDone()
+        }
       }
 
       await pc.setRemoteDescription(s.offer)
@@ -229,13 +308,27 @@ function Samtale() {
       await pc.setLocalDescription(answer)
       await didCall({ action: 'sdp', streamId: s.id, session_id: s.session_id, answer: { type: answer.type, sdp: answer.sdp } })
     } catch (e) {
-      setErrMsg(e instanceof Error ? e.message : String(e))
-      setStatus('feil')
+      if (greetedRef.current) { setErrMsg(e instanceof Error ? e.message : String(e)); setStatus('feil') }
+    }
+  }
+
+  // «Start samtale»-klikket (brukergest som tillater lyd): hils med en gang strømmen er varm.
+  function start() {
+    if (!propertyId) { setErrMsg('Mangler eiendom (?property=…)'); return }
+    setErrMsg('')
+    greetedRef.current = false
+    if (connectedRef.current) {
+      greetOnce()
+    } else {
+      setStatus('kobler')
+      pendingGreetRef.current = true
+      connectStream() // i tilfelle forhåndsvarmingen ikke rakk/feilet
     }
   }
 
   function toggleMic() {
     if (!micOn) {
+      interruptSpeak() // barge-in: stopp resten av et langt svar når brukeren vil snakke
       micActiveRef.current = true
       if (startRecognition()) { setMicOn(true); setStatus('lytter') }
       else micActiveRef.current = false
@@ -252,6 +345,7 @@ function Samtale() {
   }
 
   async function end() {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
     micActiveRef.current = false
     setMicOn(false)
     if (streamIdRef.current && sessionIdRef.current) {
@@ -315,8 +409,11 @@ function Samtale() {
   return (
     <div style={{ maxWidth: 880, margin: '24px auto', padding: 16, fontFamily: 'system-ui' }}>
       <h1 style={{ fontSize: 20, fontWeight: 700 }}>Digital visning{address ? ` — ${address}` : ''}{gate === 'megler' ? ' (forhåndsvisning)' : ''}</h1>
-      <p style={{ color: '#555', fontSize: 13, margin: '4px 0 12px' }}>
+      <p style={{ color: '#555', fontSize: 13, margin: '4px 0 6px' }}>
         Status: <strong>{statusLabel[status]}</strong>
+      </p>
+      <p style={{ color: 'var(--muted, #888)', fontSize: 12, margin: '0 0 12px', lineHeight: 1.5 }}>
+        💡 Megleren leser hele salgsoppgaven og tilstandsrapporten for hvert spørsmål — gi den gjerne noen sekunder på å finne det riktige svaret.
       </p>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -369,6 +466,21 @@ function Samtale() {
       </div>
     </div>
   )
+}
+
+// Del tekst i biter på ~280 tegn langs setningsgrenser (for D-ID/Azure tekstgrense)
+function chunkForSpeak(text: string, maxLen = 1400): string[] {
+  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || [text]
+  const chunks: string[] = []
+  let cur = ''
+  for (const s of sentences) {
+    const t = s.trim()
+    if (!t) continue
+    if (cur && (cur + ' ' + t).length > maxLen) { chunks.push(cur); cur = t }
+    else cur = cur ? `${cur} ${t}` : t
+  }
+  if (cur) chunks.push(cur)
+  return chunks
 }
 
 const inp: React.CSSProperties = { padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc', fontSize: 14 }

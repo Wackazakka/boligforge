@@ -180,6 +180,7 @@ export default function PropertyDetailPage() {
   const [avatarProcessing, setAvatarProcessing] = useState<string | null>(null)
   const [copyDone, setCopyDone] = useState(false)
   const [avatarWarning, setAvatarWarning] = useState<{ documentAddress: string; propertyAddress: string } | null>(null)
+  const [avatarKind, setAvatarKind] = useState('prospekt')
   const [avatarCfg, setAvatarCfg] = useState({ enabled: false, gate_mode: 'contact', viewing_date: '', token_expiry_hours: 48 })
   const [avatarCfgSaved, setAvatarCfgSaved] = useState(false)
   const [avatarCfgSaving, setAvatarCfgSaving] = useState(false)
@@ -891,6 +892,22 @@ export default function PropertyDetailPage() {
     startPolling(data.jobId)
   }
 
+  // Poll dokumentstatus til ready/failed — frikoblet fra det trege prosesserings-svaret
+  // (store PDF-er kan overskride Netlifys HTTP-grense selv om jobben fullføres server-side).
+  async function pollDocStatus(docId: string) {
+    for (let i = 0; i < 40; i++) {
+      await new Promise(r => setTimeout(r, 2500))
+      const list = await fetch(`/api/avatar/documents?propertyId=${id}`).then(r => r.json()).catch(() => null)
+      if (!Array.isArray(list)) continue
+      setAvatarDocs(list)
+      const d = (list as Array<{ id: string; status: string; error?: string }>).find(x => x.id === docId)
+      if (d && (d.status === 'ready' || d.status === 'failed')) {
+        if (d.status === 'failed') setError(`Prosessering feilet: ${d.error ?? ''}`)
+        return
+      }
+    }
+  }
+
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -901,23 +918,23 @@ export default function PropertyDetailPage() {
       const res = await fetch('/api/avatar/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId: id, filename: file.name, contentType: file.type }),
+        body: JSON.stringify({ propertyId: id, kind: avatarKind, filename: file.name, contentType: file.type }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Opprettelse feilet')
       await fetch(data.upload.url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
       setAvatarProcessing(data.document.id)
-      const procRes = await fetch('/api/avatar/documents/process', {
+      // Start prosessering, men avvent IKKE det (kan time ut på store PDF-er). Fang
+      // adresse-advarselen hvis svaret rekker tilbake; ellers poller vi statusen.
+      fetch('/api/avatar/documents/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: data.document.id, propertyId: id }),
       })
-      const procData = await procRes.json().catch(() => ({}))
-      if (!procRes.ok) throw new Error(procData.error || 'Prosessering feilet')
-      if (procData.addressWarning) setAvatarWarning(procData.addressWarning)
-      const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
-      const list = await listRes.json()
-      if (Array.isArray(list)) setAvatarDocs(list)
+        .then(r => r.json())
+        .then(d => { if (d?.addressWarning) setAvatarWarning(d.addressWarning) })
+        .catch(() => {})
+      await pollDocStatus(data.document.id)
     } catch (err) {
       setError(`AI-megler opplasting feilet: ${String(err)}`)
     } finally {
@@ -937,16 +954,15 @@ export default function PropertyDetailPage() {
     setAvatarProcessing(docId)
     setAvatarWarning(null)
     try {
-      const procRes = await fetch('/api/avatar/documents/process', {
+      fetch('/api/avatar/documents/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: docId, propertyId: id }),
       })
-      const procData = await procRes.json().catch(() => ({}))
-      if (procData.addressWarning) setAvatarWarning(procData.addressWarning)
-      const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
-      const list = await listRes.json()
-      if (Array.isArray(list)) setAvatarDocs(list)
+        .then(r => r.json())
+        .then(d => { if (d?.addressWarning) setAvatarWarning(d.addressWarning) })
+        .catch(() => {})
+      await pollDocStatus(docId)
     } catch {
       setError('Reprosessering feilet')
     } finally {
@@ -2123,12 +2139,23 @@ export default function PropertyDetailPage() {
                   <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Kunnskapsbase</h2>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>Last opp salgsoppgave og tilstandsrapport — AI-megleren svarer kun fra disse.</p>
                 </div>
-                <label className={`cursor-pointer app-btn-primary text-sm ${avatarUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                  style={{ padding: '8px 16px' }}>
-                  {avatarUploading ? 'Laster opp...' : '+ Last opp PDF'}
-                  <input type="file" accept=".pdf" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
-                </label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select value={avatarKind} onChange={e => setAvatarKind(e.target.value)} disabled={avatarUploading}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13, background: 'var(--surface)', color: 'var(--ink)' }}>
+                    <option value="prospekt">Salgsoppgave</option>
+                    <option value="tilstandsrapport">Tilstandsrapport</option>
+                    <option value="energiattest">Energiattest</option>
+                    <option value="vedlegg">Vedlegg</option>
+                    <option value="annet">Annet</option>
+                  </select>
+                  <label className={`cursor-pointer app-btn-primary text-sm ${avatarUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                    style={{ padding: '8px 16px' }}>
+                    {avatarUploading ? 'Laster opp...' : '+ Last opp PDF'}
+                    <input type="file" accept=".pdf" className="hidden" onChange={handleAvatarUpload} disabled={avatarUploading} />
+                  </label>
+                </div>
               </div>
+              {error && <div className="app-error" style={{ fontSize: 13 }}>{error}</div>}
               {avatarWarning && (
                 <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#fef3c7', border: '1px solid #f59e0b', fontSize: '13px', color: '#92400e', lineHeight: 1.5 }}>
                   <strong>⚠️ Mulig feil dokument.</strong> Dokumentet ser ut til å gjelde <strong>{avatarWarning.documentAddress}</strong>, men denne eiendommen er <strong>{avatarWarning.propertyAddress}</strong>. Sjekk at du lastet opp riktig fil — ellers svarer AI-megleren med feil boligs data.

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { resolveAvatarAccess } from '../../../../lib/avatar/access'
+import { serviceClient } from '../../../../lib/avatar/rag'
 
 // D-ID Agents Streams — server-side proxy (Avatar Nivå 2 eval).
 // Vi bruker den NAKNE client-keyen (Client-Key <key>, uten SDK-ens external-user-suffiks
@@ -19,7 +20,13 @@ export async function POST(request: Request) {
 
   const action = body.action as string
   const base = `${DID_BASE}/agents/${agentId}/streams`
-  const headers = { Authorization: `Basic ${apiKey}`, 'Content-Type': 'application/json' }
+  const headers: Record<string, string> = { Authorization: `Basic ${apiKey}`, 'Content-Type': 'application/json' }
+  // Bruk ReelHomes EGEN ElevenLabs-konto for ElevenLabs-stemmer (Mia / per-megler) — sendes
+  // per kall via x-api-key-external, så ingen oppkobling i D-ID Studio trengs. Krever Pro-plan.
+  const elKey = process.env.ELEVENLABS_API_KEY
+  if (process.env.DID_VOICE_ID && elKey) {
+    headers['x-api-key-external'] = JSON.stringify({ elevenlabs: elKey })
+  }
 
   try {
     if (action === 'create') {
@@ -51,18 +58,34 @@ export async function POST(request: Request) {
     }
 
     if (action === 'speak') {
-      // Egen ElevenLabs-stemme (Mia / per-megler) hvis DID_VOICE_ID satt + premium D-ID;
-      // ellers agentens egen norske stemme (Azure nb-NO).
-      const voiceId = process.env.DID_VOICE_ID
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const script: any = { type: 'text', input: body.input }
-      if (voiceId) script.provider = { type: 'elevenlabs', voice_id: voiceId }
-      const r = await fetch(`${base}/${streamId}`, {
-        method: 'POST', headers, body: JSON.stringify({ session_id, script }),
-      })
-      const d = await r.json().catch(() => ({}))
-      if (!r.ok) return NextResponse.json({ error: 'speak feilet', detail: d }, { status: 502 })
-      return NextResponse.json(d)
+      // Egen ElevenLabs-stemme (Mia / per-megler) hvis DID_VOICE_ID satt + Pro-plan + EL-nøkkel
+      // koblet i D-ID. Hvis det feiler (ikke låst opp ennå), fall tilbake til agentens egen
+      // norske stemme (Azure nb-NO) så avataren ALLTID svarer.
+      // Per-megler stemme: bruk eiendommens meglers egen ElevenLabs-klone (samme stemme som
+      // i videoene deres). Faller tilbake til DID_VOICE_ID (felles Mia), så Azure ved feil.
+      let voiceId = process.env.DID_VOICE_ID
+      try {
+        const svc = serviceClient()
+        const { data: prop } = await svc.from('properties').select('user_id').eq('id', body.propertyId).maybeSingle()
+        if (prop?.user_id) {
+          const { data: profile } = await svc.from('agent_profiles').select('cloned_voice_id').eq('user_id', prop.user_id).maybeSingle()
+          if (profile?.cloned_voice_id) voiceId = profile.cloned_voice_id
+        }
+      } catch { /* faller tilbake til DID_VOICE_ID */ }
+
+      async function doSpeak(useVoice: boolean) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const script: any = { type: 'text', input: body.input }
+        if (useVoice && voiceId) script.provider = { type: 'elevenlabs', voice_id: voiceId }
+        const r = await fetch(`${base}/${streamId}`, {
+          method: 'POST', headers, body: JSON.stringify({ session_id, script }),
+        })
+        return { ok: r.ok, data: await r.json().catch(() => ({})) }
+      }
+      let res = await doSpeak(true)
+      if (!res.ok && voiceId) res = await doSpeak(false) // fallback til Azure-stemmen
+      if (!res.ok) return NextResponse.json({ error: 'speak feilet', detail: res.data }, { status: 502 })
+      return NextResponse.json(res.data)
     }
 
     if (action === 'delete') {
