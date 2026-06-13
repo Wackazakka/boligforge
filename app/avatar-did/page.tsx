@@ -30,6 +30,8 @@ function Samtale() {
   const connectedRef = useRef(false)
   const pendingGreetRef = useRef(false)
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const incomingStreamRef = useRef<MediaStream | null>(null)
+  const startedRef = useRef(false)
   const viewingTokenRef = useRef<string | null>(null)
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,6 +50,7 @@ function Samtale() {
   const [micOn, setMicOn] = useState(false)
   const [interim, setInterim] = useState('')
   const [typed, setTyped] = useState('')
+  const [debug, setDebug] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Port
@@ -58,12 +61,6 @@ function Samtale() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turns, status])
 
-  // Forhåndsvarm D-ID-strømmen så snart porten er passert (megler eller gyldig token),
-  // så «Start samtale» blir tilnærmet umiddelbart i stedet for ~10 sek venting.
-  useEffect(() => {
-    if (gate === 'open' || gate === 'megler') connectStream()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gate])
 
   // Port-sjekk ved last
   useEffect(() => {
@@ -171,9 +168,10 @@ function Samtale() {
     const next = speakQueueRef.current.shift()
     if (next === undefined) return
     speakingRef.current = true
-    if (videoRef.current) videoRef.current.muted = false // slå på lyd igjen for ny tale
+    if (videoRef.current) { videoRef.current.muted = false; videoRef.current.play().catch(() => {}) } // sikre lyd på
     didCall({ action: 'speak', streamId: streamIdRef.current, session_id: sessionIdRef.current, input: next })
-      .catch(e => console.error('speak feilet:', e))
+      .then(async r => { const d = await r.json().catch(() => ({})); setDebug(`speak ${r.status} ${r.ok ? 'OK' : JSON.stringify(d).slice(0, 180)}`) })
+      .catch(e => setDebug(`speak EXC ${e}`))
     if (speakTimerRef.current) clearTimeout(speakTimerRef.current)
     const estMs = (next.length / 12) * 1000 + 1200 // ~realistisk talevarighet + liten buffer
     speakTimerRef.current = setTimeout(() => { speakingRef.current = false; pumpSpeak() }, estMs)
@@ -265,7 +263,7 @@ function Samtale() {
     try {
       const createRes = await didCall({ action: 'create' })
       const s = await createRes.json()
-      if (!createRes.ok) throw new Error(s.error || 'create feilet')
+      if (!createRes.ok) throw new Error(s.error || `create feilet (${createRes.status})${s.detail ? ': ' + JSON.stringify(s.detail) : ''}`)
       streamIdRef.current = s.id
       sessionIdRef.current = s.session_id
 
@@ -277,9 +275,13 @@ function Samtale() {
         }
       }
       pc.ontrack = (e) => {
-        if (videoRef.current && e.streams[0]) {
-          videoRef.current.muted = true // stille tomgang under forhåndsvarming; hilsen slår på lyd
+        if (!e.streams[0]) return
+        incomingStreamRef.current = e.streams[0]
+        // Fest + spill KUN etter at brukeren har trykket Start (gest). Festes strømmen under
+        // forhåndsvarming (uten gest) blokkerer autoplay WebRTC-media → frosset bilde + ingen lyd.
+        if (startedRef.current && videoRef.current) {
           videoRef.current.srcObject = e.streams[0]
+          videoRef.current.muted = false
           videoRef.current.play().catch(() => {})
         }
       }
@@ -299,6 +301,12 @@ function Samtale() {
       pc.ondatachannel = (ev) => {
         ev.channel.onmessage = (msg) => {
           const m = String((msg as MessageEvent).data ?? '')
+          if (m.includes('stream/started')) {
+            const v = videoRef.current
+            const s = incomingStreamRef.current
+            const tr = s ? s.getTracks().map(t => `${t.kind}:${t.readyState}${t.muted ? '/muted' : ''}`).join(',') : 'ingen-stream'
+            setDebug(`paused=${v?.paused} rs=${v?.readyState} vw=${v?.videoWidth} mut=${v?.muted} | ${tr}`)
+          }
           if (m.includes('stream/done')) onSpeechDone()
         }
       }
@@ -308,7 +316,7 @@ function Samtale() {
       await pc.setLocalDescription(answer)
       await didCall({ action: 'sdp', streamId: s.id, session_id: s.session_id, answer: { type: answer.type, sdp: answer.sdp } })
     } catch (e) {
-      if (greetedRef.current) { setErrMsg(e instanceof Error ? e.message : String(e)); setStatus('feil') }
+      setErrMsg(e instanceof Error ? e.message : String(e)); setStatus('feil')
     }
   }
 
@@ -316,14 +324,12 @@ function Samtale() {
   function start() {
     if (!propertyId) { setErrMsg('Mangler eiendom (?property=…)'); return }
     setErrMsg('')
+    setStatus('kobler')
     greetedRef.current = false
-    if (connectedRef.current) {
-      greetOnce()
-    } else {
-      setStatus('kobler')
-      pendingGreetRef.current = true
-      connectStream() // i tilfelle forhåndsvarmingen ikke rakk/feilet
-    }
+    startedRef.current = true
+    pendingGreetRef.current = true
+    // Koble opp HELE strømmen her i gesten (ontrack fester media, greetOnce på 'connected').
+    connectStream()
   }
 
   function toggleMic() {
@@ -412,6 +418,7 @@ function Samtale() {
       <p style={{ color: '#555', fontSize: 13, margin: '4px 0 6px' }}>
         Status: <strong>{statusLabel[status]}</strong>
       </p>
+      {debug && <p style={{ color: '#7c3aed', fontSize: 12, margin: '0 0 6px', fontFamily: 'monospace' }}>🐞 {debug}</p>}
       <p style={{ color: 'var(--muted, #888)', fontSize: 12, margin: '0 0 12px', lineHeight: 1.5 }}>
         💡 Megleren leser hele salgsoppgaven og tilstandsrapporten for hvert spørsmål — gi den gjerne noen sekunder på å finne det riktige svaret.
       </p>
