@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 
 const VIDEO_SRC =
-  'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/videos/a292b24c-1e89-4b77-be1d-47fa95ccf994/output.mp4';
+  'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/videos/a6479e64-3770-4d4b-bc72-db6de3264dfb/output.mp4';
 
 export default function VideoHero() {
   const videoRef = useRef<HTMLVideoElement>(null);
