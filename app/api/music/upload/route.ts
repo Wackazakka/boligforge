@@ -41,13 +41,14 @@ export async function POST(request: Request) {
     const url = `${process.env.R2_PUBLIC_URL}/${key}`
 
     const supabase = await createSupabaseServerClient()
+    // Stemple med eierens id → sporet er privat for denne brukeren og kan kun slettes av ham.
     const { data: row } = await supabase
       .from('music_files')
-      .insert({ name: file.name, url })
+      .insert({ name: file.name, url, user_id: user.id })
       .select('id')
       .single()
 
-    return Response.json({ url, id: row?.id, name: file.name })
+    return Response.json({ url, id: row?.id, name: file.name, own: true })
   } catch (err) {
     console.error('[music/upload]', err)
     return Response.json({ error: String(err) }, { status: 500 })

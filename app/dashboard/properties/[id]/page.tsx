@@ -140,7 +140,7 @@ export default function PropertyDetailPage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
   const [segments, setSegments] = useState<Segment[]>([])
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
-  const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string }[]>([])
+  const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string; own?: boolean }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [ambienceType, setAmbienceType] = useState<string>('none')
   const [noCreditsModal, setNoCreditsModal] = useState(false)
@@ -532,7 +532,7 @@ export default function PropertyDetailPage() {
       const res = await fetch('/api/music/upload', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || 'Opplasting feilet')
-      const newFile = { id: data.id || String(Date.now()), name: data.name, url: data.url }
+      const newFile = { id: data.id || String(Date.now()), name: data.name, url: data.url, own: true }
       setMusicFiles(prev => [newFile, ...prev])
       setOutro(o => ({ ...o, musicUrl: data.url }))
     } catch (err) {
@@ -1663,10 +1663,13 @@ export default function PropertyDetailPage() {
                           }}
                           style={{ fontSize: '10px', color: playingMusicUrl === f.url ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0' }}
                         >{playingMusicUrl === f.url ? '■ Stopp' : '▶ Hør'}</button>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDeleteMusic(f.id, f.url) }}
-                          className="app-btn-ghost text-xs px-1"
-                        >✕</button>
+                        {f.own && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDeleteMusic(f.id, f.url) }}
+                            className="app-btn-ghost text-xs px-1"
+                            title="Slett ditt spor"
+                          >✕</button>
+                        )}
                       </div>
                     ))}
                   </div>
