@@ -55,6 +55,7 @@ Manuset skal:
 - Være naturlig og muntlig, ikke en punktliste
 - VIKTIG: Priser og størrelser er allerede skrevet ut som tekst i dataene — bruk dem ORDRETT slik de er oppgitt, uten å endre til sifre. Eksempel: hvis dataene sier "to-hundre-og-åtti-fem kvadratmeter", skal du skrive nøyaktig "to-hundre-og-åtti-fem kvadratmeter" i manuset.
 - VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. Si aldri "bruksareal".
+- VIKTIG: Boligtypen skal alltid samsvare nøyaktig med "Boligtype"-feltet i dataene. Aldri gjett eller endre boligtype — kall f.eks. aldri en leilighet for enebolig eller omvendt. Hvis "Boligtype" ikke er oppgitt, unngå å nevne en spesifikk boligtype og omtal det heller som "boligen" eller "hjemmet".
 - VIKTIG: Når du omtaler beliggenhet og gatenavnet slutter på "-veien", "-vegen", "-gata" eller "-gaten", bruk preposisjonen "i" — ikke "på". Skriv f.eks. "en leilighet i Storgata 15", aldri "en leilighet på Storgata 15".
 - VIKTIG: Nevn aldri eksakte beløp for felleskostnader eller leieinntekter. Bruk heller kvalitative beskrivelser basert på beløpet: for felleskostnader si f.eks. "lave felleskostnader", "moderate felleskostnader" eller "rimelige felleskostnader". For leieinntekter si f.eks. "gode leieinntekter" eller "attraktive leieinntekter". Bruk kun disse beskrivelsene hvis feltene faktisk finnes i dataene.
 
