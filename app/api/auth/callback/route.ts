@@ -8,14 +8,14 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/dashboard/profile'
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+    return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`)
   }
 
   const supabase = await createSupabaseServerClient()
   const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error || !sessionData.user) {
-    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+    return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`)
   }
 
   const user = sessionData.user
