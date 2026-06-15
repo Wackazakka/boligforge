@@ -24,11 +24,18 @@ export default async function DashboardPage() {
   // Data leses med service role for å unngå RLS-problemer med ny nøkkelformat
   const { data: profile } = await serviceSupabase
     .from('profiles')
-    .select('full_name, organization_id, voice_id, logo_url, portrait_url, selected_avatar_url')
+    .select('full_name, organization_id')
     .eq('id', user.id)
     .maybeSingle()
 
   if (!profile?.organization_id) redirect('/onboarding')
+
+  // Avatar/stemme/logo lagres i agent_profiles (keyed by user_id), ikke i profiles.
+  const { data: agentProfile } = await serviceSupabase
+    .from('agent_profiles')
+    .select('portrait_url, logo_url, default_voice_id')
+    .eq('user_id', user.id)
+    .maybeSingle()
 
   // ── Kom-i-gang-sjekkliste: sjekk om brukeren har laget sin første video ──
   // property_videos har ingen organization_id, så vi knytter videoer til org
@@ -53,9 +60,9 @@ export default async function DashboardPage() {
 
   // En avatar er valgt hvis brukeren har et portrettbilde (egen eller mal)
   // ELLER har valgt en konkret setting-bakgrunn.
-  const hasAvatar = Boolean(profile.portrait_url || profile.selected_avatar_url)
-  const hasVoice  = Boolean(profile.voice_id)
-  const hasLogo   = Boolean(profile.logo_url)
+  const hasAvatar = Boolean(agentProfile?.portrait_url)
+  const hasVoice  = Boolean(agentProfile?.default_voice_id)
+  const hasLogo   = Boolean(agentProfile?.logo_url)
 
   const checklistSteps: ChecklistStep[] = [
     { key: 'account', label: 'Konto opprettet',       hint: '',                                           href: '/dashboard',                  done: true },
