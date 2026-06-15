@@ -48,13 +48,14 @@ export async function POST(request: Request) {
 
 Manuset skal:
 - Vare ca. 45–60 sekunder når det leses opp (ca. 120–150 ord)
-- Starte med å ønske seerne velkommen
+- Starte med å ønske seerne velkommen med en enkel, inviterende åpning, f.eks. "Jeg vil gjerne vise dere ...". Unngå overdrevent følelsesladde åpninger som "Jeg er svært glad for å vise dere ..." eller "Det er en stor glede å ..."
 - Fremheve de mest attraktive egenskapene ved boligen
 - Nevne pris og nøkkelinformasjon naturlig
 - Avslutte med en invitasjon til visning eller kontakt
 - Være naturlig og muntlig, ikke en punktliste
 - VIKTIG: Priser og størrelser er allerede skrevet ut som tekst i dataene — bruk dem ORDRETT slik de er oppgitt, uten å endre til sifre. Eksempel: hvis dataene sier "to-hundre-og-åtti-fem kvadratmeter", skal du skrive nøyaktig "to-hundre-og-åtti-fem kvadratmeter" i manuset.
 - VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. Si aldri "bruksareal".
+- VIKTIG: Når du omtaler beliggenhet og gatenavnet slutter på "-veien", "-vegen", "-gata" eller "-gaten", bruk preposisjonen "i" — ikke "på". Skriv f.eks. "en leilighet i Storgata 15", aldri "en leilighet på Storgata 15".
 - VIKTIG: Nevn aldri eksakte beløp for felleskostnader eller leieinntekter. Bruk heller kvalitative beskrivelser basert på beløpet: for felleskostnader si f.eks. "lave felleskostnader", "moderate felleskostnader" eller "rimelige felleskostnader". For leieinntekter si f.eks. "gode leieinntekter" eller "attraktive leieinntekter". Bruk kun disse beskrivelsene hvis feltene faktisk finnes i dataene.
 
 Her er boligdataene:
