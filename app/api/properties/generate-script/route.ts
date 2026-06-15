@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
 Manuset skal:
 - Vare ca. 45–60 sekunder når det leses opp (ca. 120–150 ord)
-- Starte med å ønske seerne velkommen med en enkel, inviterende åpning, f.eks. "Jeg vil gjerne vise dere ...". Unngå overdrevent følelsesladde åpninger som "Jeg er svært glad for å vise dere ..." eller "Det er en stor glede å ..."
+- Starte med en kort, vennlig hilsen og presentere deg med navn, og deretter en enkel, inviterende åpning. F.eks. "Hei! Jeg heter ${agentName}, og jeg vil gjerne vise dere ...". Unngå overdrevent følelsesladde åpninger som "Jeg er svært glad for å vise dere ..." eller "Det er en stor glede å ..."
 - Fremheve de mest attraktive egenskapene ved boligen
 - Nevne pris og nøkkelinformasjon naturlig
 - Avslutte med en invitasjon til visning eller kontakt
