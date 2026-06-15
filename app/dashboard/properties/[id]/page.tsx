@@ -1497,9 +1497,12 @@ export default function PropertyDetailPage() {
                               src={seg.imageUrl} alt=""
                               style={{ width: '96px', height: '64px', objectFit: 'cover', display: 'block' }}
                             />
-                            {seg.imageSource === 'ai' && (
-                              <span style={{ position: 'absolute', top: '3px', left: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '9px', color: '#fff', fontWeight: 600, lineHeight: '1.4' }}>✨ AI</span>
-                            )}
+                            <button
+                              onClick={e => { e.stopPropagation(); setLightboxUrl(seg.imageUrl ?? null) }}
+                              title="Forstørr"
+                              className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                              style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}
+                            >⤢</button>
                             {seg.type === 'image' && <span style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>⇄</span>}
                           </div>
                           {seg.type === 'image' ? (
