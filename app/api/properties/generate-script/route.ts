@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { priceToNorwegian, sizeToNorwegian } from '../../../../lib/norwegian-numbers'
+import { MODELS } from '../../../../lib/models'
 
 const getClient = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     const agentName = agentProfile?.name || 'megler'
 
     const message = await getClient().messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODELS.haiku,
       max_tokens: 600,
       messages: [{
         role: 'user',

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { MODELS } from '../../../../lib/models'
 
 const getClient = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -35,7 +36,7 @@ Bruk bildets nummer (1, 2, 3 osv.) som nøkkel. Bruk "annet" for bilder som ikke
     })
 
     const msg = await getClient().messages.create({
-      model: 'claude-sonnet-4-6',
+      model: MODELS.sonnet,
       max_tokens: 512,
       messages: [{ role: 'user', content }],
     })

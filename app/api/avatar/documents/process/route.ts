@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { MODELS } from '../../../../../lib/models'
 import { getUser } from '../../../../../lib/supabase/server'
 import { serviceClient, chunkText, embedTexts } from '../../../../../lib/avatar/rag'
 import { fetchNeighborhoodFacts } from '../../../../../lib/avatar/neighborhood'
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
       const claudeX = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
       const fullForExtraction = fullText.slice(0, 350000)
       const ext = await claudeX.messages.create({
-        model: 'claude-haiku-4-5',
+        model: MODELS.haiku,
         max_tokens: 4000,
         tools: [{
           name: 'registrer_avviksliste',
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
         const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
         const head = chunks.slice(0, 5).join('\n\n').slice(0, 16000)
         const resp = await claude.messages.create({
-          model: 'claude-haiku-4-5',
+          model: MODELS.haiku,
           max_tokens: 500,
           tools: [{
             name: 'registrer_boligfakta',
