@@ -97,6 +97,7 @@ export default function ProfilePage() {
   const [voiceRecordState, setVoiceRecordState] = useState<'idle' | 'recording' | 'cloning' | 'done' | 'error'>('idle')
   const [voiceRecordError, setVoiceRecordError] = useState('')
   const [recordSeconds, setRecordSeconds] = useState(0)
+  const [portraitVersion, setPortraitVersion] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -309,6 +310,7 @@ export default function ProfilePage() {
       const { url } = await res.json()
       setProfile(p => ({ ...p, [`${type}_url`]: url }))
       if (type === 'portrait') {
+        setPortraitVersion(v => v + 1)
         void Promise.all(SETTINGS.map(s => handleGenerateSetting(s.id, url)))
       }
     } else {
@@ -693,7 +695,7 @@ export default function ProfilePage() {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], 'logo')}
+              onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'logo'); e.target.value = '' }}
             />
           </div>
         </section>
@@ -729,7 +731,7 @@ export default function ProfilePage() {
                   <span className="text-xs" style={{ color: 'var(--muted)' }}>...</span>
                 ) : profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.portrait_url} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
+                  <img src={`${profile.portrait_url}?v=${portraitVersion}`} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                 ) : (
                   <span style={{ fontSize: 24, color: 'var(--muted)' }}>＋</span>
                 )}
@@ -742,7 +744,7 @@ export default function ProfilePage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], 'portrait')}
+                onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'portrait'); e.target.value = '' }}
               />
             </div>
 
