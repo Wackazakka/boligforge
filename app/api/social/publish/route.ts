@@ -62,6 +62,8 @@ export async function publishVideoToConnections(opts: {
 
       if (conn.platform === 'facebook') {
         result = await publishToFacebook(conn.page_id, conn.access_token, videoUrl, fullCaption)
+      } else if (conn.platform === 'instagram') {
+        result = await publishToInstagram(conn.page_id, conn.access_token, videoUrl, fullCaption)
       } else if (conn.platform === 'linkedin') {
         result = await publishToLinkedIn(conn.page_id, conn.access_token, videoUrl, fullCaption)
       } else {
@@ -95,6 +97,68 @@ export async function publishVideoToConnections(opts: {
   )
 
   return results
+}
+
+async function publishToInstagram(
+  igUserId: string,
+  accessToken: string,
+  videoUrl: string,
+  caption: string
+): Promise<{ success: boolean; postId?: string; error?: string }> {
+  try {
+    // Step 1: Create media container
+    const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        media_type:   'REELS',
+        video_url:    videoUrl,
+        caption,
+        access_token: accessToken,
+      }),
+    })
+    const containerData = await containerRes.json()
+    if (containerData.error || !containerData.id) {
+      console.error('[publish/instagram] Container error:', containerData.error)
+      return { success: false, error: containerData.error?.message ?? 'Kunne ikke opprette container' }
+    }
+    const containerId = containerData.id
+
+    // Step 2: Poll until container status is FINISHED (max 90s)
+    const deadline = Date.now() + 90_000
+    let status = ''
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 5000))
+      const statusRes = await fetch(
+        `https://graph.facebook.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
+      )
+      const statusData = await statusRes.json()
+      status = statusData.status_code ?? ''
+      if (status === 'FINISHED') break
+      if (status === 'ERROR' || status === 'EXPIRED') {
+        return { success: false, error: `Video-prosessering feilet: ${status}` }
+      }
+    }
+    if (status !== 'FINISHED') {
+      return { success: false, error: 'Timeout: video-prosessering tok for lang tid' }
+    }
+
+    // Step 3: Publish container
+    const publishRes = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creation_id: containerId, access_token: accessToken }),
+    })
+    const publishData = await publishRes.json()
+    if (publishData.error) {
+      console.error('[publish/instagram] Publish error:', publishData.error)
+      return { success: false, error: publishData.error.message ?? 'Publisering feilet' }
+    }
+    return { success: true, postId: publishData.id }
+  } catch (err) {
+    console.error('[publish/instagram] Exception:', err)
+    return { success: false, error: String(err) }
+  }
 }
 
 async function publishToFacebook(

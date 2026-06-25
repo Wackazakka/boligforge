@@ -44,14 +44,16 @@ export default function PrivacyPage() {
         <p>Vi selger ikke personopplysninger til tredjeparter.</p>
       </Section>
 
-      <Section title="4. Facebook-integrasjon">
+      <Section title="4. Facebook- og Instagram-integrasjon">
         <p>Når du kobler til en Facebook-side, ber vi om følgende tillatelser:</p>
         <ul>
           <li><strong>pages_show_list</strong> — for å vise hvilke Facebook-sider du administrerer.</li>
           <li><strong>pages_manage_posts</strong> — for å publisere eiendomsvideoer til den siden du velger.</li>
           <li><strong>pages_read_engagement</strong> — for å hente statistikk om publiserte poster.</li>
+          <li><strong>instagram_business_basic</strong> — for å identifisere Instagram Business-kontoen koblet til din Facebook-side.</li>
+          <li><strong>instagram_content_publish</strong> — for å publisere eiendomsvideoer som Instagram Reels på dine vegne.</li>
         </ul>
-        <p>Vi lagrer kun aksesstoken knyttet til din Facebook-side for å utføre publiseringer du initierer. Vi deler ikke disse dataene med andre parter. Du kan til enhver tid trekke tilbake tilgangen fra din Facebook-konto under Innstillinger → Apper og nettsteder, eller fra ReelHome under Innstillinger → Sosiale kontoer.</p>
+        <p>Instagram Business-kontoer er koblet til Facebook-sider — du kobler til begge via én og samme innlogging. Vi lagrer kun aksesstoken knyttet til din Facebook-side og Instagram-konto for å utføre publiseringer du initierer. Vi deler ikke disse dataene med andre parter. Du kan til enhver tid trekke tilbake tilgangen fra Facebook under Innstillinger → Apper og nettsteder, eller fra ReelHome under Innstillinger → Sosiale kontoer.</p>
       </Section>
 
       <Section title="5. Tredjepartstjenester">

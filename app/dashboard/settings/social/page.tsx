@@ -6,7 +6,7 @@ import AccountTabs from '../../profile/AccountTabs'
 
 type Connection = {
   id: string
-  platform: 'facebook' | 'linkedin'
+  platform: 'facebook' | 'instagram' | 'linkedin'
   page_id: string
   page_name: string
   token_expires_at: string | null
@@ -14,8 +14,9 @@ type Connection = {
 }
 
 const PLATFORM_META: Record<string, { label: string; color: string; icon: string }> = {
-  facebook: { label: 'Facebook',  color: '#1877F2', icon: 'f' },
-  linkedin: { label: 'LinkedIn',  color: '#0A66C2', icon: 'in' },
+  facebook:  { label: 'Facebook',  color: '#1877F2', icon: 'f' },
+  instagram: { label: 'Instagram', color: '#E1306C', icon: '▶' },
+  linkedin:  { label: 'LinkedIn',  color: '#0A66C2', icon: 'in' },
 }
 
 function SocialSettingsContent() {
@@ -50,17 +51,20 @@ function SocialSettingsContent() {
     } finally { setDisconnecting(null) }
   }
 
-  const facebookConnections = connections.filter(c => c.platform === 'facebook')
-  const linkedinConnections = connections.filter(c => c.platform === 'linkedin')
+  const facebookConnections  = connections.filter(c => c.platform === 'facebook')
+  const instagramConnections = connections.filter(c => c.platform === 'instagram')
+  const linkedinConnections  = connections.filter(c => c.platform === 'linkedin')
 
   function PlatformSection({
     platform,
     conns,
     connectHref,
+    connectNote,
   }: {
-    platform: 'facebook' | 'linkedin'
+    platform: 'facebook' | 'instagram' | 'linkedin'
     conns: Connection[]
-    connectHref: string
+    connectHref?: string
+    connectNote?: string
   }) {
     const meta = PLATFORM_META[platform]
     return (
@@ -77,13 +81,17 @@ function SocialSettingsContent() {
             </div>
             <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--ink)' }}>{meta.label}</span>
           </div>
-          <a
-            href={connectHref}
-            className="app-btn-secondary"
-            style={{ fontSize: '13px', textDecoration: 'none' }}
-          >
-            + Koble til
-          </a>
+          {connectHref ? (
+            <a
+              href={connectHref}
+              className="app-btn-secondary"
+              style={{ fontSize: '13px', textDecoration: 'none' }}
+            >
+              + Koble til
+            </a>
+          ) : connectNote ? (
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{connectNote}</span>
+          ) : null}
         </div>
 
         {conns.length === 0 ? (
@@ -187,6 +195,11 @@ function SocialSettingsContent() {
             connectHref="/api/social/facebook"
           />
           <PlatformSection
+            platform="instagram"
+            conns={instagramConnections}
+            connectNote="Kobles til automatisk via Facebook"
+          />
+          <PlatformSection
             platform="linkedin"
             conns={linkedinConnections}
             connectHref="/api/social/linkedin"
@@ -195,7 +208,7 @@ function SocialSettingsContent() {
       )}
 
       <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '32px', textAlign: 'center' }}>
-        Facebook-tilkoblinger varer 60 dager · LinkedIn-tilkoblinger varer ~60 dager
+        Facebook- og Instagram-tilkoblinger varer 60 dager · LinkedIn-tilkoblinger varer ~60 dager
       </p>
     </div>
   )

@@ -63,19 +63,37 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${SOCIAL_PAGE}?error=no_pages`)
     }
 
-    // 4. Save each page connection (service role bypasses RLS)
+    // 4. Save each page connection + linked Instagram Business Account
     const supabase = getServiceClient()
     let savedCount = 0
+    let igCount = 0
     for (const page of pages) {
+      // Fetch Instagram Business Account linked to this page (if any)
+      let igUserId: string | null = null
+      let igName: string | null = null
+      try {
+        const igRes = await fetch(
+          `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account{id,name,username}&access_token=${page.access_token}`
+        )
+        const igData = await igRes.json()
+        if (igData.instagram_business_account?.id) {
+          igUserId = igData.instagram_business_account.id
+          igName = igData.instagram_business_account.username ?? igData.instagram_business_account.name ?? null
+        }
+      } catch (e) {
+        console.warn('[fb/callback] IG lookup failed for page', page.id, e)
+      }
+
       const { error: upsertError } = await supabase.from('social_connections').upsert(
         {
-          user_id:           state,
-          platform:          'facebook',
-          page_id:           page.id,
-          page_name:         page.name,
-          access_token:      page.access_token,   // page-level token for posting
-          user_access_token: longToken,            // long-lived user token
-          token_expires_at:  expiresAt,
+          user_id:            state,
+          platform:           'facebook',
+          page_id:            page.id,
+          page_name:          page.name,
+          access_token:       page.access_token,
+          user_access_token:  longToken,
+          token_expires_at:   expiresAt,
+          instagram_user_id:  igUserId,
         },
         { onConflict: 'user_id,platform,page_id' }
       )
@@ -84,6 +102,28 @@ export async function GET(request: Request) {
       } else {
         savedCount++
       }
+
+      // Save Instagram as a separate connection row so users can select it independently
+      if (igUserId) {
+        const { error: igErr } = await supabase.from('social_connections').upsert(
+          {
+            user_id:           state,
+            platform:          'instagram',
+            page_id:           igUserId,
+            page_name:         igName ?? page.name,
+            access_token:      page.access_token,  // IG API uses the FB page token
+            user_access_token: longToken,
+            token_expires_at:  expiresAt,
+            instagram_user_id: igUserId,
+          },
+          { onConflict: 'user_id,platform,page_id' }
+        )
+        if (igErr) {
+          console.error('[fb/callback] IG upsert failed', igUserId, igErr)
+        } else {
+          igCount++
+        }
+      }
     }
 
     if (savedCount === 0) {
@@ -91,7 +131,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${SOCIAL_PAGE}?error=save_failed`)
     }
 
-    console.log(`[fb/callback] ✅ ${savedCount} page(s) connected for user ${state}`)
+    console.log(`[fb/callback] ✅ ${savedCount} FB page(s), ${igCount} IG account(s) connected for user ${state}`)
     return NextResponse.redirect(`${SOCIAL_PAGE}?connected=facebook`)
   } catch (err) {
     console.error('[fb/callback] Error:', err)
