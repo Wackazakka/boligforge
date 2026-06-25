@@ -35,7 +35,7 @@ Bruk bildets nummer (1, 2, 3 osv.) som nøkkel. Bruk "annet" for bilder som ikke
     })
 
     const msg = await getClient().messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 512,
       messages: [{ role: 'user', content }],
     })
