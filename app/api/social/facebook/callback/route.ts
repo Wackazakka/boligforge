@@ -105,21 +105,25 @@ export async function GET(request: Request) {
 
       // Save Instagram as a separate connection row so users can select it independently
       if (igUserId) {
-        const { error: igErr } = await supabase.from('social_connections').upsert(
-          {
-            user_id:           state,
-            platform:          'instagram',
-            page_id:           igUserId,
-            page_name:         igName ?? page.name,
-            access_token:      page.access_token,  // IG API uses the FB page token
-            user_access_token: longToken,
-            token_expires_at:  expiresAt,
-            instagram_user_id: igUserId,
-          },
-          { onConflict: 'user_id,platform,page_id' }
-        )
+        // Delete existing row first to avoid onConflict constraint issues, then insert fresh
+        await supabase.from('social_connections')
+          .delete()
+          .eq('user_id', state)
+          .eq('platform', 'instagram')
+          .eq('page_id', igUserId)
+
+        const { error: igErr } = await supabase.from('social_connections').insert({
+          user_id:           state,
+          platform:          'instagram',
+          page_id:           igUserId,
+          page_name:         igName ?? page.name,
+          access_token:      page.access_token,
+          user_access_token: longToken,
+          token_expires_at:  expiresAt,
+          instagram_user_id: igUserId,
+        })
         if (igErr) {
-          console.error('[fb/callback] IG upsert failed', igUserId, igErr)
+          console.error('[fb/callback] IG insert failed', igUserId, igErr)
         } else {
           igCount++
         }
