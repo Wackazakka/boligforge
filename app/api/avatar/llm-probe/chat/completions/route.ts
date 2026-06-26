@@ -48,7 +48,9 @@ export async function POST(request: Request) {
   ].join('\n')
   await tg(report)
 
-  const reply = 'Probe mottok forespørselen. Sjekk Telegram for hva som kom fram.'
+  const hasProp = blob.includes('property_id') || blob.includes('0a48ea13')
+  const hasAddr = blob.includes('Bjørndalsveien')
+  const reply = `Funn. Property id i forespørselen: ${hasProp ? 'JA' : 'NEI'}. Adresse i forespørselen: ${hasAddr ? 'JA' : 'NEI'}. System melding finnes: ${system ? 'JA' : 'NEI'}.`
 
   // Returner gyldig OpenAI-svar i riktig form (stream vs ikke).
   if (body.stream === true) {
