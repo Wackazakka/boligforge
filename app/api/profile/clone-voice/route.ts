@@ -57,6 +57,31 @@ export async function POST(request: Request) {
       // Voice was cloned successfully — return voice_id even if DB save failed
     }
 
+    // Best-effort: importer den klonede stemmen til LiveAvatar også, så premium
+    // video-avatar bruker meglerens egen stemme. Blokkerer ikke IVC-resultatet.
+    try {
+      const secretId = process.env.LIVEAVATAR_ELEVEN_SECRET_ID
+      const laKey = process.env.LIVEAVATAR_API_KEY
+      if (secretId && laKey) {
+        const laRes = await fetch('https://api.liveavatar.com/v1/voices/third_party', {
+          method: 'POST',
+          headers: { 'X-API-KEY': laKey, 'content-type': 'application/json' },
+          body: JSON.stringify({ provider_voice_id: voiceId, secret_id: secretId, name: `${name}`.slice(0, 60) }),
+        })
+        const laData = await laRes.json().catch(() => ({}))
+        const laVoiceId = laData?.data?.voice_id || laData?.data?.id
+        if (laVoiceId) {
+          await supabase.from('agent_profiles').upsert(
+            { user_id: user.id, liveavatar_voice_id: laVoiceId }, { onConflict: 'user_id' },
+          )
+        } else {
+          console.warn('[clone-voice] LiveAvatar-binding ga ingen voice_id:', laData?.message)
+        }
+      }
+    } catch (e) {
+      console.warn('[clone-voice] LiveAvatar-binding feilet (ikke-blokkerende):', e)
+    }
+
     return Response.json({ voice_id: voiceId })
   } catch (err: unknown) {
     console.error('[clone-voice]', err)
