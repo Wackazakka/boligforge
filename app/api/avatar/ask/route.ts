@@ -1,9 +1,9 @@
 // Avatar-hjernen (Fase 1, Spor B2): spørsmål → RAG-oppslag → Claude → svar.
 // Svaret sendes av klienten til LiveAvatar via repeat() (avataren leser det opp).
 //
-// Modell: claude-haiku-4-5 — bevisst latency-valg for sanntids stemmesamtale
-// (totalbudsjett ~2-3 s; avatarens egen tale-latency er ~1 s). Konfigurerbar
-// via AVATAR_CLAUDE_MODEL for kvalitetstesting mot større modeller.
+// Modell: claude-sonnet-4-6 (default) — valgt for svarkvalitet på salgsoppgave/
+// tilstandsrapport. Konfigurerbar via AVATAR_CLAUDE_MODEL; bytt til en haiku-
+// modell hvis sanntids-latency (totalbudsjett ~2-3 s) blir viktigere enn kvalitet.
 //
 // Lead-fangst: ekte tool use m/ strikt skjema (registrer_interessent) — ikke
 // regex/markør-parsing (se SummonIt-lærdommen i docs/avatar-fase0-funn.md).
@@ -20,7 +20,7 @@ import { speakifyForTTS } from '../../../../lib/norwegian-numbers'
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
-const MODEL = process.env.AVATAR_CLAUDE_MODEL || 'claude-haiku-4-5'
+const MODEL = process.env.AVATAR_CLAUDE_MODEL || 'claude-sonnet-4-6'
 const getClaude = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const LEAD_TOOL: Anthropic.Tool = {

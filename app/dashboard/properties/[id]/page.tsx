@@ -401,7 +401,7 @@ export default function PropertyDetailPage() {
     setAvatarDocsLoading(true)
     fetch(`/api/avatar/documents?propertyId=${id}`)
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setAvatarDocs(d) })
+      .then(d => setAvatarDocs(Array.isArray(d?.documents) ? d.documents : []))
       .catch(() => {})
       .finally(() => setAvatarDocsLoading(false))
   }, [activeTab, id])
@@ -869,10 +869,16 @@ export default function PropertyDetailPage() {
     setAvatarUploading(true)
     setError('')
     try {
+      // Server krever `kind` (en av KINDS) — utled fra filnavn, fall tilbake til 'annet'.
+      const lower = file.name.toLowerCase()
+      const kind = /tilstand|\btg\b/.test(lower) ? 'tilstandsrapport'
+        : /prospekt|salgsoppgave/.test(lower) ? 'prospekt'
+        : /energi/.test(lower) ? 'energiattest'
+        : 'annet'
       const res = await fetch('/api/avatar/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId: id, filename: file.name, contentType: file.type }),
+        body: JSON.stringify({ propertyId: id, filename: file.name, kind }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Opprettelse feilet')
@@ -886,7 +892,7 @@ export default function PropertyDetailPage() {
       if (!procRes.ok) throw new Error('Prosessering feilet')
       const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
       const list = await listRes.json()
-      if (Array.isArray(list)) setAvatarDocs(list)
+      if (Array.isArray(list?.documents)) setAvatarDocs(list.documents)
     } catch (err) {
       setError(`AI-megler opplasting feilet: ${String(err)}`)
     } finally {
@@ -898,7 +904,11 @@ export default function PropertyDetailPage() {
 
   async function handleAvatarDeleteDoc(docId: string) {
     if (!confirm('Slette dette dokumentet fra AI-meglerens kunnskapsbase?')) return
-    await fetch(`/api/avatar/documents?id=${docId}`, { method: 'DELETE' })
+    await fetch('/api/avatar/documents', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentId: docId }),
+    })
     setAvatarDocs(prev => prev.filter(d => d.id !== docId))
   }
 
@@ -912,7 +922,7 @@ export default function PropertyDetailPage() {
       })
       const listRes = await fetch(`/api/avatar/documents?propertyId=${id}`)
       const list = await listRes.json()
-      if (Array.isArray(list)) setAvatarDocs(list)
+      if (Array.isArray(list?.documents)) setAvatarDocs(list.documents)
     } catch {
       setError('Reprosessering feilet')
     } finally {
