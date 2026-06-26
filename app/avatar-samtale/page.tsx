@@ -8,6 +8,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import LiveAvatarView from './LiveAvatarView'
+import { startUsageMeter, type UsageMeter } from '../../lib/avatar/usageClient'
 
 type Turn = { role: 'user' | 'assistant'; content: string; lead?: boolean }
 
@@ -23,6 +24,7 @@ function Samtale() {
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const pcRef = useRef<RTCPeerConnection | null>(null)
+  const meterRef = useRef<UsageMeter | null>(null)
   const didRef = useRef<DIDSession | null>(null)
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,6 +180,7 @@ function Samtale() {
           const eventType = raw.split(':')[0]
           if (eventType === 'stream/ready') {
             setStatus('klar')
+            if (!meterRef.current) meterRef.current = startUsageMeter(propertyId, 'did')
             sendGreeting(stream_id, session_id, voice_id)
           } else if (eventType === 'stream/started') {
             setStatus('snakker')
@@ -208,6 +211,7 @@ function Samtale() {
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          meterRef.current?.stop(); meterRef.current = null
           setStatus('avsluttet')
         }
       }
@@ -277,8 +281,11 @@ function Samtale() {
     }
     didRef.current = null
     pcRef.current = null
+    meterRef.current?.stop(); meterRef.current = null
     setStatus('avsluttet')
   }
+
+  useEffect(() => () => { meterRef.current?.stop() }, [])
 
   const statusLabel: Record<typeof status, string> = {
     idle: 'Klar til å starte',

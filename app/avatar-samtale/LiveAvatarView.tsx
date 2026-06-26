@@ -5,6 +5,7 @@
 // Klienten styrer bare sesjon + UI; samtalen flyter gjennom adapteren automatisk.
 
 import { useEffect, useRef, useState } from 'react'
+import { startUsageMeter, type UsageMeter } from '../../lib/avatar/usageClient'
 
 type Turn = { who: 'user' | 'avatar'; text: string }
 type Status = 'idle' | 'kobler' | 'klar' | 'lytter' | 'snakker' | 'avsluttet' | 'feil'
@@ -13,6 +14,7 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sessionRef = useRef<any>(null)
+  const meterRef = useRef<UsageMeter | null>(null)
   const [status, setStatus] = useState<Status>('idle')
   const [address, setAddress] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
@@ -41,6 +43,7 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
 
       session.on(SessionEvent.SESSION_STREAM_READY, () => {
         setStatus('klar')
+        if (!meterRef.current) meterRef.current = startUsageMeter(propertyId, 'liveavatar')
         if (videoRef.current) {
           session.attach(videoRef.current)
           videoRef.current.play().catch(() => {})
@@ -58,7 +61,10 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
       })
       session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => setStatus('snakker'))
       session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => setStatus(s => (s === 'snakker' ? 'klar' : s)))
-      session.on(SessionEvent.SESSION_DISCONNECTED, () => setStatus('avsluttet'))
+      session.on(SessionEvent.SESSION_DISCONNECTED, () => {
+        meterRef.current?.stop(); meterRef.current = null
+        setStatus('avsluttet')
+      })
 
       await session.start()
     } catch (e) {
@@ -97,9 +103,13 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
   async function end() {
     try { await sessionRef.current?.stop() } catch {}
     sessionRef.current = null
+    meterRef.current?.stop(); meterRef.current = null
     setMicOn(false)
     setStatus('avsluttet')
   }
+
+  // Stopp måleren hvis komponenten unmountes mid-sesjon
+  useEffect(() => () => { meterRef.current?.stop() }, [])
 
   const statusLabel: Record<Status, string> = {
     idle: 'Klar til å starte', kobler: 'Kobler til megler…', klar: 'Tilkoblet',
