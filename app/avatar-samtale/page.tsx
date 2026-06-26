@@ -7,6 +7,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import LiveAvatarView from './LiveAvatarView'
 
 type Turn = { role: 'user' | 'assistant'; content: string; lead?: boolean }
 
@@ -364,6 +365,22 @@ function btn(bg: string): React.CSSProperties {
   return { background: bg, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }
 }
 
+// Velger avatar-leverandør per bolig: liveavatar (video) eller did (foto).
+function Router() {
+  const params = useSearchParams()
+  const propertyId = params.get('property') ?? ''
+  const [provider, setProvider] = useState<'did' | 'liveavatar' | null>(null)
+  useEffect(() => {
+    if (!propertyId) { setProvider('did'); return }
+    fetch(`/api/avatar/provider?propertyId=${propertyId}`)
+      .then(r => r.json())
+      .then(d => setProvider(d.provider === 'liveavatar' ? 'liveavatar' : 'did'))
+      .catch(() => setProvider('did'))
+  }, [propertyId])
+  if (provider === null) return <p style={{ textAlign: 'center', marginTop: 40, color: '#777' }}>Laster…</p>
+  return provider === 'liveavatar' ? <LiveAvatarView propertyId={propertyId} /> : <Samtale />
+}
+
 export default function AvatarSamtalePage() {
-  return <Suspense fallback={null}><Samtale /></Suspense>
+  return <Suspense fallback={null}><Router /></Suspense>
 }
