@@ -16,13 +16,6 @@ type DIDSession = {
   voice_id: string | null
 }
 
-// Del tekst i setninger så hver kan sendes til D-ID for seg → avataren begynner
-// å snakke på setning 1 uten å vente på at HELE svaret er syntetisert.
-function splitSentences(text: string): string[] {
-  const parts = text.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
-  return parts.length ? parts : [text.trim()].filter(Boolean)
-}
-
 function Samtale() {
   const params = useSearchParams()
   const propertyId = params.get('property') ?? ''
@@ -36,9 +29,6 @@ function Samtale() {
   const finalTextRef = useRef('')
   const micActiveRef = useRef(false)
   const busyRef = useRef(false)
-  const pendingTalksRef = useRef(0) // antall did-talk-setninger som ennå ikke er ferdigspilt
-  const talkQueueRef = useRef<string[]>([]) // setninger som venter på å sendes
-  const talkActiveRef = useRef(false) // mutex: kun ett did-talk-kall i flukt om gangen
 
   const [status, setStatus] = useState<'idle' | 'kobler' | 'klar' | 'lytter' | 'tenker' | 'snakker' | 'avsluttet' | 'feil'>('idle')
   const [address, setAddress] = useState('')
@@ -109,38 +99,6 @@ function Samtale() {
     try { recognitionRef.current?.abort() } catch {}
   }
 
-  // Køer setninger og sender ÉN did-talk om gangen. D-ID har en grense på antall
-  // ventende talks per stream, så neste setning sendes først når forrige er i gang
-  // (stream/started) eller ferdig (stream/done) — pipelinet, men uten å sprenge køen.
-  function enqueueSpeech(text: string) {
-    const sentences = splitSentences(text)
-    if (!sentences.length) return
-    pendingTalksRef.current += sentences.length
-    for (const s of sentences) talkQueueRef.current.push(s)
-    pumpTalk()
-  }
-
-  async function pumpTalk() {
-    if (talkActiveRef.current) return
-    const next = talkQueueRef.current[0]
-    const did = didRef.current
-    if (next === undefined || !did) return
-    talkActiveRef.current = true
-    try {
-      const r = await fetch('/api/avatar/did-talk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stream_id: did.stream_id, session_id: did.session_id, text: next, voice_id: did.voice_id }),
-      })
-      // Ved suksess: fjern fra kø. Ved kø-grense (!r.ok): behold og prøv igjen ved neste stream/done.
-      if (r.ok) talkQueueRef.current.shift()
-    } catch {
-      /* nettverksfeil — prøv igjen ved neste event */
-    } finally {
-      talkActiveRef.current = false
-    }
-  }
-
   async function handleQuestion(question: string) {
     const q = question.trim()
     if (!q || busyRef.current) return
@@ -162,9 +120,18 @@ function Samtale() {
       setTurns(prev => [...prev, { role: 'assistant', content: d.answer, lead: d.leadCaptured }])
       setStatus('snakker')
 
-      // Send svaret setning-for-setning — avataren begynner på setning 1 mens resten synes.
+      // Send svaret til D-ID — avataren snakker
       if (didRef.current) {
-        enqueueSpeech(d.answer)
+        await fetch('/api/avatar/did-talk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stream_id: didRef.current.stream_id,
+            session_id: didRef.current.session_id,
+            text: d.answer,
+            voice_id: didRef.current.voice_id,
+          }),
+        })
       }
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : String(e))
@@ -210,17 +177,12 @@ function Samtale() {
           const eventType = raw.split(':')[0]
           if (eventType === 'stream/ready') {
             setStatus('klar')
-            sendGreeting()
+            sendGreeting(stream_id, session_id, voice_id)
           } else if (eventType === 'stream/started') {
             setStatus('snakker')
           } else if (eventType === 'stream/done' || eventType === 'talk/ended') {
-            // Flipp til «klar/lytter» FØRST når siste setning er ferdigspilt.
-            pendingTalksRef.current = Math.max(0, pendingTalksRef.current - 1)
-            if (pendingTalksRef.current === 0) {
-              busyRef.current = false
-              setStatus(micActiveRef.current ? 'lytter' : 'klar')
-            }
-            pumpTalk() // en kø-plass er frigjort → send neste hvis noe venter
+            busyRef.current = false
+            setStatus(micActiveRef.current ? 'lytter' : 'klar')
           } else if (eventType === 'stream/error') {
             console.error('[d-id] stream error:', raw)
           }
@@ -269,9 +231,13 @@ function Samtale() {
     }
   }
 
-  async function sendGreeting() {
+  async function sendGreeting(stream_id: string, session_id: string, voice_id: string | null) {
     const greeting = `Hei og velkommen til digital visning${address ? ' av ' + address : ''}! Jeg kan svare på det meste fra salgsoppgaven og tilstandsrapporten. Trykk på mikrofonknappen, still spørsmålet ditt, og trykk ferdig når du er klar.`
-    enqueueSpeech(greeting)
+    await fetch('/api/avatar/did-talk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stream_id, session_id, text: greeting, voice_id }),
+    })
   }
 
   function toggleMic() {
