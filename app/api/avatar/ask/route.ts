@@ -21,7 +21,13 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 const MODEL = process.env.AVATAR_CLAUDE_MODEL || 'claude-sonnet-4-6'
-const getClaude = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+// baseURL settes EKSPLISITT: en arvet ANTHROPIC_BASE_URL i miljøet (f.eks. en lokal
+// Ollama på :11434 fra Claude Code-oppsettet) ville ellers kapre alle Claude-kall og gi
+// «404 model not found». Appen skal alltid snakke med det offisielle API-et.
+const getClaude = () => new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  baseURL: 'https://api.anthropic.com',
+})
 
 const LEAD_TOOL: Anthropic.Tool = {
   name: 'registrer_interessent',
@@ -81,10 +87,14 @@ export async function POST(request: Request) {
 
   let chunks: Awaited<ReturnType<typeof retrieveChunks>> = []
   try {
-    chunks = await retrieveChunks(client, propertyId, question, isEnumeration || kwTerms.length ? 10 : 6)
+    // Vektorsøk + alle nøkkelordsøk i parallell (var sekvensielt → N DB-rundturer på rad).
+    const [vector, ...kwResults] = await Promise.all([
+      retrieveChunks(client, propertyId, question, isEnumeration || kwTerms.length ? 10 : 6),
+      ...kwTerms.map(term => keywordChunks(client, propertyId, term, 40)),
+    ])
+    chunks = [...vector]
     const allKw: Awaited<ReturnType<typeof keywordChunks>> = []
-    for (const term of kwTerms) {
-      const kw = await keywordChunks(client, propertyId, term, 40)
+    for (const kw of kwResults) {
       for (const c of kw) {
         if (!chunks.some(x => x.id === c.id)) chunks.push(c)
         allKw.push(c)
