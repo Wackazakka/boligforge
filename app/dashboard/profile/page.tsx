@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import AccountTabs from './AccountTabs'
 import VideoAvatarOnboarding from './VideoAvatarOnboarding'
+import PvcOnboarding from './PvcOnboarding'
 const SETTING_PROMPTS: Record<string, string> = {
   modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent looks confident and natural, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
   office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
@@ -666,6 +667,14 @@ export default function ProfilePage() {
             Video-avatar
           </h2>
           <VideoAvatarOnboarding />
+        </section>
+
+        {/* Proff-stemme (PVC) */}
+        <section className="app-card">
+          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Proff-stemme
+          </h2>
+          <PvcOnboarding />
         </section>
 
         {/* Logo upload */}
