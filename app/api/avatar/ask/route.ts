@@ -12,6 +12,7 @@
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createMessage } from '../../../../lib/anthropic'
 import { getUser } from '../../../../lib/supabase/server'
 import { serviceClient, retrieveChunks, keywordChunks, neighborChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
 import { isCostQuestion, buildCostBaseSection } from '../../../../lib/avatar/costbase'
@@ -21,13 +22,6 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 const MODEL = process.env.AVATAR_CLAUDE_MODEL || 'claude-sonnet-4-6'
-// baseURL settes EKSPLISITT: en arvet ANTHROPIC_BASE_URL i miljøet (f.eks. en lokal
-// Ollama på :11434 fra Claude Code-oppsettet) ville ellers kapre alle Claude-kall og gi
-// «404 model not found». Appen skal alltid snakke med det offisielle API-et.
-const getClaude = () => new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-  baseURL: 'https://api.anthropic.com',
-})
 
 const LEAD_TOOL: Anthropic.Tool = {
   name: 'registrer_interessent',
@@ -122,11 +116,10 @@ export async function POST(request: Request) {
     { role: 'user', content: question },
   ]
 
-  const claude = getClaude()
   let leadCaptured = false
 
   try {
-    let response = await claude.messages.create({
+    let response = await createMessage({
       model: MODEL,
       max_tokens: 1000,
       system,
@@ -166,7 +159,7 @@ export async function POST(request: Request) {
       }
       messages.push({ role: 'user', content: results })
 
-      response = await claude.messages.create({ model: MODEL, max_tokens: 1000, system, tools: [LEAD_TOOL], messages })
+      response = await createMessage({ model: MODEL, max_tokens: 1000, system, tools: [LEAD_TOOL], messages })
     }
 
     // Taletekst-vask: modellen sniker inn markdown tross instruks — strippes

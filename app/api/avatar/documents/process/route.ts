@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { MODELS } from '../../../../../lib/models'
+import { createMessage } from '../../../../../lib/anthropic'
 import { getUser } from '../../../../../lib/supabase/server'
 import { serviceClient, chunkText, embedTexts } from '../../../../../lib/avatar/rag'
 import { fetchNeighborhoodFacts } from '../../../../../lib/avatar/neighborhood'
@@ -75,9 +76,8 @@ export async function POST(request: Request) {
     // chunk — TG-spørsmål henter den alltid (TG-merker er ofte BILDER i PDF-ene
     // og kategorifraser varierer per takstleverandør; tekstsøk alene mister avvik).
     try {
-      const claudeX = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
       const fullForExtraction = fullText.slice(0, 350000)
-      const ext = await claudeX.messages.create({
+      const ext = await createMessage({
         model: MODELS.haiku,
         max_tokens: 4000,
         tools: [{
@@ -142,9 +142,8 @@ export async function POST(request: Request) {
     const { data: prop } = await client.from('properties').select('id, address').eq('id', doc.property_id).maybeSingle()
     if (prop?.address?.startsWith('⏳')) {
       try {
-        const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
         const head = chunks.slice(0, 5).join('\n\n').slice(0, 16000)
-        const resp = await claude.messages.create({
+        const resp = await createMessage({
           model: MODELS.haiku,
           max_tokens: 500,
           tools: [{
