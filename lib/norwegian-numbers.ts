@@ -108,5 +108,16 @@ export function speakifyForTTS(text: string): string {
   // gjenværende heltall
   s = s.replace(/\b\d+\b/g, m => (m.length <= 9 ? numberToNorwegian(Number(m)) : m))
 
+  // Fonetisk omskriving: ord ElevenLabs uttaler feil på norsk staves om til en
+  // stavemåte som uttales riktig. Påvirker KUN TTS-en — transkripsjonen viser
+  // fortsatt original tekst. Utvides etter hvert som vi hører flere feil.
+  for (const [word, phonetic] of Object.entries(RESPELL)) {
+    s = s.replace(new RegExp(`\\b${word}\\b`, 'gi'), phonetic)
+  }
+
   return s
+}
+
+const RESPELL: Record<string, string> = {
+  seksten: 'seisten', // 16 — uttales ellers «seks-ten» med feil trykk
 }
