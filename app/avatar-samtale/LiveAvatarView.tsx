@@ -15,6 +15,7 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sessionRef = useRef<any>(null)
   const meterRef = useRef<UsageMeter | null>(null)
+  const avatarOpenRef = useRef(false)
   const [status, setStatus] = useState<Status>('idle')
   const [address, setAddress] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
@@ -52,14 +53,43 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e: any) => {
         const text = (e?.text ?? '').trim()
+        avatarOpenRef.current = false
         if (text) setTurns(prev => [...prev, { who: 'user', text }])
+      })
+      // Tekst i takt med talen: bygg avatar-svaret fra streamede chunks mens han
+      // snakker, og finaliser med full transkripsjon. (AVATAR_TRANSCRIPTION alene
+      // kom først etter at han var ferdig å si det.)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION_CHUNK, (e: any) => {
+        const chunk = e?.text ?? ''
+        if (!chunk) return
+        setTurns(prev => {
+          const copy = [...prev]
+          const last = copy[copy.length - 1]
+          if (avatarOpenRef.current && last?.who === 'avatar') {
+            copy[copy.length - 1] = { ...last, text: last.text + chunk }
+            return copy
+          }
+          return [...copy, { who: 'avatar', text: chunk }]
+        })
+        avatarOpenRef.current = true
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e: any) => {
-        const text = (e?.text ?? '').trim()
-        if (text) setTurns(prev => [...prev, { who: 'avatar', text }])
+        const full = (e?.text ?? '').trim()
+        if (!full) return
+        setTurns(prev => {
+          const copy = [...prev]
+          const last = copy[copy.length - 1]
+          if (avatarOpenRef.current && last?.who === 'avatar') {
+            copy[copy.length - 1] = { ...last, text: full }
+            return copy
+          }
+          return [...copy, { who: 'avatar', text: full }]
+        })
+        avatarOpenRef.current = false
       })
-      session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => setStatus('snakker'))
+      session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => { avatarOpenRef.current = false; setStatus('snakker') })
       session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => setStatus(s => (s === 'snakker' ? 'klar' : s)))
       session.on(SessionEvent.SESSION_DISCONNECTED, () => {
         meterRef.current?.stop(); meterRef.current = null
