@@ -8,7 +8,7 @@ const ONES = ['', 'én', 'to', 'tre', 'fire', 'fem', 'seks', 'sju', 'åtte', 'ni
 const TENS = ['', '', 'tjue', 'tretti', 'førti', 'femti', 'seksti', 'sytti', 'åtti', 'nitti']
 
 // below1000 med konfigurerbar separator (bindestreker hjelper TTS-rytmen)
-export function below1000(n: number, tensSep = '', hundredSep = '-og-'): string {
+export function below1000(n: number, tensSep = '-', hundredSep = '-og-'): string {
   if (n === 0) return ''
   if (n < 20) return ONES[n]
   if (n < 100) {
