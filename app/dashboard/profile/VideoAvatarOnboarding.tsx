@@ -137,7 +137,22 @@ export default function VideoAvatarOnboarding() {
         <li><strong>Snakking (~90 sek):</strong> presenter deg naturlig (f.eks. hvem du er og at du gleder deg til å vise frem boliger)</li>
         <li><strong>Idle (~15 sek):</strong> sitt stille og nøytral, ikke snakk</li>
       </ol>
-      <p style={{ fontSize: 13, color: '#555', margin: '0 0 12px' }}>God belysning, rolig bakgrunn og lite støy gir best resultat.</p>
+      <p style={{ fontSize: 13, color: '#555', margin: '0 0 10px' }}>God belysning, rolig bakgrunn og lite støy gir best resultat.</p>
+
+      <details style={{ margin: '0 0 12px', fontSize: 13 }}>
+        <summary style={{ cursor: 'pointer', color: '#2563eb', fontWeight: 600, userSelect: 'none' }}>
+          📄 Kommer du ikke på noe å si? Vis forslag til manus
+        </summary>
+        <div style={{ marginTop: 8, padding: '12px 14px', borderRadius: 10, background: '#f8f8f8', border: '1px solid #e5e5e5', color: '#333', lineHeight: 1.65 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#777' }}>
+            Les dette rolig og naturlig i <strong>snakking</strong>-fasen (~90 sek). Bytt ut <strong>[navnet ditt]</strong> med ditt eget navn — eller bruk dine egne ord. Innholdet betyr ikke noe; vi bruker bare ansiktet og bevegelsene dine.
+          </p>
+          <p style={{ margin: '0 0 8px' }}>«Hei, og hjertelig velkommen! Så hyggelig at du tok deg tid til å se nærmere på denne boligen. Jeg heter <strong>[navnet ditt]</strong>, og jeg er eiendomsmegleren som har ansvaret for salget her.</p>
+          <p style={{ margin: '0 0 8px' }}>Jeg hjelper deg gjerne med alt du lurer på — enten det handler om planløsningen, hva som følger med, nabolaget, eller hvordan budrunden foregår. Ingen spørsmål er for små eller for store.</p>
+          <p style={{ margin: '0 0 8px' }}>En bolig er en av de største avgjørelsene mange tar, og jeg synes det er viktig at du føler deg trygg og godt informert hele veien. Ta deg god tid til å se deg rundt — kjenn litt på rommene, lyset og stemningen.</p>
+          <p style={{ margin: 0 }}>Er det noe du vil vite mer om, er det bare å spørre meg direkte. Jeg står her for å gjøre hele prosessen så enkel og hyggelig som mulig for deg. Tusen takk for at du er her — jeg gleder meg til å hjelpe deg videre!»</p>
+        </div>
+      </details>
 
       {!blob ? (
         <>
