@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '../../../../lib/supabase/server'
 import { serviceClient } from '../../../../lib/avatar/rag'
+import { bindToLiveAvatar } from '../../../../lib/avatar/pvc'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +14,7 @@ const LA_BASE = 'https://api.liveavatar.com'
 async function agentProfile(client: ReturnType<typeof serviceClient>, userId: string) {
   const { data } = await client
     .from('agent_profiles')
-    .select('liveavatar_avatar_id, liveavatar_voice_id')
+    .select('liveavatar_avatar_id, liveavatar_voice_id, cloned_voice_id, name')
     .eq('user_id', userId)
     .maybeSingle()
   return data
@@ -33,8 +34,9 @@ export async function POST(request: Request) {
 
   // Meglerens profil: boligens agent_id eller eier (user_id), med innlogget bruker som siste fallback.
   const megler = property.agent_id || property.user_id
+  let effectiveUserId: string | null = megler
   let profile = megler ? await agentProfile(client, megler) : null
-  if (!profile?.liveavatar_avatar_id) profile = await agentProfile(client, user.id)
+  if (!profile?.liveavatar_avatar_id) { effectiveUserId = user.id; profile = await agentProfile(client, user.id) }
   if (!profile?.liveavatar_avatar_id) {
     return NextResponse.json({ error: 'Denne megleren har ingen LiveAvatar-avatar' }, { status: 400 })
   }
@@ -46,7 +48,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'LiveAvatar-konfig mangler på serveren' }, { status: 500 })
   }
 
-  const voiceId = profile.liveavatar_voice_id || process.env.AVATAR_VOICE_ID || undefined
+  // Lazy-binding: har megleren en ElevenLabs-klone men ingen LiveAvatar-binding,
+  // bind den nå (én gang) → da bruker avataren meglerens egen stemme, ikke Mia.
+  let voiceId = profile.liveavatar_voice_id || undefined
+  if (!voiceId && profile.cloned_voice_id && effectiveUserId) {
+    const bound = await bindToLiveAvatar(profile.cloned_voice_id, `${profile.name || 'Megler'} (klonet)`)
+    if (bound) {
+      voiceId = bound
+      await client.from('agent_profiles').upsert(
+        { user_id: effectiveUserId, liveavatar_voice_id: bound }, { onConflict: 'user_id' },
+      )
+    }
+  }
+  voiceId = voiceId || process.env.AVATAR_VOICE_ID || undefined
 
   const res = await fetch(`${LA_BASE}/v1/sessions/token`, {
     method: 'POST',
