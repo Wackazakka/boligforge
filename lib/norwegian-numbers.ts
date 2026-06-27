@@ -14,7 +14,9 @@ export function below1000(n: number, tensSep = '-', hundredSep = '-og-'): string
   if (n < 100) {
     const t = TENS[Math.floor(n / 10)]
     const o = n % 10
-    return o === 0 ? t : `${t}${tensSep}${ONES[o]}`
+    // Gammeltelling (ener-og-tier): «tre-og-førti». Det eksplisitte «og» gir
+    // tydeligere TTS-rytme enn «førti-tre», som ElevenLabs leste sammenhengende.
+    return o === 0 ? t : `${ONES[o]}-og-${t}`
   }
   const h = Math.floor(n / 100)
   const rest = n % 100
