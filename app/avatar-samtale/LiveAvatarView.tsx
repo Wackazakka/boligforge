@@ -10,25 +10,17 @@ import { startUsageMeter, type UsageMeter } from '../../lib/avatar/usageClient'
 type Turn = { who: 'user' | 'avatar'; text: string }
 type Status = 'idle' | 'kobler' | 'klar' | 'lytter' | 'snakker' | 'avsluttet' | 'feil'
 
-export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
+export default function LiveAvatarView({ propertyId, address }: { propertyId: string; address: string }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sessionRef = useRef<any>(null)
   const meterRef = useRef<UsageMeter | null>(null)
   const avatarOpenRef = useRef(false)
   const [status, setStatus] = useState<Status>('idle')
-  const [address, setAddress] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
   const [errMsg, setErrMsg] = useState('')
   const [micOn, setMicOn] = useState(false)
   const [typed, setTyped] = useState('')
-
-  useEffect(() => {
-    if (!propertyId) return
-    fetch('/api/properties/list').then(r => r.json()).then(d => {
-      if (Array.isArray(d)) setAddress(d.find((p: { id: string }) => p.id === propertyId)?.address ?? '')
-    }).catch(() => {})
-  }, [propertyId])
 
   async function start() {
     setStatus('kobler')
@@ -139,7 +131,7 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
 
   return (
     <div style={{ maxWidth: 880, margin: '24px auto', padding: 16, fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700 }}>Digital visning{address ? ` — ${address}` : ''}</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700 }}>Digital visning{address ? ` av ${address}` : ''}</h1>
       <p style={{ color: '#555', fontSize: 13, margin: '4px 0 12px' }}>
         Status: <strong>{statusLabel[status]}</strong>
       </p>

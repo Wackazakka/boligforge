@@ -18,7 +18,7 @@ type DIDSession = {
   voice_id: string | null
 }
 
-function Samtale() {
+function Samtale({ address }: { address: string }) {
   const params = useSearchParams()
   const propertyId = params.get('property') ?? ''
 
@@ -34,7 +34,6 @@ function Samtale() {
   const busyRef = useRef(false)
 
   const [status, setStatus] = useState<'idle' | 'kobler' | 'klar' | 'lytter' | 'tenker' | 'snakker' | 'avsluttet' | 'feil'>('idle')
-  const [address, setAddress] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
   const [errMsg, setErrMsg] = useState('')
   const [micOn, setMicOn] = useState(false)
@@ -42,12 +41,6 @@ function Samtale() {
   const [typed, setTyped] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!propertyId) return
-    fetch('/api/properties/list').then(r => r.json()).then(d => {
-      if (Array.isArray(d)) setAddress(d.find((p: { id: string }) => p.id === propertyId)?.address ?? '')
-    }).catch(() => {})
-  }, [propertyId])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turns, status])
 
@@ -300,7 +293,7 @@ function Samtale() {
 
   return (
     <div style={{ maxWidth: 880, margin: '24px auto', padding: 16, fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700 }}>Digital visning{address ? ` — ${address}` : ''}</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700 }}>Digital visning{address ? ` av ${address}` : ''}</h1>
       <p style={{ color: '#555', fontSize: 13, margin: '4px 0 12px' }}>
         Status: <strong>{statusLabel[status]}</strong>
       </p>
@@ -377,16 +370,20 @@ function Router() {
   const params = useSearchParams()
   const propertyId = params.get('property') ?? ''
   const [provider, setProvider] = useState<'did' | 'liveavatar' | 'none' | null>(null)
+  const [address, setAddress] = useState('')
   useEffect(() => {
     if (!propertyId) { setProvider('did'); return }
     fetch(`/api/avatar/provider?propertyId=${propertyId}`)
       .then(r => r.json())
-      .then(d => setProvider(d.provider === 'liveavatar' ? 'liveavatar' : d.provider === 'none' ? 'none' : 'did'))
+      .then(d => {
+        setProvider(d.provider === 'liveavatar' ? 'liveavatar' : d.provider === 'none' ? 'none' : 'did')
+        setAddress(d.address || '')
+      })
       .catch(() => setProvider('did'))
   }, [propertyId])
   if (provider === null) return <p style={{ textAlign: 'center', marginTop: 40, color: '#777' }}>Laster…</p>
   if (provider === 'none') return <p style={{ textAlign: 'center', marginTop: 40, color: '#777' }}>Digital visning er ikke tilgjengelig for denne boligen akkurat nå.</p>
-  return provider === 'liveavatar' ? <LiveAvatarView propertyId={propertyId} /> : <Samtale />
+  return provider === 'liveavatar' ? <LiveAvatarView propertyId={propertyId} address={address} /> : <Samtale address={address} />
 }
 
 export default function AvatarSamtalePage() {

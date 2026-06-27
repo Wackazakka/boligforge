@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
   const client = serviceClient()
   const { data: property } = await client
-    .from('properties').select('agent_id, user_id').eq('id', propertyId).maybeSingle()
+    .from('properties').select('agent_id, user_id, address').eq('id', propertyId).maybeSingle()
   const megler = property?.agent_id || property?.user_id
   if (!megler) return NextResponse.json({ provider: 'did' })
 
@@ -39,5 +39,5 @@ export async function GET(request: Request) {
   if (hasLiveAvatar && allowLive) provider = 'liveavatar'
   else if (allowDid) provider = 'did'
 
-  return NextResponse.json({ provider })
+  return NextResponse.json({ provider, address: property?.address || '' })
 }
