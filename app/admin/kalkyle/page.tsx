@@ -40,9 +40,9 @@ export default function KalkylePage() {
   const [av, setAv] = useState(49)
   const [pvc, setPvc] = useState(100)
   const [prem, setPrem] = useState(2500)
-  const [mode, setMode] = useState<'full' | 'lite'>('full')
+  const [mode, setMode] = useState<'full' | 'lite' | 'did'>('full')
 
-  const la = mode === 'full' ? 0.20 : 0.10
+  const la = mode === 'full' ? 0.20 : mode === 'lite' ? 0.10 : 0.40
   const costMin = (la + TTS + CLAUDE) * kurs
   const priceMin = costMin * (1 + markup / 100)
   const mins = vis * minp
@@ -54,7 +54,7 @@ export default function KalkylePage() {
   const mk = cost > 0 ? (profit / cost) * 100 : 0
   const ok = mk >= 100
 
-  const modeBtn = (m: 'full' | 'lite', label: string) => (
+  const modeBtn = (m: 'full' | 'lite' | 'did', label: string) => (
     <button onClick={() => setMode(m)} style={{
       padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
       background: 'var(--surface)', color: 'var(--ink)',
@@ -66,7 +66,7 @@ export default function KalkylePage() {
     <div>
       <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Priskalkyle — digital visning</h1>
       <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 18 }}>
-        Margin per megler. Foto-avatar: sett custom avatar + PVC til 0. Video-avatar: $49 avatar. + proff-stemme: $100 stemme-slot.
+        Margin per megler. Foto-avatar (D-ID): velg D-ID-modus + custom avatar 0. Video-avatar: LiveAvatar-modus + $49 avatar. + proff-stemme: $100 stemme-slot.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 16 }}>
@@ -80,9 +80,10 @@ export default function KalkylePage() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, color: 'var(--muted)' }}>LiveAvatar-modus</span>
-        {modeBtn('full', 'FULL ($0,20/min)')}
-        {modeBtn('lite', 'LITE ($0,10/min)')}
+        <span style={{ fontSize: 13, color: 'var(--muted)' }}>Leverandør / modus</span>
+        {modeBtn('full', 'LiveAvatar FULL ($0,20)')}
+        {modeBtn('lite', 'LiveAvatar LITE ($0,10)')}
+        {modeBtn('did', 'D-ID foto ($0,40)')}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
@@ -109,7 +110,7 @@ export default function KalkylePage() {
 
       <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, marginTop: 16 }}>
         Faste kostnader = custom avatar (${av}, video-avatar-slot hos LiveAvatar) + PVC-slot (ElevenLabs).
-        Per-minutt = LiveAvatar ({mode === 'full' ? '$0,20' : '$0,10'}) + ElevenLabs TTS ($0,05) + Claude ($0,005).
+        Per-minutt = render ({mode === 'full' ? 'LiveAvatar FULL $0,20' : mode === 'lite' ? 'LiveAvatar LITE $0,10' : 'D-ID foto $0,40'}) + ElevenLabs TTS ($0,05) + Claude ($0,005).
         «Fast pris til megler» er det du tar per måned i tillegg til per-minutt-bruken.
       </p>
     </div>
