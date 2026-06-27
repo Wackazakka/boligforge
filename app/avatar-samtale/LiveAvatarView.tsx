@@ -100,6 +100,8 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
         s.voiceChat?.stop?.()
         setMicOn(false)
       } else {
+        // Trykk på mikrofonen avbryter avataren hvis han snakker
+        try { s.interrupt() } catch {}
         await s.voiceChat.start()
         if (s.voiceChat.isMuted) await s.voiceChat.unmute()
         s.startListening()
@@ -141,6 +143,9 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
       <p style={{ color: '#555', fontSize: 13, margin: '4px 0 12px' }}>
         Status: <strong>{statusLabel[status]}</strong>
       </p>
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#1e40af', lineHeight: 1.5, margin: '0 0 14px' }}>
+        <strong>Slik gjør du:</strong> Trykk <strong>«Snakk med avataren»</strong> og still spørsmålet. <strong>Sjekk at det du sa dukker opp riktig i transkripsjonen til høyre</strong> før du trykker stopp — da vet du at han oppfattet spørsmålet. Snakker han for lenge, trykk bare <strong>«Snakk med avataren»</strong> igjen — da stopper han og hører på deg.
+      </div>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 380px', minWidth: 320 }}>
           <video ref={videoRef} autoPlay playsInline
