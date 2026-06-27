@@ -81,6 +81,11 @@ type SettingImage = {
   is_preset?: boolean
 }
 
+const premiumBadge: React.CSSProperties = {
+  fontSize: 11, fontWeight: 600, color: '#92660a', background: 'rgba(234,179,8,0.15)',
+  padding: '2px 8px', borderRadius: 999, marginLeft: 8, verticalAlign: 'middle', whiteSpace: 'nowrap',
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({})
   const [saving, setSaving] = useState(false)
@@ -100,6 +105,8 @@ export default function ProfilePage() {
   const [voiceRecordError, setVoiceRecordError] = useState('')
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [portraitVersion, setPortraitVersion] = useState(0)
+  const [org, setOrg] = useState({ isAdmin: false, allow_liveavatar: true, allow_pvc: true })
+  const [savingOrg, setSavingOrg] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -139,8 +146,20 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(d => setProfile(d || {}))
       .catch(console.error)
+    fetch('/api/org/settings').then(r => r.json()).then(d => { if (d && !d.error) setOrg(d) }).catch(() => {})
     loadSettingImages()
   }, [])
+
+  async function setOrgFlag(key: 'allow_liveavatar' | 'allow_pvc', value: boolean) {
+    setOrg(o => ({ ...o, [key]: value }))
+    setSavingOrg(true)
+    try {
+      const r = await fetch('/api/org/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [key]: value }),
+      })
+      if (!r.ok) throw new Error()
+    } catch { setOrg(o => ({ ...o, [key]: !value })) } finally { setSavingOrg(false) }
+  }
 
   async function loadSettingImages() {
     setLoadingImages(true)
@@ -669,47 +688,6 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* Logo upload */}
-        <section className="app-card">
-          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Logo
-          </h2>
-          <div className="flex items-center gap-4">
-            {profile.logo_url ? (
-              <img
-                src={profile.logo_url}
-                alt="Logo"
-                className="w-20 h-20 object-contain rounded-lg"
-                style={{ border: '1px solid var(--line)', background: 'var(--surface-2)' }}
-              />
-            ) : (
-              <div
-                className="w-20 h-20 rounded-lg flex items-center justify-center text-xs text-center px-2"
-                style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}
-              >
-                Ingen logo
-              </div>
-            )}
-            <div>
-              <button
-                onClick={() => logoRef.current?.click()}
-                disabled={uploadingLogo}
-                className="app-btn-secondary"
-              >
-                {uploadingLogo ? 'Laster opp...' : 'Last opp logo'}
-              </button>
-              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>PNG eller SVG anbefalt</p>
-            </div>
-            <input
-              ref={logoRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'logo'); e.target.value = '' }}
-            />
-          </div>
-        </section>
-
         {/* Portrait + AI settings */}
         <section className="app-card">
           <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -968,9 +946,10 @@ export default function ProfilePage() {
           {loadingImages && <p className="text-sm mt-3" style={{ color: 'var(--muted)' }}>Laster bilder...</p>}
         </section>
 
+        {(org.isAdmin || org.allow_liveavatar) && (<>
         {/* ── Produkt 2: Live-Avatar ── */}
         <div className="pt-4">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>② Live-Avatar</h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>② Live-Avatar <span style={premiumBadge}>Premium · koster ekstra</span></h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
             Interaktiv avatar som svarer kundene på digital visning, med hele salgsoppgaven som kunnskap. Opptaket her lager ansiktet — stemmen hentes fra video-stemmen din over (eller fra lyden i opptaket hvis du ikke har laget en klone).
           </p>
@@ -978,16 +957,72 @@ export default function ProfilePage() {
         <section className="app-card">
           <VideoAvatarOnboarding />
         </section>
+        </>)}
 
+        {(org.isAdmin || org.allow_pvc) && (<>
         {/* ── Produkt 3: Proff-stemme (PVC) ── */}
         <div className="pt-4">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>③ Proff-stemme</h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>③ Proff-stemme <span style={premiumBadge}>Premium · koster ekstra</span></h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
             Vil du ha en stemme som er mye likere din egen? Da lager vi en profesjonell klone. Velger du denne, brukes den både i videoene og i Live-Avataren.
           </p>
         </div>
         <section className="app-card">
           <PvcOnboarding />
+        </section>
+        </>)}
+
+        {/* Byrå-innstillinger (kun byråsjef) */}
+        {org.isAdmin && (
+        <section className="app-card">
+          <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Byrå-innstillinger
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
+            Kun du som byråsjef ser dette. Styrer hvilke betalte funksjoner meglerne dine får bruke.
+          </p>
+          {([
+            ['allow_liveavatar', 'Live-Avatar', 'Interaktiv avatar på digital visning'],
+            ['allow_pvc', 'Proff-stemme (PVC)', 'Profesjonell stemmekloning'],
+          ] as ['allow_liveavatar' | 'allow_pvc', string, string][]).map(([key, label, desc]) => (
+            <label key={key} className="flex items-center justify-between gap-4 py-3" style={{ borderTop: '1px solid var(--line)' }}>
+              <span>
+                <span className="text-sm font-medium block" style={{ color: 'var(--ink)' }}>{label}</span>
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>{desc}</span>
+              </span>
+              <input type="checkbox" checked={org[key]} disabled={savingOrg}
+                onChange={e => setOrgFlag(key, e.target.checked)} style={{ width: 18, height: 18, flexShrink: 0 }} />
+            </label>
+          ))}
+        </section>
+        )}
+
+        {/* Logo — meglerfirmaets logo, byråsjef laster opp */}
+        <section className="app-card">
+          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Logo
+          </h2>
+          <div className="flex items-center gap-4">
+            {profile.logo_url ? (
+              <img src={profile.logo_url} alt="Logo" className="w-20 h-20 object-contain rounded-lg"
+                style={{ border: '1px solid var(--line)', background: 'var(--surface-2)' }} />
+            ) : (
+              <div className="w-20 h-20 rounded-lg flex items-center justify-center text-xs text-center px-2"
+                style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}>Ingen logo</div>
+            )}
+            {org.isAdmin ? (
+              <div>
+                <button onClick={() => logoRef.current?.click()} disabled={uploadingLogo} className="app-btn-secondary">
+                  {uploadingLogo ? 'Laster opp...' : 'Last opp logo'}
+                </button>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>PNG eller SVG anbefalt</p>
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>Meglerfirmaets logo styres av byråsjef.</p>
+            )}
+            <input ref={logoRef} type="file" accept="image/*" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'logo'); e.target.value = '' }} />
+          </div>
         </section>
 
         {/* Save button */}
