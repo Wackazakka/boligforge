@@ -105,7 +105,7 @@ export default function ProfilePage() {
   const [voiceRecordError, setVoiceRecordError] = useState('')
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [portraitVersion, setPortraitVersion] = useState(0)
-  const [org, setOrg] = useState({ isAdmin: false, allow_liveavatar: true, allow_pvc: true })
+  const [org, setOrg] = useState({ isAdmin: false, allow_did: true, allow_liveavatar: true, allow_pvc: true })
   const [savingOrg, setSavingOrg] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -120,6 +120,8 @@ export default function ProfilePage() {
   // Show images for the currently active portrait.
   const activePortrait = profile.portrait_url
   const hasOwnPortrait = !!(profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)))
+  const photoReady = !!profile.portrait_url
+  const hasClone = !!profile.cloned_voice_id
   const activeAvatarId = STANDARD_AVATARS.find(a => `${AVATAR_R2}/${a.id}.jpg` === activePortrait)?.id
 
   // Pre-generated preset images for standard avatars
@@ -151,7 +153,7 @@ export default function ProfilePage() {
     loadSettingImages()
   }, [])
 
-  async function setOrgFlag(key: 'allow_liveavatar' | 'allow_pvc', value: boolean) {
+  async function setOrgFlag(key: 'allow_did' | 'allow_liveavatar' | 'allow_pvc', value: boolean) {
     setOrg(o => ({ ...o, [key]: value }))
     setSavingOrg(true)
     try {
@@ -981,17 +983,40 @@ export default function ProfilePage() {
         </section>
         </div>
 
-        {(org.isAdmin || org.allow_liveavatar) && (<>
-        {/* ── Produkt 2: Live-Avatar ── */}
+        {(org.isAdmin || org.allow_did || org.allow_liveavatar) && (<>
+        {/* ── Produkt 2: Digital visning (foto-avatar + video-avatar) ── */}
         <div className="pt-4">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>② Live-Avatar <span style={premiumBadge}>Premium · koster ekstra</span></h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>② Digital visning <span style={premiumBadge}>Premium · koster ekstra</span></h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-            Interaktiv avatar som svarer kundene på digital visning, med hele salgsoppgaven som kunnskap. Opptaket her lager ansiktet — stemmen hentes fra video-stemmen din over (eller fra lyden i opptaket hvis du ikke har laget en klone).
+            La kundene snakke med en AI-megler som svarer ut fra salgsoppgaven. Velg foto-avatar (klar nå) eller video-avatar (premium).
           </p>
         </div>
+
+        {(org.isAdmin || org.allow_did) && (
         <section className="app-card">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+            A · Foto-avatar <span style={{ ...premiumBadge, color: '#0c447c', background: 'rgba(55,138,221,0.15)' }}>Klar uten opptak</span>
+          </h3>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+            Bruker portrettet og stemmen du allerede har — ingen ekstra opptak. Ulempe: litt lengre tenkepause før hvert svar.
+          </p>
+          <p className="text-sm mt-2" style={{ color: photoReady ? '#16a34a' : 'var(--muted)' }}>
+            {photoReady
+              ? `✓ Klar — bruker bildet ditt${hasClone ? ' og din klonede stemme' : ' med norsk standardstemme'}.`
+              : 'Last opp et portrett under ① Video for å aktivere.'}
+          </p>
+        </section>
+        )}
+
+        {(org.isAdmin || org.allow_liveavatar) && (
+        <section className="app-card">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>B · Video-avatar</h3>
+          <p className="text-sm mt-1 mb-2" style={{ color: 'var(--muted)' }}>
+            Naturtro video og raskere svar enn foto-avataren. Krever ~2 min opptak.
+          </p>
           <VideoAvatarOnboarding />
         </section>
+        )}
         </>)}
 
         {(org.isAdmin || org.allow_pvc) && (<>
@@ -1017,9 +1042,10 @@ export default function ProfilePage() {
             Kun du som byråsjef ser dette. Styrer hvilke betalte funksjoner meglerne dine får bruke.
           </p>
           {([
-            ['allow_liveavatar', 'Live-Avatar', 'Interaktiv avatar på digital visning'],
+            ['allow_did', 'Foto-avatar (D-ID)', 'Digital visning fra bilde + stemme — klar uten opptak'],
+            ['allow_liveavatar', 'Video-avatar (LiveAvatar)', 'Naturtro video — krever opptak'],
             ['allow_pvc', 'Proff-stemme (PVC)', 'Profesjonell stemmekloning'],
-          ] as ['allow_liveavatar' | 'allow_pvc', string, string][]).map(([key, label, desc]) => (
+          ] as ['allow_did' | 'allow_liveavatar' | 'allow_pvc', string, string][]).map(([key, label, desc]) => (
             <label key={key} className="flex items-center justify-between gap-4 py-3" style={{ borderTop: '1px solid var(--line)' }}>
               <span>
                 <span className="text-sm font-medium block" style={{ color: 'var(--ink)' }}>{label}</span>

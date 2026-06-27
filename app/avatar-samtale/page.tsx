@@ -376,15 +376,16 @@ function btn(bg: string): React.CSSProperties {
 function Router() {
   const params = useSearchParams()
   const propertyId = params.get('property') ?? ''
-  const [provider, setProvider] = useState<'did' | 'liveavatar' | null>(null)
+  const [provider, setProvider] = useState<'did' | 'liveavatar' | 'none' | null>(null)
   useEffect(() => {
     if (!propertyId) { setProvider('did'); return }
     fetch(`/api/avatar/provider?propertyId=${propertyId}`)
       .then(r => r.json())
-      .then(d => setProvider(d.provider === 'liveavatar' ? 'liveavatar' : 'did'))
+      .then(d => setProvider(d.provider === 'liveavatar' ? 'liveavatar' : d.provider === 'none' ? 'none' : 'did'))
       .catch(() => setProvider('did'))
   }, [propertyId])
   if (provider === null) return <p style={{ textAlign: 'center', marginTop: 40, color: '#777' }}>Laster…</p>
+  if (provider === 'none') return <p style={{ textAlign: 'center', marginTop: 40, color: '#777' }}>Digital visning er ikke tilgjengelig for denne boligen akkurat nå.</p>
   return provider === 'liveavatar' ? <LiveAvatarView propertyId={propertyId} /> : <Samtale />
 }
 

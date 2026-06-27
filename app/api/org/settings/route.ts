@@ -29,18 +29,18 @@ export async function GET() {
 
   // Solo/uten byrå → behandle som egen sjef, alt tillatt
   if (!membership) {
-    return NextResponse.json({ role: isSuper ? 'superadmin' : null, isAdmin: true, allow_liveavatar: true, allow_pvc: true })
+    return NextResponse.json({ role: isSuper ? 'superadmin' : null, isAdmin: true, allow_did: true, allow_liveavatar: true, allow_pvc: true })
   }
 
   const isAdmin = membership.role === 'admin' || isSuper
-  let allow_liveavatar = true, allow_pvc = true
+  let allow_did = true, allow_liveavatar = true, allow_pvc = true
   try {
     const { data: org } = await supabase
-      .from('organizations').select('allow_liveavatar, allow_pvc').eq('id', membership.organization_id).maybeSingle()
-    if (org) { allow_liveavatar = org.allow_liveavatar ?? true; allow_pvc = org.allow_pvc ?? true }
+      .from('organizations').select('allow_did, allow_liveavatar, allow_pvc').eq('id', membership.organization_id).maybeSingle()
+    if (org) { allow_did = org.allow_did ?? true; allow_liveavatar = org.allow_liveavatar ?? true; allow_pvc = org.allow_pvc ?? true }
   } catch { /* kolonner finnes ikke ennå → behold default true */ }
 
-  return NextResponse.json({ role: membership.role, isAdmin, allow_liveavatar, allow_pvc })
+  return NextResponse.json({ role: membership.role, isAdmin, allow_did, allow_liveavatar, allow_pvc })
 }
 
 export async function PATCH(request: Request) {
@@ -54,6 +54,7 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}))
   const update: Record<string, boolean> = {}
+  if (typeof body.allow_did === 'boolean') update.allow_did = body.allow_did
   if (typeof body.allow_liveavatar === 'boolean') update.allow_liveavatar = body.allow_liveavatar
   if (typeof body.allow_pvc === 'boolean') update.allow_pvc = body.allow_pvc
   if (!Object.keys(update).length) return NextResponse.json({ error: 'Ingen endring' }, { status: 400 })
