@@ -736,44 +736,14 @@ export default function ProfilePage() {
           {/* Avatar selector row */}
           <div className="flex gap-3 overflow-x-auto pb-2 mb-5" style={{ overscrollBehaviorX: 'contain' }}>
 
-            {/* Own portrait */}
-            <div className="flex flex-col items-center gap-1 flex-shrink-0">
-              <button
-                onClick={() => portraitRef.current?.click()}
-                disabled={uploadingPortrait}
-                style={{
-                  width: 64, height: 64, borderRadius: 12, overflow: 'hidden',
-                  border: (profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)))
-                    ? '2px solid var(--blue)' : '2px dashed var(--line-2)',
-                  background: 'var(--surface-2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0, flexShrink: 0,
-                }}
-                title="Last opp eget bilde"
-              >
-                {uploadingPortrait ? (
-                  <span className="text-xs" style={{ color: 'var(--muted)' }}>...</span>
-                ) : profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`${profile.portrait_url}?v=${portraitVersion}`} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
-                ) : (
-                  <span style={{ fontSize: 24, color: 'var(--muted)' }}>＋</span>
-                )}
-              </button>
-              <span className="text-[10px] text-center" style={{ color: 'var(--muted)', maxWidth: 64 }}>
-                {profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)) ? 'Din avatar' : 'Last opp'}
-              </span>
-              <input
-                ref={portraitRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'portrait'); e.target.value = '' }}
-              />
-            </div>
-
-            {/* Divider */}
-            <div style={{ width: 1, background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
+            {/* Skjult fil-input — brukes av den store «Last opp»-boksen over */}
+            <input
+              ref={portraitRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'portrait'); e.target.value = '' }}
+            />
 
             {/* Standard avatars */}
             {STANDARD_AVATARS.map(av => {
