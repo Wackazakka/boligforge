@@ -143,7 +143,7 @@ export default function LiveAvatarView({ propertyId, address }: { propertyId: st
         Status: <strong>{statusLabel[status]}</strong>
       </p>
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#1e40af', lineHeight: 1.5, margin: '0 0 14px' }}>
-        <strong>Slik gjør du:</strong> Trykk <strong>«Snakk med avataren»</strong> og still spørsmålet. <strong>Sjekk at det du sa dukker opp riktig i transkripsjonen til høyre</strong> før du trykker stopp — da vet du at han oppfattet spørsmålet. Snakker han for lenge, trykk bare <strong>«Snakk med avataren»</strong> igjen — da stopper han og hører på deg.
+        <strong>Slik gjør du:</strong> Etter «Start samtale» tar det noen sekunder før megleren kobler til og hilser — <strong>vent til han har begynt</strong> før du sier noe. Trykk så <strong>«Snakk med avataren»</strong> og still spørsmålet. <strong>Sjekk at det du sa dukker opp riktig i transkripsjonen til høyre</strong> før du trykker stopp — da vet du at han oppfattet spørsmålet. Snakker han for lenge, trykk bare <strong>«Snakk med avataren»</strong> igjen — da stopper han og hører på deg.
       </div>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 380px', minWidth: 320 }}>
