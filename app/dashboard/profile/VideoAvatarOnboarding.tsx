@@ -100,6 +100,15 @@ export default function VideoAvatarOnboarding() {
 
   const box: React.CSSProperties = { border: '1px solid var(--border, #e5e5e5)', borderRadius: 12, padding: 16, marginTop: 12 }
   const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`
+  // HeyGens anbefalte struktur for interaktiv avatar: lytting → snakking → idle
+  const PHASES = [
+    { label: '① Lytting', tip: 'Se rolig inn i kameraet — ikke snakk', end: 15 },
+    { label: '② Snakking', tip: 'Presenter deg naturlig, som i en visning', end: 105 },
+    { label: '③ Idle', tip: 'Sitt stille og nøytral — ikke snakk', end: 120 },
+  ]
+  const phase = PHASES.find(p => elapsed < p.end) || PHASES[PHASES.length - 1]
+  const phaseIdx = PHASES.indexOf(phase)
+  const recDone = elapsed >= 120
 
   if (status === 'loading') return <div style={box}><p style={{ fontSize: 13, color: '#777' }}>Laster…</p></div>
 
@@ -120,14 +129,39 @@ export default function VideoAvatarOnboarding() {
   return (
     <div style={box}>
       <p style={{ fontSize: 14, fontWeight: 700 }}>Premium: video-avatar</p>
-      <p style={{ fontSize: 13, color: '#555', margin: '4px 0 12px' }}>
-        Ta opp ca. <strong>2 minutter</strong> der du ser rolig inn i kameraet og snakker naturlig (f.eks. presenter deg selv og at du gleder deg til å vise frem boliger). God belysning og lite bakgrunnsstøy gir best resultat.
+      <p style={{ fontSize: 13, color: '#555', margin: '4px 0 8px' }}>
+        Ta opp <strong>én sammenhengende video på ca. 2 minutter</strong> (uten klipp). Følg de tre fasene som vises mens du filmer:
       </p>
+      <ol style={{ fontSize: 13, color: '#555', margin: '0 0 10px', paddingLeft: 18, lineHeight: 1.6 }}>
+        <li><strong>Lytting (~15 sek):</strong> se rolig inn i kameraet, ikke snakk</li>
+        <li><strong>Snakking (~90 sek):</strong> presenter deg naturlig (f.eks. hvem du er og at du gleder deg til å vise frem boliger)</li>
+        <li><strong>Idle (~15 sek):</strong> sitt stille og nøytral, ikke snakk</li>
+      </ol>
+      <p style={{ fontSize: 13, color: '#555', margin: '0 0 12px' }}>God belysning, rolig bakgrunn og lite støy gir best resultat.</p>
 
       {!blob ? (
         <>
           <video ref={previewRef} autoPlay playsInline muted
             style={{ width: '100%', maxWidth: 420, background: '#000', borderRadius: 10, aspectRatio: '16/9', display: cameraOn ? 'block' : 'none' }} />
+          {recording && (
+            <div style={{ maxWidth: 420, marginTop: 10, padding: '10px 14px', borderRadius: 10,
+              background: recDone ? '#dcfce7' : '#eff6ff', border: `1px solid ${recDone ? '#16a34a' : '#2563eb'}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong style={{ fontSize: 14 }}>{recDone ? '✅ Ferdig — du kan stoppe nå' : `${phase.label} — ${phase.tip}`}</strong>
+                <span style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{mmss}</span>
+              </div>
+              {!recDone && (
+                <>
+                  <div style={{ height: 6, borderRadius: 4, background: '#dbeafe', overflow: 'hidden', marginTop: 8 }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, (elapsed / 120) * 100)}%`, background: '#2563eb' }} />
+                  </div>
+                  <p style={{ fontSize: 12, color: '#555', margin: '4px 0 0' }}>
+                    {phaseIdx < 2 ? `Neste fase om ${Math.max(0, phase.end - elapsed)} sek` : `Hold ~${Math.max(0, 120 - elapsed)} sek til`}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
             {!cameraOn && <button onClick={startCamera} style={btn('#2563eb')}>📷 Start kamera</button>}
             {cameraOn && !recording && <button onClick={startRecording} style={btn('#dc2626')}>● Ta opp</button>}
