@@ -383,7 +383,8 @@ function Router() {
   }, [propertyId])
   if (provider === null) return <p style={{ textAlign: 'center', marginTop: 40, color: '#777' }}>Laster…</p>
   if (provider === 'none') return <p style={{ textAlign: 'center', marginTop: 40, color: '#777' }}>Digital visning er ikke tilgjengelig for denne boligen akkurat nå.</p>
-  return provider === 'liveavatar' ? <LiveAvatarView propertyId={propertyId} address={address} /> : <Samtale address={address} />
+  const street = address.split(',')[0].trim()
+  return provider === 'liveavatar' ? <LiveAvatarView propertyId={propertyId} address={street} /> : <Samtale address={street} />
 }
 
 export default function AvatarSamtalePage() {
