@@ -119,6 +119,7 @@ export default function ProfilePage() {
 
   // Show images for the currently active portrait.
   const activePortrait = profile.portrait_url
+  const hasOwnPortrait = !!(profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)))
   const activeAvatarId = STANDARD_AVATARS.find(a => `${AVATAR_R2}/${a.id}.jpg` === activePortrait)?.id
 
   // Pre-generated preset images for standard avatars
@@ -502,10 +503,12 @@ export default function ProfilePage() {
         <div className="pt-2">
           <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>① Video</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-            Standard. Avataren og stemmen som lager markedsvideoene dine — det de fleste bruker.
+            Standard — det de fleste bruker. Her velger du hvem som skal presentere eiendommene dine i video: last opp ditt eget bilde, eller velg en av våre avatarer. Du setter også stemmen som brukes.
           </p>
         </div>
 
+        {/* Avatar vises først (column-reverse), så stemme — unngår å flytte store blokker */}
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '1.5rem' }}>
         {/* Voice + tone */}
         <section className="app-card">
           <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -694,8 +697,39 @@ export default function ProfilePage() {
             Avatar og setting
           </h2>
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
-            Velg hvem som skal presentere boligene dine. Last opp ditt eget bilde, eller velg en av våre avatarer.
+            Velg hvem som skal presentere boligene dine.
           </p>
+
+          {/* Fremtredende: last opp eget bilde */}
+          <button
+            onClick={() => portraitRef.current?.click()}
+            disabled={uploadingPortrait}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
+              padding: '14px 16px', marginBottom: 16, borderRadius: 12, cursor: 'pointer',
+              border: hasOwnPortrait ? '2px solid var(--blue)' : '2px dashed var(--line-2)',
+              background: 'var(--surface-2)',
+            }}
+          >
+            <span style={{ width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {hasOwnPortrait ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`${profile.portrait_url}?v=${portraitVersion}`} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
+              ) : (
+                <span style={{ fontSize: 28, color: 'var(--blue)' }}>＋</span>
+              )}
+            </span>
+            <span style={{ flex: 1 }}>
+              <span className="text-sm font-semibold" style={{ color: 'var(--ink)', display: 'block' }}>
+                {uploadingPortrait ? 'Laster opp…' : hasOwnPortrait ? 'Ditt eget bilde er valgt' : 'Last opp ditt eget bilde'}
+              </span>
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                {hasOwnPortrait ? 'Trykk for å bytte bilde.' : 'Anbefalt — da er det du som presenterer boligene dine.'}
+              </span>
+            </span>
+          </button>
+
+          <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>… eller velg en av våre avatarer:</p>
 
           {/* Avatar selector row */}
           <div className="flex gap-3 overflow-x-auto pb-2 mb-5" style={{ overscrollBehaviorX: 'contain' }}>
@@ -945,6 +979,7 @@ export default function ProfilePage() {
 
           {loadingImages && <p className="text-sm mt-3" style={{ color: 'var(--muted)' }}>Laster bilder...</p>}
         </section>
+        </div>
 
         {(org.isAdmin || org.allow_liveavatar) && (<>
         {/* ── Produkt 2: Live-Avatar ── */}
