@@ -28,6 +28,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Link href="/admin/avatars" style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', fontWeight: 600 }}>
           Avatarer
         </Link>
+        <Link href="/admin/kalkyle" style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', fontWeight: 600 }}>
+          Kalkyle
+        </Link>
         <Link href="/dashboard" style={{ fontSize: 12, color: 'var(--muted)', textDecoration: 'none', marginLeft: 'auto' }}>
           → Dashboard
         </Link>
