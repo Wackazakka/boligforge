@@ -60,7 +60,8 @@ export async function POST(request: Request) {
       )
     }
   }
-  voiceId = voiceId || process.env.AVATAR_VOICE_ID || undefined
+  // Ingen klone → ikke overstyr stemmen. Da bruker LiveAvatar avatarens egen
+  // stemme, laget fra lyden i video-opptaket (ikke standardstemmen Mia).
 
   const res = await fetch(`${LA_BASE}/v1/sessions/token`, {
     method: 'POST',

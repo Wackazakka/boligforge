@@ -479,6 +479,14 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        {/* ── Produkt 1: Video ── */}
+        <div className="pt-2">
+          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>① Video</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+            Standard. Avataren og stemmen som lager markedsvideoene dine — det de fleste bruker.
+          </p>
+        </div>
+
         {/* Voice + tone */}
         <section className="app-card">
           <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -659,22 +667,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Video-avatar (premium) */}
-        <section className="app-card">
-          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Video-avatar
-          </h2>
-          <VideoAvatarOnboarding />
-        </section>
-
-        {/* Proff-stemme (PVC) */}
-        <section className="app-card">
-          <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Proff-stemme
-          </h2>
-          <PvcOnboarding />
         </section>
 
         {/* Logo upload */}
@@ -974,6 +966,28 @@ export default function ProfilePage() {
           </div>
 
           {loadingImages && <p className="text-sm mt-3" style={{ color: 'var(--muted)' }}>Laster bilder...</p>}
+        </section>
+
+        {/* ── Produkt 2: Live-Avatar ── */}
+        <div className="pt-4">
+          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>② Live-Avatar</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+            Interaktiv avatar som svarer kundene på digital visning, med hele salgsoppgaven som kunnskap. Opptaket her lager ansiktet — stemmen hentes fra video-stemmen din over (eller fra lyden i opptaket hvis du ikke har laget en klone).
+          </p>
+        </div>
+        <section className="app-card">
+          <VideoAvatarOnboarding />
+        </section>
+
+        {/* ── Produkt 3: Proff-stemme (PVC) ── */}
+        <div className="pt-4">
+          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>③ Proff-stemme</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+            Vil du ha en stemme som er mye likere din egen? Da lager vi en profesjonell klone. Velger du denne, brukes den både i videoene og i Live-Avataren.
+          </p>
+        </div>
+        <section className="app-card">
+          <PvcOnboarding />
         </section>
 
         {/* Save button */}
