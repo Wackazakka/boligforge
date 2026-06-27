@@ -74,21 +74,9 @@ export default function LiveAvatarView({ propertyId }: { propertyId: string }) {
         })
         avatarOpenRef.current = true
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e: any) => {
-        const full = (e?.text ?? '').trim()
-        if (!full) return
-        setTurns(prev => {
-          const copy = [...prev]
-          const last = copy[copy.length - 1]
-          if (avatarOpenRef.current && last?.who === 'avatar') {
-            copy[copy.length - 1] = { ...last, text: full }
-            return copy
-          }
-          return [...copy, { who: 'avatar', text: full }]
-        })
-        avatarOpenRef.current = false
-      })
+      // Bevisst: vi lytter IKKE på AVATAR_TRANSCRIPTION (full tekst etter talen) —
+      // chunk-strømmen over gir allerede komplett tekst i takt med talen, og å ta
+      // begge ga dobbel boble.
       session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => { avatarOpenRef.current = false; setStatus('snakker') })
       session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => setStatus(s => (s === 'snakker' ? 'klar' : s)))
       session.on(SessionEvent.SESSION_DISCONNECTED, () => {
