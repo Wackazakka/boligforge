@@ -122,4 +122,5 @@ export function speakifyForTTS(text: string): string {
 
 const RESPELL: Record<string, string> = {
   seksten: 'seisten', // 16 — uttales ellers «seks-ten» med feil trykk
+  førti: 'førtti',    // 40 — trenger hard dobbel-T («hoppe», ikke «hope»)
 }
