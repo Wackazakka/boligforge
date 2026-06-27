@@ -16,6 +16,7 @@ export default function LiveAvatarView({ propertyId, address }: { propertyId: st
   const sessionRef = useRef<any>(null)
   const meterRef = useRef<UsageMeter | null>(null)
   const avatarOpenRef = useRef(false)
+  const transcriptRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<Status>('idle')
   const [turns, setTurns] = useState<Turn[]>([])
   const [errMsg, setErrMsg] = useState('')
@@ -123,6 +124,12 @@ export default function LiveAvatarView({ propertyId, address }: { propertyId: st
   // Stopp måleren hvis komponenten unmountes mid-sesjon
   useEffect(() => () => { meterRef.current?.stop() }, [])
 
+  // Auto-scroll transkripsjonen til bunnen ved nye meldinger / streamet tekst
+  useEffect(() => {
+    const el = transcriptRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [turns])
+
   const statusLabel: Record<Status, string> = {
     idle: 'Klar til å starte', kobler: 'Kobler til megler…', klar: 'Tilkoblet',
     lytter: '🎙 Lytter — bare snakk', snakker: '💬 Avataren snakker',
@@ -166,7 +173,7 @@ export default function LiveAvatarView({ propertyId, address }: { propertyId: st
             </div>
           )}
         </div>
-        <div style={{ flex: '1 1 320px', minWidth: 300, border: '1px solid #ddd', borderRadius: 12, padding: 14, maxHeight: 480, overflowY: 'auto', background: '#fafafa' }}>
+        <div ref={transcriptRef} style={{ flex: '1 1 320px', minWidth: 300, border: '1px solid #ddd', borderRadius: 12, padding: 14, maxHeight: 480, overflowY: 'auto', background: '#fafafa' }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Samtale</div>
           {turns.length === 0 && <p style={{ fontSize: 13, color: '#999' }}>Transkripsjonen vises her.</p>}
           {turns.map((t, i) => (
