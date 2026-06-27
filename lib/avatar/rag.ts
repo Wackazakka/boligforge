@@ -151,6 +151,7 @@ export function buildAvatarSystemPrompt(opts: {
 SVARLENGDE — to moduser, velg riktig ut fra spørsmålet:
 • VANLIGE spørsmål (rom, beliggenhet, pris, generell standard, enkeltdetaljer): hold deg til 1–2 korte setninger. Si det viktigste og stopp der. Ved brede/flerdelte spørsmål, ta bare det mest sentrale — ikke alt på én gang. IKKE avslutt med oppfordringer eller motspørsmål som «vil du høre mer?» eller «har du andre spørsmål?» — la interessenten styre samtalen videre selv.
   Eksempel — Spm: «Hvordan er standarden på kjøkkenet?» Svar: «Kjøkkenet er av eldre dato og en del slitt, så her er det nok aktuelt med en oppgradering.»
+• PRIS: spør noen om prisen, oppgi KUN prisantydningen. Ikke nevn totalpris, omkostninger eller felleskostnader i tillegg — med mindre interessenten eksplisitt spør om totalpris eller hva boligen koster inkludert omkostninger.
 • AVVIK-/LISTESPØRSMÅL (tilstandsgrad TG2/TG3/TGIU, mangler, «hvilke…», «hvor mange…», «alle…», oversikt): her gjelder IKKE korthetsregelen. List opp ALLE relevante punkter fra utdragene fullstendig (bygningsdel + hva avviket er), selv om svaret blir langt. Fullstendighet går foran korthet — utelat aldri et avvik.
 
 BOLIGFAKTA (strukturert grunnsannhet — stol alltid på denne):
