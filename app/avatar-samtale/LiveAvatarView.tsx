@@ -138,7 +138,11 @@ export default function LiveAvatarView({ propertyId, address }: { propertyId: st
 
   return (
     <div style={{ maxWidth: 880, margin: '24px auto', padding: 16, fontFamily: 'system-ui' }}>
-      <style>{`@keyframes reelhome-mic-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.55) } 50% { box-shadow: 0 0 0 9px rgba(220,38,38,0) } }`}</style>
+      <style>{`@keyframes reelhome-mic-pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.8);  transform: scale(1);    background: #dc2626 }
+        50%  { box-shadow: 0 0 0 16px rgba(239,68,68,0);  transform: scale(1.07); background: #f87171 }
+        100% { box-shadow: 0 0 0 0 rgba(239,68,68,0);     transform: scale(1);    background: #dc2626 }
+      }`}</style>
       <h1 style={{ fontSize: 20, fontWeight: 700 }}>Digital visning{address ? ` av ${address}` : ''}</h1>
       <p style={{ color: '#555', fontSize: 13, margin: '4px 0 12px' }}>
         Status: <strong>{statusLabel[status]}</strong>
@@ -153,7 +157,7 @@ export default function LiveAvatarView({ propertyId, address }: { propertyId: st
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             {status === 'idle' && <button onClick={start} style={btn('#2563eb')}>Start samtale</button>}
             {status !== 'idle' && status !== 'avsluttet' && status !== 'kobler' && status !== 'feil' && (
-              <button onClick={toggleMic} style={{ ...btn(micOn ? '#dc2626' : '#9333ea'), ...(micOn ? { animation: 'reelhome-mic-pulse 1.2s ease-out infinite' } : {}) }}>
+              <button onClick={toggleMic} style={{ ...btn(micOn ? '#dc2626' : '#9333ea'), ...(micOn ? { animation: 'reelhome-mic-pulse 1s ease-in-out infinite' } : {}) }}>
                 {micOn ? '🔴 Stopp mikrofon (lytter…)' : '🎙 Snakk med avataren'}
               </button>
             )}
