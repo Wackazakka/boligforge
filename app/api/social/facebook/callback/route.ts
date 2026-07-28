@@ -53,6 +53,8 @@ export async function GET(request: Request) {
 
     // 3. Gather every Page the user can manage.
     type Page = { id: string; name: string; access_token: string }
+    type PageRow = { id?: string; name?: string; access_token?: string }
+    type PagedPages = { data?: PageRow[]; paging?: { next?: string } }
     const pageMap = new Map<string, Page>()
 
     // (a) Classic pages via /me/accounts (paginated).
@@ -60,9 +62,9 @@ export async function GET(request: Request) {
       `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&limit=100&access_token=${longToken}`
     while (pagesUrl) {
       const res = await fetch(pagesUrl)
-      const json = await res.json()
+      const json: PagedPages = await res.json()
       for (const p of (json.data ?? [])) {
-        if (p.id && p.access_token) pageMap.set(p.id, { id: p.id, name: p.name, access_token: p.access_token })
+        if (p.id && p.access_token) pageMap.set(p.id, { id: p.id, name: p.name ?? p.id, access_token: p.access_token })
       }
       pagesUrl = json.paging?.next ?? null
     }
@@ -76,26 +78,27 @@ export async function GET(request: Request) {
       const bizRes = await fetch(
         `https://graph.facebook.com/v21.0/me/businesses?fields=id&limit=100&access_token=${longToken}`
       )
-      const bizJson = await bizRes.json()
+      const bizJson: { data?: Array<{ id: string }> } = await bizRes.json()
       for (const biz of (bizJson.data ?? [])) {
         for (const edge of ['owned_pages', 'client_pages']) {
           let url: string | null =
             `https://graph.facebook.com/v21.0/${biz.id}/${edge}?fields=id,name,access_token&limit=100&access_token=${longToken}`
           while (url) {
             const r = await fetch(url)
-            const j = await r.json()
+            const j: PagedPages = await r.json()
             for (const p of (j.data ?? [])) {
               if (!p.id || pageMap.has(p.id)) continue
-              let tok = p.access_token
+              let tok: string | undefined = p.access_token
               if (!tok) {
                 // Some Business-owned pages don't expose the token on the edge;
                 // resolve it directly by page id (works with the user token).
                 const tr = await fetch(
                   `https://graph.facebook.com/v21.0/${p.id}?fields=access_token&access_token=${longToken}`
                 )
-                tok = (await tr.json()).access_token
+                const tj: { access_token?: string } = await tr.json()
+                tok = tj.access_token
               }
-              if (tok) pageMap.set(p.id, { id: p.id, name: p.name, access_token: tok })
+              if (tok) pageMap.set(p.id, { id: p.id, name: p.name ?? p.id, access_token: tok })
             }
             url = j.paging?.next ?? null
           }
