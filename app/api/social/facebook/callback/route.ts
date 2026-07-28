@@ -51,12 +51,61 @@ export async function GET(request: Request) {
       ? new Date(Date.now() + llData.expires_in * 1000).toISOString()
       : null
 
-    // 3. Fetch managed pages
-    const pagesRes = await fetch(
-      `https://graph.facebook.com/v21.0/me/accounts?access_token=${longToken}`
-    )
-    const pagesData = await pagesRes.json()
-    const pages: Array<{ id: string; name: string; access_token: string }> = pagesData.data ?? []
+    // 3. Gather every Page the user can manage.
+    type Page = { id: string; name: string; access_token: string }
+    const pageMap = new Map<string, Page>()
+
+    // (a) Classic pages via /me/accounts (paginated).
+    let pagesUrl: string | null =
+      `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&limit=100&access_token=${longToken}`
+    while (pagesUrl) {
+      const res = await fetch(pagesUrl)
+      const json = await res.json()
+      for (const p of (json.data ?? [])) {
+        if (p.id && p.access_token) pageMap.set(p.id, { id: p.id, name: p.name, access_token: p.access_token })
+      }
+      pagesUrl = json.paging?.next ?? null
+    }
+
+    // (b) Pages owned/managed through a Business Portfolio (Meta Business Manager).
+    // These are NOT returned by /me/accounts, so agencies whose Page + linked
+    // Instagram live in a Business Portfolio would otherwise import zero Instagram
+    // accounts. Requires the business_management permission; if it isn't granted
+    // (e.g. not yet approved for a given user) this whole block simply no-ops.
+    try {
+      const bizRes = await fetch(
+        `https://graph.facebook.com/v21.0/me/businesses?fields=id&limit=100&access_token=${longToken}`
+      )
+      const bizJson = await bizRes.json()
+      for (const biz of (bizJson.data ?? [])) {
+        for (const edge of ['owned_pages', 'client_pages']) {
+          let url: string | null =
+            `https://graph.facebook.com/v21.0/${biz.id}/${edge}?fields=id,name,access_token&limit=100&access_token=${longToken}`
+          while (url) {
+            const r = await fetch(url)
+            const j = await r.json()
+            for (const p of (j.data ?? [])) {
+              if (!p.id || pageMap.has(p.id)) continue
+              let tok = p.access_token
+              if (!tok) {
+                // Some Business-owned pages don't expose the token on the edge;
+                // resolve it directly by page id (works with the user token).
+                const tr = await fetch(
+                  `https://graph.facebook.com/v21.0/${p.id}?fields=access_token&access_token=${longToken}`
+                )
+                tok = (await tr.json()).access_token
+              }
+              if (tok) pageMap.set(p.id, { id: p.id, name: p.name, access_token: tok })
+            }
+            url = j.paging?.next ?? null
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[fb/callback] business-portfolio page enumeration skipped:', e)
+    }
+
+    const pages: Page[] = Array.from(pageMap.values())
 
     if (pages.length === 0) {
       console.warn('[fb/callback] No pages found for user', state)
