@@ -45,7 +45,9 @@ export default function CollectionsPage() {
   const [publishSelected,    setPublishSelected]    = useState<Set<string>>(new Set())
   const [publishCaption,     setPublishCaption]     = useState('')
   const [publishLoading,     setPublishLoading]     = useState(false)
-  const [publishResults,     setPublishResults]     = useState<{ pageName: string; success: boolean; error?: string }[] | null>(null)
+  type PublishResult = { pageName: string; success: boolean; error?: string; pending?: boolean; rowId?: string }
+  const [publishResults,     setPublishResults]     = useState<PublishResult[] | null>(null)
+  const pubPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [publishMode,        setPublishMode]        = useState<'now' | 'schedule'>('now')
   const [scheduledAt,        setScheduledAt]        = useState('')
   const [scheduleDone,       setScheduleDone]       = useState<string | null>(null)
@@ -64,6 +66,15 @@ export default function CollectionsPage() {
   useEffect(() => {
     if (showForm) setTimeout(() => inputRef.current?.focus(), 50)
   }, [showForm])
+
+  // Stopp publiserings-polling når modalen lukkes, og ved unmount.
+  useEffect(() => {
+    if (!publishModalUrl && pubPollRef.current) {
+      clearInterval(pubPollRef.current)
+      pubPollRef.current = null
+    }
+  }, [publishModalUrl])
+  useEffect(() => () => { if (pubPollRef.current) clearInterval(pubPollRef.current) }, [])
 
   async function loadVideos(col: Collection) {
     setSelected(col)
@@ -126,6 +137,36 @@ export default function CollectionsPage() {
     }
   }
 
+  // Instagram publiseres asynkront (Background Function). Poll historikken og
+  // flipp `pending`-rader til ✓/✗ når worker-en har skrevet terminal status.
+  function startPubPoll() {
+    if (pubPollRef.current) clearInterval(pubPollRef.current)
+    const deadline = Date.now() + 3 * 60_000
+    pubPollRef.current = setInterval(async () => {
+      if (Date.now() > deadline) {
+        if (pubPollRef.current) { clearInterval(pubPollRef.current); pubPollRef.current = null }
+        return
+      }
+      try {
+        const res = await fetch('/api/social/publications')
+        if (!res.ok) return
+        const rows: { id: string; status: string; error: string | null }[] = await res.json()
+        setPublishResults(prev => {
+          if (!prev) return prev
+          let stillPending = false
+          const next = prev.map(r => {
+            if (!r.pending) return r
+            const row = rows.find(x => x.id === r.rowId && (x.status === 'published' || x.status === 'failed'))
+            if (!row) { stillPending = true; return r }
+            return { ...r, pending: false, success: row.status === 'published', error: row.error ?? undefined }
+          })
+          if (!stillPending && pubPollRef.current) { clearInterval(pubPollRef.current); pubPollRef.current = null }
+          return next
+        })
+      } catch { /* nettverksglipp — prøv igjen neste tick */ }
+    }, 4000)
+  }
+
   async function handlePublish() {
     if (!publishModalUrl || publishSelected.size === 0) return
     setPublishLoading(true)
@@ -142,7 +183,10 @@ export default function CollectionsPage() {
         }),
       })
       const data = await res.json()
-      if (data.results) setPublishResults(data.results)
+      if (data.results) {
+        setPublishResults(data.results)
+        if (data.results.some((r: PublishResult) => r.pending)) startPubPoll()
+      }
     } finally {
       setPublishLoading(false)
     }
@@ -403,15 +447,16 @@ export default function CollectionsPage() {
                     <div key={i} style={{
                       display: 'flex', alignItems: 'center', gap: '10px',
                       padding: '10px 14px', borderRadius: '8px',
-                      background: r.success ? '#dcfce7' : '#fee2e2',
-                      border: `1px solid ${r.success ? '#86efac' : '#fca5a5'}`,
+                      background: r.pending ? '#fef9c3' : r.success ? '#dcfce7' : '#fee2e2',
+                      border: `1px solid ${r.pending ? '#fde047' : r.success ? '#86efac' : '#fca5a5'}`,
                     }}>
-                      <span style={{ fontSize: '16px' }}>{r.success ? '✓' : '✗'}</span>
+                      <span style={{ fontSize: '16px' }}>{r.pending ? '⏳' : r.success ? '✓' : '✗'}</span>
                       <div>
-                        <p style={{ fontSize: '14px', fontWeight: 500, color: r.success ? '#166534' : '#991b1b', margin: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 500, color: r.pending ? '#854d0e' : r.success ? '#166534' : '#991b1b', margin: 0 }}>
                           {r.pageName}
+                          {r.pending && <span style={{ fontWeight: 400 }}> — Publiserer…</span>}
                         </p>
-                        {!r.success && r.error && (
+                        {!r.pending && !r.success && r.error && (
                           <p style={{ fontSize: '12px', color: '#991b1b', margin: 0 }}>{r.error}</p>
                         )}
                       </div>
