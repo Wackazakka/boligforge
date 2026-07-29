@@ -1,14 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { publishVideoToConnections } from '../../social/publish/route'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
-}
+import { getServiceClient, publishVideoToConnections } from '@/lib/social/publish-core'
 
 type ScheduledRow = {
   id: string
@@ -115,7 +106,12 @@ async function runCron(request: Request) {
         propertyId: post.property_id,
       })
 
-      const success = pubResults.every(r => r.success)
+      // Instagram-oppføringer er `pending` (fullføres asynkront av Background
+      // Function-en, som skriver terminal status til reelhome_publications).
+      // De teller ikke som feil her — ellers ville den planlagte raden bli
+      // markert 'failed' selv om IG-publiseringen faktisk pågår. Vi markerer
+      // den planlagte raden som behandlet så cron-en ikke re-dispatcher den.
+      const success = pubResults.every(r => r.success || r.pending)
       if (!success) {
         console.error(`[cron] Post ${post.id} had failures:`, JSON.stringify(pubResults))
       }
