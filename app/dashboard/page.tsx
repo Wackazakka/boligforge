@@ -75,10 +75,14 @@ export default async function DashboardPage() {
   // Vis sjekklisten kun før første video er laget.
   const showChecklist = !hasVideo
 
-  const { data: credits } = await serviceSupabase
-    .from('credits')
-    .select('total, used')
-    .eq('organization_id', profile.organization_id)
+  // Kreditt-visning speiler /api/video/credits: video_credits (per bruker) er
+  // kilden som videogenereringen og Stripe-kjøp faktisk bruker. Dashboardet leste
+  // tidligere den utdaterte per-org `credits`-tabellen (som de fleste org-er ikke
+  // har en rad i) → viste feilaktig «0 / Ingen aktiv plan» selv med credits igjen.
+  const { data: vc } = await serviceSupabase
+    .from('video_credits')
+    .select('included_per_month, extra_credits, used_this_month')
+    .eq('user_id', user.id)
     .maybeSingle()
 
   const { data: org } = await serviceSupabase
@@ -87,10 +91,14 @@ export default async function DashboardPage() {
     .eq('id', profile.organization_id)
     .maybeSingle()
 
-  const remaining  = credits ? credits.total - credits.used : 0
-  const total      = credits?.total ?? 0
+  const hasCredits       = !!vc
+  const includedPerMonth = vc?.included_per_month ?? 0
+  const extraCredits     = vc?.extra_credits ?? 0
+  const usedThisMonth    = vc?.used_this_month ?? 0
+  const total      = includedPerMonth + extraCredits
+  const remaining  = Math.max(0, total - usedThisMonth)
   const firstName  = profile.full_name?.split(' ')[0] ?? 'der'
-  const usedPct    = total > 0 ? Math.round(((credits?.used ?? 0) / total) * 100) : 0
+  const usedPct    = total > 0 ? Math.round((usedThisMonth / total) * 100) : 0
 
   const trialDaysLeft = org?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(org.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -147,7 +155,7 @@ export default async function DashboardPage() {
         )}
 
         {/* Topup-banner — vises når ≤ 1 video gjenstår */}
-        {remaining <= 1 && credits && (
+        {remaining <= 1 && hasCredits && (
           <TopupBanner remaining={remaining} />
         )}
 
@@ -168,7 +176,7 @@ export default async function DashboardPage() {
             {total > 0 && (
               <>
                 <div style={{ fontSize: '13px', color: 'var(--muted-2)', marginTop: '6px' }}>
-                  av {total} denne måneden
+                  av {total} tilgjengelig
                 </div>
                 {/* Progressbar */}
                 <div style={{ marginTop: '14px', height: '4px', background: 'var(--line)', borderRadius: '99px', overflow: 'hidden' }}>
@@ -182,7 +190,7 @@ export default async function DashboardPage() {
                 </div>
               </>
             )}
-            {!credits && (
+            {!hasCredits && (
               <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '8px' }}>
                 Ingen aktiv plan ·{' '}
                 <Link href="/dashboard/billing" style={{ color: 'var(--blue)', textDecoration: 'none' }}>
