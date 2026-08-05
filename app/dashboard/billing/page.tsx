@@ -72,6 +72,15 @@ export default function BillingPage() {
       .catch(() => setCreditsLoading(false))
   }, [])
 
+  // Anker-lenker (f.eks. «Kjøp enkeltvideoer» fra tom-for-kreditter-modalen →
+  // /dashboard/billing#extra-credits) feiler i SPA-er: seksjonen finnes ikke i
+  // DOM før dataene er lastet, så nettleserens hopp går til toppen. Scroll manuelt.
+  useEffect(() => {
+    if (creditsLoading || !window.location.hash) return
+    const el = document.getElementById(window.location.hash.slice(1))
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [creditsLoading])
+
   async function handleSelectPlan(planId: string) {
     setCheckoutPlan(planId)
     setCheckoutError('')
@@ -251,7 +260,7 @@ export default function BillingPage() {
               return (
                 <div className="app-card" id="extra-credits" style={{ padding: '24px', marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-                    Kjøp enkeltvideo
+                    Kjøp enkeltvideoer
                   </h3>
                   <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>
                     Engangskjøp — kreditten utløper ikke og brukes opp før månedlige kreditter.
