@@ -825,8 +825,8 @@ export default function ProfilePage() {
               {activeAvatarId
                 ? 'Preset-bilder er klare til bruk. Klikk for å velge aktivt bilde, eller generer din egen versjon.'
                 : profile.portrait_url
-                  ? 'Disse bildene velger du fra når du lager en video. Slett de du ikke vil beholde.'
-                  : 'Last opp et portrettbilde — alle 4 settings genereres automatisk.'}
+                  ? 'Disse bildene velger du fra når du lager en video. Slett de du ikke vil beholde. Generering av et nytt bilde tar vanligvis 1–2 minutter.'
+                  : 'Last opp et portrettbilde — alle 4 settings genereres automatisk (tar vanligvis 1–2 minutter).'}
             </p>
             {profile.portrait_url && !activeAvatarId && userImages.length === 0 && !Object.values(generatingSettings).some(Boolean) && (
               <button
@@ -875,7 +875,7 @@ export default function ProfilePage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          <span className="text-[10px]" style={{ color: 'var(--gold)' }}>Genererer…</span>
+                          <span className="text-[10px]" style={{ color: 'var(--gold)' }}>Genererer… (1–2 min)</span>
                         </div>
                       )}
 
