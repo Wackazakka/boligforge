@@ -1,7 +1,10 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
-export const maxDuration = 120
+// Ideogram Character med QUALITY bruker 60–90 s — langt over Netlify-funksjoners
+// ~26 s-tak, så synkron generering ga HTML-timeoutside («Unexpected token '<'»).
+// Derfor fal.ai sin KØ-API: POST sender inn jobben og returnerer request_id på
+// ~1 s; klienten poller GET til bildet er klart. Hvert kall er raskt.
 
 // Ideogram Character prompts: full scene description — face is preserved via reference_image_urls
 const SETTING_PROMPTS: Record<string, string> = {
@@ -10,6 +13,11 @@ const SETTING_PROMPTS: Record<string, string> = {
   studio: 'A professional Norwegian real estate agent against a smooth warm-neutral gradient studio backdrop. Soft, even professional lighting from the side. Confident, natural expression. High-end professional headshot, sharp focus on face.',
   neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent looks relaxed and confident. Editorial lifestyle photography.',
 }
+
+// Kø-endepunkter: submit bruker full modell-sti, status/resultat bruker ROT-appen
+// (fal-dokumentert oppførsel for subpath-modeller som fal-ai/ideogram/character).
+const QUEUE_SUBMIT = 'https://queue.fal.run/fal-ai/ideogram/character'
+const QUEUE_BASE   = 'https://queue.fal.run/fal-ai/ideogram'
 
 function getR2() {
   return new S3Client({
@@ -22,6 +30,7 @@ function getR2() {
   })
 }
 
+// Send inn genereringsjobben — svarer umiddelbart med request_id
 export async function POST(request: Request) {
   try {
     const user = await getUser()
@@ -33,64 +42,55 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing setting or portraitUrl' }, { status: 400 })
     }
 
-    let falRes: Response
+    let body: Record<string, unknown>
 
     if (setting === 'property_front') {
       if (!propertyImageUrl) {
         return Response.json({ error: 'Mangler propertyImageUrl for property_front' }, { status: 400 })
       }
-
       // Ideogram Character: only portrait as reference — house described in prompt, not as ref image
       // (Using house as ref image causes Ideogram to place person at realistic distance from building)
-      falRes = await fetch('https://fal.run/fal-ai/ideogram/character', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Key ${process.env.FAL_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reference_image_urls: [portraitUrl],
-          prompt: customPrompt || 'Professional portrait photo of a Norwegian real estate agent. Upper body and face fill most of the frame. Shot from waist up, face large and sharp. A beautiful Norwegian house with garden is softly blurred in the background behind them. Outdoor natural daylight, editorial real estate photography.',
-          negative_prompt: 'full body, tiny person, small figure, distant, far away, wide shot, whole body visible, blurry face, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon',
-          rendering_speed: 'QUALITY',
-          style: 'REALISTIC',
-          expand_prompt: false,
-          num_images: 1,
-          image_size: 'landscape_16_9',
-          seed: Math.floor(Math.random() * 999999999),
-        }),
-      })
+      body = {
+        reference_image_urls: [portraitUrl],
+        prompt: customPrompt || 'Professional portrait photo of a Norwegian real estate agent. Upper body and face fill most of the frame. Shot from waist up, face large and sharp. A beautiful Norwegian house with garden is softly blurred in the background behind them. Outdoor natural daylight, editorial real estate photography.',
+        negative_prompt: 'full body, tiny person, small figure, distant, far away, wide shot, whole body visible, blurry face, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon',
+        rendering_speed: 'QUALITY',
+        style: 'REALISTIC',
+        expand_prompt: false,
+        num_images: 1,
+        image_size: 'landscape_16_9',
+        seed: Math.floor(Math.random() * 999999999),
+      }
     } else {
       const prompt = customPrompt || SETTING_PROMPTS[setting]
       if (!prompt) {
         return Response.json({ error: 'Unknown setting type' }, { status: 400 })
       }
-
-      // Ideogram V3 Character QUALITY: best face fidelity, ~60-90s.
-      falRes = await fetch('https://fal.run/fal-ai/ideogram/character', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Key ${process.env.FAL_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reference_image_urls: [portraitUrl],
-          prompt,
-          negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, illustration, painting, unrealistic skin',
-          rendering_speed: 'QUALITY',
-          style: 'REALISTIC',
-          expand_prompt: false,
-          num_images: 1,
-          image_size: 'landscape_16_9',
-          seed: Math.floor(Math.random() * 999999999),
-        }),
-      })
+      body = {
+        reference_image_urls: [portraitUrl],
+        prompt,
+        negative_prompt: 'blurry, distorted face, deformed, extra fingers, bad anatomy, watermark, text, cartoon, illustration, painting, unrealistic skin',
+        rendering_speed: 'QUALITY',
+        style: 'REALISTIC',
+        expand_prompt: false,
+        num_images: 1,
+        image_size: 'landscape_16_9',
+        seed: Math.floor(Math.random() * 999999999),
+      }
     }
+
+    const falRes = await fetch(QUEUE_SUBMIT, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${process.env.FAL_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
 
     if (!falRes.ok) {
       const errText = await falRes.text()
-      console.error('[generate-setting] fal.ai error:', falRes.status, errText)
-      // Parse fal.ai validation error for cleaner message
+      console.error('[generate-setting] fal.ai queue submit error:', falRes.status, errText)
       try {
         const errJson = JSON.parse(errText)
         const msg = errJson?.detail?.[0]?.msg || errJson?.message || errText
@@ -101,13 +101,60 @@ export async function POST(request: Request) {
     }
 
     const falData = await falRes.json()
+    if (!falData.request_id) {
+      return Response.json({ error: 'fal.ai returnerte ingen request_id' }, { status: 500 })
+    }
+
+    return Response.json({ request_id: falData.request_id, setting })
+  } catch (err: unknown) {
+    console.error('[generate-setting] submit', err)
+    return Response.json({ error: String(err) }, { status: 500 })
+  }
+}
+
+// Poll jobben — når ferdig: hent bildet, host på R2 og lagre i biblioteket
+export async function GET(request: Request) {
+  try {
+    const user = await getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const requestId   = searchParams.get('request_id') ?? ''
+    const setting     = searchParams.get('setting') ?? ''
+    const portraitUrl = searchParams.get('portraitUrl') ?? ''
+
+    // request_id går inn i URL-en mot fal — valider strengt (ingen sti-injeksjon)
+    if (!/^[a-zA-Z0-9-]+$/.test(requestId)) {
+      return Response.json({ error: 'Ugyldig request_id' }, { status: 400 })
+    }
+    if (!setting) return Response.json({ error: 'Mangler setting' }, { status: 400 })
+
+    const auth = { 'Authorization': `Key ${process.env.FAL_KEY}` }
+
+    const statusRes = await fetch(`${QUEUE_BASE}/requests/${requestId}/status`, { headers: auth })
+    if (!statusRes.ok) {
+      const t = await statusRes.text()
+      console.error('[generate-setting] fal status error:', statusRes.status, t.slice(0, 200))
+      return Response.json({ error: `fal.ai status ${statusRes.status}` }, { status: 502 })
+    }
+    const statusData = await statusRes.json()
+
+    if (statusData.status !== 'COMPLETED') {
+      // IN_QUEUE / IN_PROGRESS → klienten poller videre
+      return Response.json({ status: 'pending', queue_status: statusData.status })
+    }
+
+    const resultRes = await fetch(`${QUEUE_BASE}/requests/${requestId}`, { headers: auth })
+    if (!resultRes.ok) {
+      return Response.json({ error: `fal.ai result ${resultRes.status}` }, { status: 502 })
+    }
+    const falData = await resultRes.json()
     const falImageUrl = falData.images?.[0]?.url
     if (!falImageUrl) {
       return Response.json({ error: 'No image returned from fal.ai' }, { status: 500 })
     }
 
-    // For OmniGen (property_front): use fal.ai URL directly to save time
-    // For PuLID: download and re-host on R2 for permanent storage
+    // property_front: bruk fal-URL direkte (sparer tid); ellers re-host på R2
     let url: string
     if (setting === 'property_front') {
       url = falImageUrl
@@ -128,16 +175,26 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createSupabaseServerClient()
-    await supabase.from('agent_settings_images').insert({
-      setting_type: setting,
-      image_url: url,
-      user_id: user.id,
-      portrait_url: portraitUrl,
-    })
+    // Idempotent: samme jobb kan polles to ganger i det den fullfører — ikke
+    // lagre duplikat hvis bildet allerede er i biblioteket.
+    const { data: existing } = await supabase
+      .from('agent_settings_images')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('image_url', url)
+      .maybeSingle()
+    if (!existing) {
+      await supabase.from('agent_settings_images').insert({
+        setting_type: setting,
+        image_url: url,
+        user_id: user.id,
+        portrait_url: portraitUrl || null,
+      })
+    }
 
-    return Response.json({ url, setting })
+    return Response.json({ status: 'done', url, setting })
   } catch (err: unknown) {
-    console.error('[generate-setting]', err)
+    console.error('[generate-setting] poll', err)
     return Response.json({ error: String(err) }, { status: 500 })
   }
 }

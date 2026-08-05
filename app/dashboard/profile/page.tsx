@@ -354,23 +354,46 @@ export default function ProfilePage() {
     setSettingErrors(prev => ({ ...prev, [settingId]: '' }))
 
     try {
+      // Ideogram QUALITY bruker 60–90 s — langt over Netlify-funksjoners ~26 s-tak.
+      // Derfor kø-flyt: send inn jobben (raskt svar med request_id), poll deretter
+      // status til bildet er klart. Ett tregt kall er byttet mot mange raske.
       const res = await fetch('/api/profile/generate-setting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ setting: settingId, portraitUrl, prompt: customPrompts[settingId] }),
       })
-      const data = await res.json()
-      if (!res.ok || data.error) {
-        setSettingErrors(prev => ({ ...prev, [settingId]: data.error || `HTTP ${res.status}` }))
+      const submitted = await res.json()
+      if (!res.ok || submitted.error || !submitted.request_id) {
+        setSettingErrors(prev => ({ ...prev, [settingId]: submitted.error || `HTTP ${res.status}` }))
         return
       }
+
+      // Poll hvert 4. sekund, maks ~4 min
+      let data: { status?: string; url?: string; error?: string } = {}
+      const pollUrl = `/api/profile/generate-setting?request_id=${encodeURIComponent(submitted.request_id)}` +
+        `&setting=${encodeURIComponent(settingId)}&portraitUrl=${encodeURIComponent(portraitUrl)}`
+      for (let attempt = 0; attempt < 60; attempt++) {
+        await new Promise(r => setTimeout(r, 4000))
+        const pollRes = await fetch(pollUrl)
+        data = await pollRes.json()
+        if (data.error) {
+          setSettingErrors(prev => ({ ...prev, [settingId]: data.error! }))
+          return
+        }
+        if (data.status === 'done') break
+      }
+      if (data.status !== 'done' || !data.url) {
+        setSettingErrors(prev => ({ ...prev, [settingId]: 'Genereringen tok for lang tid — prøv igjen' }))
+        return
+      }
+      const imageUrl = data.url
       // Vis bildet umiddelbart via midlertidig oppføring
       setSettingImages(prev => [
         ...prev,
         {
           id: `temp-${settingId}-${Date.now()}`,
           setting_type: settingId,
-          image_url: data.url,
+          image_url: imageUrl,
           created_at: new Date().toISOString(),
           portrait_url: portraitUrl,
         },
