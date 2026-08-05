@@ -1670,12 +1670,12 @@ export default function PropertyDetailPage() {
                                 style={{ padding: '6px 12px', alignSelf: 'flex-start' }}
                                 title="Generer avatar-animasjonen for dette segmentet — klippet du godkjenner brukes i videoen"
                               >
-                                {seg.clipUrl ? '↻ Ny animasjon' : '🎬 Lag animasjonen (1–3 min)'}
+                                {seg.clipUrl ? '↻ Lag ny animasjon' : '👁 Forhåndsvis animasjonen (1–3 min)'}
                               </button>
                               <span style={{ fontSize: '11px', color: 'var(--muted)', maxWidth: '340px' }}>
                                 {seg.clipUrl
                                   ? '✓ Denne animasjonen brukes i videoen. Ikke fornøyd? Lag en ny.'
-                                  : `Avataren presenterer dette segmentet${seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}. Lag animasjonen her for å se og godkjenne den før videoen.`}
+                                  : `Avataren presenterer dette segmentet${seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}. Videoen får uansett en animasjon — her kan du se og godkjenne den på forhånd.`}
                               </span>
                             </div>
                           )}
