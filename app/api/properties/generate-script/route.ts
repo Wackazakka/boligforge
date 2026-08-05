@@ -62,6 +62,7 @@ Manuset skal:
 - VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. Si aldri "bruksareal".
 - VIKTIG: Boligtypen skal alltid samsvare nøyaktig med "Boligtype"-feltet i dataene. Aldri gjett eller endre boligtype — kall f.eks. aldri en leilighet for enebolig eller omvendt. Hvis "Boligtype" ikke er oppgitt, unngå å nevne en spesifikk boligtype og omtal det heller som "boligen" eller "hjemmet".
 - VIKTIG: Når du omtaler beliggenhet og gatenavnet slutter på "-veien", "-vegen", "-gata" eller "-gaten", bruk preposisjonen "i" — ikke "på". Skriv f.eks. "en leilighet i Storgata 15", aldri "en leilighet på Storgata 15".
+- VIKTIG: Etasjer omtales med preposisjonen "i", aldri "på". Skriv "i sjuende etasje", aldri "på sjuende etasje".
 - VIKTIG: Nevn aldri eksakte beløp for felleskostnader eller leieinntekter. Bruk heller kvalitative beskrivelser basert på beløpet: for felleskostnader si f.eks. "lave felleskostnader", "moderate felleskostnader" eller "rimelige felleskostnader". For leieinntekter si f.eks. "gode leieinntekter" eller "attraktive leieinntekter". Bruk kun disse beskrivelsene hvis feltene faktisk finnes i dataene.
 
 Her er boligdataene:
@@ -78,7 +79,10 @@ Svar KUN med manusteksten, ingen overskrift eller forklaring.`,
     ).replace(/(\d[\d\s]*\d|\d)\s+kroner/g, (match, n) => {
       const num = Number(String(n).replace(/\s/g, ''))
       return isNaN(num) ? match : priceToNorwegian(num)
-    })
+    // «i N-te etasje», aldri «på» — vanlig modellfeil prompten alene ikke stopper.
+    // Fanger «på sjuende etasje», «på 7. etasje», «helt oppe på øverste etasje».
+    }).replace(/\b(på|På)(\s+(?:[0-9a-zA-ZæøåÆØÅ.]+\s+)?etasje)/g,
+      (_m, p, rest) => (p === 'På' ? 'I' : 'i') + rest)
     return NextResponse.json({ script })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
