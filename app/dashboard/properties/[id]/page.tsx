@@ -1193,9 +1193,9 @@ export default function PropertyDetailPage() {
           {(activeAvatar || hasOwnAvatar || property.images?.length > 0) && (
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
 
-              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Velg bilde til videoen</p>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Velg setting til videoen</p>
               <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px' }}>
-                Samme person, ulike omgivelser — portrettet eller en av versjonene fra settings-biblioteket.
+                Samme person, ulike omgivelser — portrettet eller en av settingene fra biblioteket ditt.
               </p>
 
               <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center', overscrollBehaviorX: 'contain' }}>
