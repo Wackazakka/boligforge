@@ -1,6 +1,8 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
-import opentype from 'opentype.js'
+// NB: navngitt import med vilje — Turbopack løser ESM-bygget (opentype.mjs) som
+// KUN har navngitte eksporter. (Node-CLI løser CJS-bygget, som er motsatt.)
+import { parse as parseFont } from 'opentype.js'
 import { getUser } from '../../../../lib/supabase/server'
 import { TITLE_FONT_B64 } from './font'
 
@@ -17,11 +19,11 @@ export const runtime = 'nodejs'
 const W = 1920
 const H = 1080
 
-let cachedFont: ReturnType<typeof opentype.parse> | null = null
+let cachedFont: ReturnType<typeof parseFont> | null = null
 function getFont() {
   if (!cachedFont) {
     const buf = Buffer.from(TITLE_FONT_B64, 'base64')
-    cachedFont = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength))
+    cachedFont = parseFont(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength))
   }
   return cachedFont
 }
