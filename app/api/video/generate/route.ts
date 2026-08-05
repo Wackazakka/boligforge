@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const user = await getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, backgroundImageUrl, propertyImages, segments, outro, ambienceType } = await request.json()
+    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, backgroundImageUrl, propertyImages, segments, outro, ambienceType, recipe } = await request.json()
 
     const useSegments = Array.isArray(segments) && segments.length > 0
     if (!useSegments && (!script || !voiceId || !avatarImageUrl)) {
@@ -68,13 +68,16 @@ export async function POST(request: Request) {
     const jobId = randomUUID()
     const scriptText = useSegments ? segments.map((s: { text: string }) => s.text).join(' ') : script
 
-    // Create a pending job record in property_videos
+    // Create a pending job record in property_videos.
+    // recipe = redigeringstilstanden (manus, segmenter m/ innlesinger og godkjente
+    // avatar-klipp, outro, valg) — gjør «Rediger» på tidligere videoer mulig.
     if (propertyId) {
       supabase.from('property_videos').insert({
         id: jobId,
         property_id: propertyId,
         user_id: user.id,
         video_url: '',
+        ...(recipe ? { recipe } : {}),
       }).then(({ error: insertErr }) => { if (insertErr) console.warn('[video/generate] property_videos insert:', insertErr.message) })
     }
 

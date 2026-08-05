@@ -49,6 +49,18 @@ type Segment = {
   clipHistory?: string[]     // tidligere takes (nyest først, maks 5) — kan hentes tilbake
 }
 
+// Redigeringstilstanden som lagres per generert video («Rediger» på tidligere videoer)
+type VideoRecipe = {
+  script: string
+  scriptStyle?: 'neutral' | 'luxury' | 'family' | 'young'
+  segments: Segment[]
+  outro?: Outro
+  ambienceType?: string
+  selectedAvatarUrl?: string
+  activeAvatarId?: string | null
+  selectedImageIdx?: number
+}
+
 type Outro = {
   images: string[]
   musicUrl: string
@@ -148,7 +160,7 @@ export default function PropertyDetailPage() {
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [ambienceType, setAmbienceType] = useState<string>('none')
   const [noCreditsModal, setNoCreditsModal] = useState(false)
-  const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; collection_ids: string[] }[]>([])
+  const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
   const [folderPanelVideoId, setFolderPanelVideoId] = useState<string | null>(null)
   // Folder panel for the freshly generated video (lazy-loads collections on open)
@@ -385,7 +397,11 @@ export default function PropertyDetailPage() {
 
   // Nytt avatarbilde/setting → eksisterende avatar-klipp er bakt med gammelt
   // utseende og må lages på nytt. No-op (samme referanse) når ingenting å nulle.
+  // hydratingRecipeRef: «Rediger tidligere video» setter avatar OG klipp samtidig
+  // fra en konsistent oppskrift — da skal effekten IKKE nulle de innlastede klippene.
+  const hydratingRecipeRef = useRef(false)
   useEffect(() => {
+    if (hydratingRecipeRef.current) { hydratingRecipeRef.current = false; return }
     setSegments(prev => prev.some(s => s.type === 'avatar' && (s.clipUrl || s.clipHistory?.length))
       ? prev.map(s => (s.type === 'avatar' && (s.clipUrl || s.clipHistory?.length))
           ? { ...s, clipUrl: undefined, clipHistory: undefined } : s)
@@ -599,6 +615,23 @@ export default function PropertyDetailPage() {
     } finally {
       setGeneratingClips(prev => ({ ...prev, [idx]: false }))
     }
+  }
+
+  // «Rediger» på en tidligere video: gjenopprett redigeringstilstanden fra oppskriften
+  function loadRecipe(recipe: VideoRecipe) {
+    hydratingRecipeRef.current = true   // ikke null klipp — de hører til denne avataren
+    setScript(recipe.script ?? '')
+    if (recipe.scriptStyle) setScriptStyle(recipe.scriptStyle)
+    setSegments((recipe.segments ?? []).map(s => ({ ...s, previewingAudio: false, previewAudioUrl: undefined })))
+    if (recipe.outro) setOutro(recipe.outro)
+    if (recipe.ambienceType) setAmbienceType(recipe.ambienceType as typeof ambienceType)
+    setSelectedAvatarUrl(recipe.selectedAvatarUrl ?? '')
+    setActiveAvatar(recipe.activeAvatarId ? (TEMPLATE_AVATARS.find(a => a.id === recipe.activeAvatarId) ?? null) : null)
+    if (typeof recipe.selectedImageIdx === 'number') setSelectedImageIdx(recipe.selectedImageIdx)
+    setVideoUrl(null)
+    setStatusMsg('')
+    // Rull opp til redigereren så man ser hva som ble lastet
+    setTimeout(() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   async function handleMusicUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -935,8 +968,21 @@ export default function PropertyDetailPage() {
       // Fabric for segmentet og bruker nøyaktig det klippet brukeren så og godkjente.
       .map(s => ('clipUrl' in s && s.type === 'avatar' && s.clipUrl) ? { ...s, videoUrl: s.clipUrl } : s)
 
+    // Redigeringstilstanden lagres med videoen — «Rediger» på en tidligere video
+    // gjenoppretter nøyaktig dette (transient avspillings-state holdes utenfor).
+    const recipe: VideoRecipe = {
+      script,
+      scriptStyle,
+      segments: segments.map(({ previewingAudio: _pa, previewAudioUrl: _pu, ...keep }) => keep),
+      outro,
+      ambienceType,
+      selectedAvatarUrl,
+      activeAvatarId: activeAvatar?.id ?? null,
+      selectedImageIdx,
+    }
+
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, recipe }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -2196,6 +2242,16 @@ export default function PropertyDetailPage() {
                       {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+                      {/* Rediger — gjenopprett redigeringstilstanden fra denne videoen */}
+                      {v.recipe && (
+                        <button
+                          onClick={() => loadRecipe(v.recipe!)}
+                          title="Last inn manus, segmenter, innlesinger og godkjente klipp fra denne videoen"
+                          style={{ fontSize: '11px', color: 'var(--gold)', background: 'none', border: '1px solid var(--line)', borderRadius: '6px', cursor: 'pointer', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          🖊 Rediger
+                        </button>
+                      )}
                       {/* Folder button */}
                       <button
                         onClick={() => setFolderPanelVideoId(folderPanelVideoId === v.id ? null : v.id)}

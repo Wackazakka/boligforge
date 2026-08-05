@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await getServiceClient()
     .from('property_videos')
-    .select('id, video_url, created_at, collection_videos(collection_id)')
+    .select('id, video_url, created_at, recipe, collection_videos(collection_id)')
     .eq('property_id', propertyId)
     .not('video_url', 'is', null)
     .neq('video_url', '')
@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     id:             v.id,
     video_url:      v.video_url,
     created_at:     v.created_at,
+    recipe:         v.recipe ?? null,
     collection_ids: (v.collection_videos as unknown as { collection_id: string }[])?.map(c => c.collection_id) ?? [],
   }))
 
