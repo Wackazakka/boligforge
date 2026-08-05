@@ -1532,16 +1532,39 @@ export default function PropertyDetailPage() {
                       </button>
                     </div>
                   </div>
-                  {/* ── Bilde-seksjon for image-type segmenter ── */}
-                  {(seg.type === 'image' || seg.imageUrl) && (
+                  {/* ── Bilde-seksjon: boligbilde for image-segmenter, avatar-forhåndsvisning for avatar-segmenter ── */}
+                  {(seg.type === 'image' || seg.type === 'avatar' || seg.imageUrl) && (
                     <div className="space-y-1.5">
-                      {seg.imageUrl && openGalleryForSegment !== i ? (
+                      {seg.type === 'avatar' && openGalleryForSegment !== i ? (
+                        /* Avatar-segment: vis avataren som skal presentere — ikke et
+                           utgrået boligbilde (det leste som «noe mangler»). */
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {(selectedAvatarUrl || effectivePortrait) && (
+                            <div style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={selectedAvatarUrl || effectivePortrait} alt="Avatar"
+                                style={{ width: '96px', height: '64px', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }}
+                              />
+                              <button
+                                onClick={e => { e.stopPropagation(); setLightboxUrl(selectedAvatarUrl || effectivePortrait || null) }}
+                                title="Forstørr"
+                                className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                                style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}
+                              >⤢</button>
+                            </div>
+                          )}
+                          <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                            Avataren presenterer dette segmentet{seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}
+                          </span>
+                        </div>
+                      ) : seg.imageUrl && openGalleryForSegment !== i ? (
                         /* Kompakt visning: valgt bilde + bytt-knapp */
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div
-                            style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: seg.type === 'avatar' ? 'default' : 'pointer', opacity: seg.type === 'avatar' ? 0.35 : 1, transition: 'opacity 0.15s' }}
-                            onClick={() => seg.type === 'image' && setOpenGalleryForSegment(i)}
-                            title={seg.type === 'avatar' ? 'Bytt til Boligbilde for å bruke dette bildet' : 'Bytt bilde'}
+                            style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}
+                            onClick={() => setOpenGalleryForSegment(i)}
+                            title="Bytt bilde"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -1554,16 +1577,12 @@ export default function PropertyDetailPage() {
                               className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
                               style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}
                             >⤢</button>
-                            {seg.type === 'image' && <span style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>⇄</span>}
+                            <span style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>⇄</span>
                           </div>
-                          {seg.type === 'image' ? (
-                            <button
-                              onClick={() => setOpenGalleryForSegment(i)}
-                              style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            >Bytt bilde →</button>
-                          ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic' }}>Ikke brukt — bytt til Boligbilde for å bruke</span>
-                          )}
+                          <button
+                            onClick={() => setOpenGalleryForSegment(i)}
+                            style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >Bytt bilde →</button>
                         </div>
                       ) : (
                         /* Galleri-velger */
