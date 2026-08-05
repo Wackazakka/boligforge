@@ -28,7 +28,8 @@ const SETTINGS = [
   { id: 'neighborhood', label: 'Utendørs i boligfelt' },
 ]
 
-// Tone-instruks for manus-generering (brukes når stilen «Nøytral» er valgt).
+// Tone-instruks for manus-generering (meglerens faste tone — stilvalget per
+// video kombineres med denne som målgruppetilpasning, se generate-script).
 // Verdien lagres som tekst i agent_profiles.tone_of_voice — første preset matcher
 // onboarding-defaulten, så eksisterende meglere får riktig valg markert.
 const TONE_PRESETS = [
@@ -691,7 +692,7 @@ export default function ProfilePage() {
             <div>
               <label className="app-label">Tone i manus</label>
               <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>
-                Brukes når manus genereres med stilen «Nøytral». Velg den som passer deg best.
+                Din faste tone i alle manus — stilvalget per video (Luksus, Familie osv.) legger seg oppå denne. Velg den som passer deg best.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {TONE_PRESETS.map(p => {

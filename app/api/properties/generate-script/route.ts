@@ -7,13 +7,19 @@ export async function POST(request: Request) {
   try {
     const { property, agentProfile, scriptStyle } = await request.json()
 
+    // To akser som KOMBINERES: meglerens tone (profilvalg — hvem du er) og
+    // videoens stil (per bolig — hvem kjøperen er). Tidligere overstyrte
+    // stilene tonen helt, så profilvalget bare gjaldt «Nøytral».
+    const agentTone = agentProfile?.tone_of_voice || 'profesjonell og engasjert'
     const styleDescriptions: Record<string, string> = {
-      neutral: agentProfile?.tone_of_voice || 'profesjonell og engasjert',
-      luxury:  'eksklusiv, sofistikert og prestisjefylt. Vektlegg unike detaljer, premium materialer og eksklusiv beliggenhet',
-      family:  'varm, inkluderende og praktisk. Vektlegg plass, nærhet til skoler/barnehager, trygt nabolag og familievennlige løsninger',
-      young:   'frisk, moderne og jordnær. Snakk til førstegangskjøpere, vektlegg tilgjengelighet, smart planløsning og gode transportmuligheter',
+      luxury:  'eksklusiv og prestisjefylt vinkling. Vektlegg unike detaljer, premium materialer og eksklusiv beliggenhet',
+      family:  'familievinkling. Vektlegg plass, nærhet til skoler/barnehager, trygt nabolag og familievennlige løsninger',
+      young:   'vinkling mot førstegangskjøpere. Vektlegg tilgjengelighet, smart planløsning og gode transportmuligheter',
     }
-    const tone = styleDescriptions[scriptStyle ?? 'neutral'] ?? styleDescriptions.neutral
+    const styleOverlay = styleDescriptions[scriptStyle ?? 'neutral']
+    const tone = styleOverlay
+      ? `${agentTone}. Målgruppetilpasning: ${styleOverlay}`
+      : agentTone
 
     const propertyDetails = [
       property.title && `Tittel: ${property.title}`,
