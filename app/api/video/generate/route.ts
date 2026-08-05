@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import sharp from 'sharp'
 import { getUser } from '../../../../lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -67,6 +68,31 @@ export async function POST(request: Request) {
 
     const jobId = randomUUID()
     const scriptText = useSegments ? segments.map((s: { text: string }) => s.text).join(' ') : script
+
+    // Sluttplakat-bakgrunn etter logoens lysstyrke: mørk logo (f.eks. svart skrift
+    // på gjennomsiktig) -> hvit plakat; lys logo -> svart. Alpha-vektet snitt så
+    // gjennomsiktige piksler ikke teller. Feiler målingen: behold svart (default).
+    if (outro?.logoUrl) {
+      try {
+        const r = await fetch(outro.logoUrl)
+        if (r.ok) {
+          const buf = Buffer.from(await r.arrayBuffer())
+          const { data, info } = await sharp(buf)
+            .resize(64, 64, { fit: 'inside' })
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true })
+          let lumSum = 0, alphaSum = 0
+          for (let i = 0; i < data.length; i += info.channels) {
+            const a = data[i + 3] / 255
+            lumSum += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) * a
+            alphaSum += a
+          }
+          const avgLum = alphaSum > 0 ? lumSum / alphaSum : 255
+          outro.logoBg = avgLum < 110 ? 'white' : 'black'
+        }
+      } catch { /* behold default (svart) hos worker */ }
+    }
 
     // Create a pending job record in property_videos.
     // recipe = redigeringstilstanden (manus, segmenter m/ innlesinger og godkjente
