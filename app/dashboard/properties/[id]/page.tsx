@@ -1892,6 +1892,9 @@ export default function PropertyDetailPage() {
                 </svg>
                 <span>{statusMsg || 'Jobber...'}</span>
               </div>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Videoen bygges nå — dette tar vanligvis noen minutter. La fanen stå åpen; statusen over oppdateres underveis.
+              </p>
             </div>
           )}
           {!generatingVideo && statusMsg && (
