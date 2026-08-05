@@ -375,6 +375,9 @@ export default function PropertyDetailPage() {
   const effectivePortrait  = activeAvatar?.portraitUrl  ?? profile.portrait_url ?? ''
   const effectiveAgentName = activeAvatar?.name         ?? profile.name         ?? 'megler'
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // «Gjør endringer» fra ferdig-video-kortet ruller hit — redigeringen ligger
+  // fortsatt på siden, men var usynlig fra resultatet.
+  const editSectionRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     fetch(`/api/properties/get?id=${id}`).then(r => r.json()).then((p: Property) => {
@@ -1383,7 +1386,7 @@ export default function PropertyDetailPage() {
         </div>
 
         {/* Script section */}
-        <div className="app-card space-y-4">
+        <div ref={editSectionRef} className="app-card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Presentasjonsmanus</h2>
             {/* Stil-valg */}
@@ -1893,7 +1896,7 @@ export default function PropertyDetailPage() {
                 <span>{statusMsg || 'Jobber...'}</span>
               </div>
               <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                Videoen bygges nå — dette tar vanligvis noen minutter. La fanen stå åpen; statusen over oppdateres underveis.
+                Videoen bygges nå — dette tar vanligvis rundt 5 minutter. La fanen stå åpen; statusen over oppdateres underveis.
               </p>
             </div>
           )}
@@ -1936,6 +1939,14 @@ export default function PropertyDetailPage() {
                 style={{ fontSize: '13px', padding: '8px 18px' }}
               >
                 📤 Publiser
+              </button>
+              <button
+                onClick={() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="app-btn-secondary"
+                style={{ fontSize: '13px', padding: '8px 18px' }}
+                title="Manus, segmenter og lyd ligger fortsatt over — juster og generer på nytt"
+              >
+                ✏️ Gjør endringer
               </button>
 
               {/* Legg i mappe — folder picker for the freshly generated video */}
