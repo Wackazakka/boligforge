@@ -1,15 +1,30 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
+import opentype from 'opentype.js'
 import { getUser } from '../../../../lib/supabase/server'
+import { TITLE_FONT_B64 } from './font'
 
 // Tittelkort for videoens åpningsbilde: annonse-overskriften komponeres INN i
 // bildet her i webappen (hvit tekst, svart outline, svak scrim). Worker-en på
 // dropleten mottar et helt vanlig stillbilde — render-pipelinen røres ikke.
+//
+// Teksten tegnes som SVG-KURVER (opentype.js + innbakt Open Sans Bold), ikke
+// <text>-elementer: produksjonsserverne har ingen systemfonter, så vanlig
+// SVG-tekst rendret som tomme bokser (verifisert på artefaktnivå 5/8).
 
 export const runtime = 'nodejs'
 
 const W = 1920
 const H = 1080
+
+let cachedFont: ReturnType<typeof opentype.parse> | null = null
+function getFont() {
+  if (!cachedFont) {
+    const buf = Buffer.from(TITLE_FONT_B64, 'base64')
+    cachedFont = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength))
+  }
+  return cachedFont
+}
 
 function getR2() {
   return new S3Client({
@@ -33,10 +48,6 @@ function wrap(text: string, maxChars: number): string[] {
   }
   if (line) lines.push(line)
   return lines
-}
-
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 export async function POST(request: Request) {
@@ -64,17 +75,21 @@ export async function POST(request: Request) {
     const lineHeight = fontSize * 1.25
     const blockH = lines.length * lineHeight
     const startY = H / 2 - blockH / 2 + fontSize
+    const strokeW = Math.max(4, fontSize / 11)
 
-    const tspans = lines.map((l, i) =>
-      `<text x="${W / 2}" y="${startY + i * lineHeight}" text-anchor="middle"
-         font-family="DejaVu Sans, Arial, sans-serif" font-size="${fontSize}" font-weight="800"
-         fill="#ffffff" stroke="#000000" stroke-width="${Math.max(4, fontSize / 11)}"
-         paint-order="stroke" stroke-linejoin="round">${esc(l)}</text>`
-    ).join('\n')
+    const font = getFont()
+    const paths = lines.map((l, i) => {
+      const width = font.getAdvanceWidth(l, fontSize)
+      const x = (W - width) / 2
+      const y = startY + i * lineHeight
+      const d = font.getPath(l, x, y, fontSize).toPathData(2)
+      return `<path d="${d}" fill="#ffffff" stroke="#000000" stroke-width="${strokeW}"
+        paint-order="stroke" stroke-linejoin="round"/>`
+    }).join('\n')
 
     const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="${H / 2 - blockH / 2 - 40}" width="${W}" height="${blockH + 80}" fill="rgba(0,0,0,0.28)"/>
-      ${tspans}
+      ${paths}
     </svg>`
 
     const imgRes = await fetch(imageUrl)
