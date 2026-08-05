@@ -1492,6 +1492,7 @@ export default function PropertyDetailPage() {
             <div style={{ background: 'var(--blue-soft)', border: '1px solid var(--blue-line)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5 }}>
               ✅ <strong>Før du genererer videoen:</strong> Les gjennom teksten i hvert segment og juster den gjerne.
               Trykk også <strong>«Hør innlesing»</strong> — er du ikke fornøyd med uttalen eller trykket, gir <strong>«Ny innlesing»</strong> en ny versjon.
+              Uttales et ord feil? Prøv å stave det slik det skal <em>uttales</em> (f.eks. «førtti» for «førti») — visningsteksten kan du rette tilbake etterpå.
             </div>
             <div className="space-y-3">
               {segments.map((seg, i) => (
