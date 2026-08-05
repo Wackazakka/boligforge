@@ -107,8 +107,9 @@ export default function ProfilePage() {
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [portraitVersion, setPortraitVersion] = useState(0)
   const [org, setOrg] = useState({ isAdmin: false, allow_did: true, allow_liveavatar: true, allow_pvc: true })
-  // Digital visning er et premium-tillegg de fleste ikke rører daglig — sammenlagt som standard
+  // Premium-tilleggene (② og ③) skal ikke dominere profilsiden — sammenlagt som standard
   const [showDigitalVisning, setShowDigitalVisning] = useState(false)
+  const [showProffStemme, setShowProffStemme] = useState(false)
   const [savingOrg, setSavingOrg] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -1032,16 +1033,31 @@ export default function ProfilePage() {
         </>)}
 
         {(org.isAdmin || org.allow_pvc) && (<>
-        {/* ── Produkt 3: Proff-stemme (PVC) ── */}
+        {/* ── Produkt 3: Proff-stemme (PVC) ──
+            Sammenleggbar, samme mønster som ② Digital visning. */}
         <div className="pt-4">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>③ Proff-stemme <span style={premiumBadge}>Premium · koster ekstra</span></h2>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-            Vil du ha en stemme som er mye likere din egen? Da lager vi en profesjonell klone. Velger du denne, brukes den både i videoene og i Live-Avataren.
-          </p>
+          <button
+            type="button"
+            onClick={() => setShowProffStemme(s => !s)}
+            aria-expanded={showProffStemme}
+            className="w-full text-left"
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          >
+            <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>
+              <span style={{ display: 'inline-block', width: '14px', color: 'var(--muted)', transition: 'transform 0.15s', transform: showProffStemme ? 'rotate(90deg)' : 'none' }}>▸</span>
+              {' '}③ Proff-stemme <span style={premiumBadge}>Premium · koster ekstra</span>
+            </h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+              Vil du ha en stemme som er mye likere din egen? Da lager vi en profesjonell klone.
+              {showProffStemme ? ' Velger du denne, brukes den både i videoene og i Live-Avataren.' : ' Klikk for å sette opp.'}
+            </p>
+          </button>
         </div>
+        {showProffStemme && (
         <section className="app-card">
           <PvcOnboarding />
         </section>
+        )}
         </>)}
 
         {/* Byrå-innstillinger (kun byråsjef) */}
