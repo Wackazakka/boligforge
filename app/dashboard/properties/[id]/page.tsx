@@ -1637,7 +1637,7 @@ export default function PropertyDetailPage() {
                               src={seg.clipUrl}
                               controls
                               preload="metadata"
-                              style={{ height: '96px', borderRadius: '8px', background: '#000' }}
+                              style={{ width: 'min(360px, 100%)', borderRadius: '8px', background: '#000' }}
                             />
                           ) : (selectedAvatarUrl || effectivePortrait) && (
                             <div style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden' }}>
