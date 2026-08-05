@@ -1713,7 +1713,10 @@ export default function PropertyDetailPage() {
               {/* Musikk */}
               <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs" style={{ color: 'var(--muted)' }}>Bakgrunnsmusikk (valgfritt)</label>
+                  <div>
+                    <label className="text-xs" style={{ color: 'var(--muted)' }}>Bakgrunnsmusikk (valgfritt)</label>
+                    <p className="text-xs" style={{ color: 'var(--muted-2)', marginTop: '2px' }}>Spilles under bildeserien etter at presentatøren har snakket ferdig.</p>
+                  </div>
                   <label className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${uploadingMusic ? 'opacity-40' : ''} app-btn-secondary`}>
                     {uploadingMusic ? 'Laster opp...' : '+ Last opp MP3'}
                     <input type="file" accept="audio/*" className="hidden" onChange={handleMusicUpload} disabled={uploadingMusic} />
@@ -1758,7 +1761,10 @@ export default function PropertyDetailPage() {
 
               {/* Atmosfærelyd */}
               <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
-                <label className="text-xs" style={{ color: 'var(--muted)' }}>Atmosfærelyd (valgfritt)</label>
+                <div>
+                  <label className="text-xs" style={{ color: 'var(--muted)' }}>Atmosfærelyd (valgfritt)</label>
+                  <p className="text-xs" style={{ color: 'var(--muted-2)', marginTop: '2px' }}>Ligger diskré bak presentatøren og skaper stemning mens hen snakker.</p>
+                </div>
                 {/* Ingen-pill */}
                 <div style={{ marginBottom: '6px' }}>
                   <button
