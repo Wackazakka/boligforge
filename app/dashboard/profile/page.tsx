@@ -107,6 +107,8 @@ export default function ProfilePage() {
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [portraitVersion, setPortraitVersion] = useState(0)
   const [org, setOrg] = useState({ isAdmin: false, allow_did: true, allow_liveavatar: true, allow_pvc: true })
+  // Digital visning er et premium-tillegg de fleste ikke rører daglig — sammenlagt som standard
+  const [showDigitalVisning, setShowDigitalVisning] = useState(false)
   const [savingOrg, setSavingOrg] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -979,14 +981,28 @@ export default function ProfilePage() {
         </div>
 
         {(org.isAdmin || org.allow_did || org.allow_liveavatar) && (<>
-        {/* ── Produkt 2: Digital visning (foto-avatar + video-avatar) ── */}
+        {/* ── Produkt 2: Digital visning (foto-avatar + video-avatar) ──
+            Sammenleggbar: premium-tillegg som ikke skal dominere profilsiden. */}
         <div className="pt-4">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>② Digital visning <span style={premiumBadge}>Premium · koster ekstra</span></h2>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-            La kundene snakke med en AI-megler som svarer ut fra salgsoppgaven. Velg foto-avatar (klar nå) eller video-avatar (premium).
-          </p>
+          <button
+            type="button"
+            onClick={() => setShowDigitalVisning(s => !s)}
+            aria-expanded={showDigitalVisning}
+            className="w-full text-left"
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          >
+            <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>
+              <span style={{ display: 'inline-block', width: '14px', color: 'var(--muted)', transition: 'transform 0.15s', transform: showDigitalVisning ? 'rotate(90deg)' : 'none' }}>▸</span>
+              {' '}② Digital visning <span style={premiumBadge}>Premium · koster ekstra</span>
+            </h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+              La kundene snakke med en AI-megler som svarer ut fra salgsoppgaven.
+              {showDigitalVisning ? ' Velg foto-avatar (klar nå) eller video-avatar (premium).' : ' Klikk for å sette opp.'}
+            </p>
+          </button>
         </div>
 
+        {showDigitalVisning && (<>
         {(org.isAdmin || org.allow_did) && (
         <section className="app-card">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
@@ -1012,6 +1028,7 @@ export default function ProfilePage() {
           <VideoAvatarOnboarding />
         </section>
         )}
+        </>)}
         </>)}
 
         {(org.isAdmin || org.allow_pvc) && (<>
