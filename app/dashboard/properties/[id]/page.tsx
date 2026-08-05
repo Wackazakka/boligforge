@@ -155,6 +155,8 @@ export default function PropertyDetailPage() {
   const [segments, setSegments] = useState<Segment[]>([])
   // Per-segment avatar-klipp under generering (indeks → true)
   const [generatingClips, setGeneratingClips] = useState<Record<number, boolean>>({})
+  // Formatkonvertering per video+format (`url|format` → jobber/feil)
+  const [convState, setConvState] = useState<Record<string, 'jobber' | 'feil'>>({})
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string; own?: boolean }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
@@ -743,6 +745,36 @@ export default function PropertyDetailPage() {
       }
     }
   }, [])
+
+  // Formatkonvertering: 16:9 → 9:16/1:1 med letterbox (worker-jobb), så nedlasting
+  async function convertAndDownload(url: string, format: 'portrait' | 'square') {
+    const key = `${url}|${format}`
+    setConvState(prev => ({ ...prev, [key]: 'jobber' }))
+    try {
+      const res = await fetch('/api/video/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: url, format }),
+      })
+      const d = await res.json()
+      if (!res.ok || !d.jobId) throw new Error(d.error || 'Kunne ikke starte konverteringen')
+      // Poll til ferdig (typisk under ett minutt)
+      for (let i = 0; i < 100; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        const st = await fetch(`/api/video/status/${d.jobId}`).then(r => r.json()).catch(() => null)
+        if (st?.status === 'done' && st.videoUrl) {
+          setConvState(prev => { const c = { ...prev }; delete c[key]; return c })
+          void downloadVideo(st.videoUrl, format === 'square' ? 'presentasjon-1x1.mp4' : 'presentasjon-9x16.mp4')
+          return
+        }
+        if (st?.status === 'failed') throw new Error(st.error || 'Konverteringen feilet')
+      }
+      throw new Error('Konverteringen tok for lang tid')
+    } catch (e) {
+      console.error('[convert]', e)
+      setConvState(prev => ({ ...prev, [key]: 'feil' }))
+    }
+  }
 
   async function downloadVideo(url: string, filename = 'presentasjon.mp4') {
     try {
@@ -2137,6 +2169,23 @@ export default function PropertyDetailPage() {
               >
                 ⬇ Last ned video
               </button>
+              {(['portrait', 'square'] as const).map(fmt => {
+                const key = `${videoUrl}|${fmt}`
+                return (
+                  <button
+                    key={fmt}
+                    onClick={() => convertAndDownload(videoUrl, fmt)}
+                    disabled={convState[key] === 'jobber'}
+                    className="app-btn-secondary"
+                    style={{ fontSize: '13px', padding: '8px 18px' }}
+                    title="Nedskalert med sorte felter — ingen beskjæring"
+                  >
+                    {convState[key] === 'jobber' ? '⏳ Konverterer…'
+                      : convState[key] === 'feil' ? `↻ Prøv ${fmt === 'square' ? '1:1' : '9:16'} igjen`
+                      : `⬇ ${fmt === 'square' ? '1:1' : '9:16 (Reels)'}`}
+                  </button>
+                )
+              })}
               <button
                 onClick={() => openPublishModal(videoUrl)}
                 className="app-btn-secondary"
@@ -2334,10 +2383,27 @@ export default function PropertyDetailPage() {
                     </div>
                   </div>
                   <video src={v.video_url} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => downloadVideo(v.video_url)} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       ⬇ Last ned
                     </button>
+                    {(['portrait', 'square'] as const).map(fmt => {
+                      const key = `${v.video_url}|${fmt}`
+                      return (
+                        <button
+                          key={fmt}
+                          onClick={() => convertAndDownload(v.video_url, fmt)}
+                          disabled={convState[key] === 'jobber'}
+                          className="text-sm"
+                          style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: convState[key] === 'jobber' ? 0.6 : 1 }}
+                          title="Nedskalert med sorte felter — ingen beskjæring"
+                        >
+                          {convState[key] === 'jobber' ? '⏳ Konverterer…'
+                            : convState[key] === 'feil' ? `↻ ${fmt === 'square' ? '1:1' : '9:16'} igjen`
+                            : `⬇ ${fmt === 'square' ? '1:1' : '9:16'}`}
+                        </button>
+                      )
+                    })}
                     <button onClick={() => openPublishModal(v.video_url)} className="text-sm" style={{ color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       📤 Publiser
                     </button>
