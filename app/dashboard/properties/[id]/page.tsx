@@ -1584,7 +1584,8 @@ export default function PropertyDetailPage() {
                             </div>
                           )}
                           <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                            Avataren presenterer dette segmentet{seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}
+                            Avataren presenterer dette segmentet{seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}.
+                            <br />Ønsker du en ny animasjon? Generer videoen på nytt — innlesingen beholdes.
                           </span>
                         </div>
                       ) : seg.imageUrl && openGalleryForSegment !== i ? (
