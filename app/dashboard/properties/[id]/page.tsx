@@ -152,6 +152,9 @@ export default function PropertyDetailPage() {
   const [loadingCollections, setLoadingCollections] = useState(false)
   const [folderFeedback, setFolderFeedback] = useState<{ text: string; ok: boolean } | null>(null)
   const [activeAvatar, setActiveAvatar] = useState<TemplateAvatar | null>(null)
+  // Mal-avatarene skjules bak en toggle når brukeren har egen avatar — presentatøren
+  // er allerede valgt på profilsiden, byttet er unntaket.
+  const [showTemplateAvatars, setShowTemplateAvatars] = useState(false)
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const [playingMusicUrl, setPlayingMusicUrl] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -1091,9 +1094,14 @@ export default function PropertyDetailPage() {
 
         {/* ── Presenter + bakgrunn (unified) ── */}
         <div className="app-card" style={{ padding: '16px 20px' }}>
-          <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '14px', fontSize: '15px' }}>
-            Velg presenter og bakgrunn
+          <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '4px', fontSize: '15px' }}>
+            Hvem presenterer boligen?
           </h2>
+          <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px' }}>
+            {hasOwnAvatar
+              ? 'Avataren din fra profilen er valgt. Du kan bytte til en av våre AI-meglere for akkurat denne videoen.'
+              : 'Velg en av våre AI-meglere — eller lag din egen avatar på profilsiden.'}
+          </p>
 
           {/* — Presenter row — */}
           <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', overscrollBehaviorX: 'contain' }}>
@@ -1136,6 +1144,22 @@ export default function PropertyDetailPage() {
               </a>
             )}
 
+            {/* Mal-avatarene: alltid synlige uten egen avatar; ellers bak toggle
+                (holdes åpne hvis en mal faktisk er valgt, så valget er synlig) */}
+            {hasOwnAvatar && !showTemplateAvatars && activeAvatar === null ? (
+              <button
+                onClick={() => setShowTemplateAvatars(true)}
+                style={{
+                  flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                  background: 'var(--surface-2)', border: '2px dashed var(--line)', borderRadius: '12px',
+                  padding: '10px 14px', cursor: 'pointer', minWidth: '96px', color: 'var(--muted)',
+                }}
+              >
+                <span style={{ fontSize: '18px' }}>▸</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>Bruk en annen<br />AI-megler</span>
+              </button>
+            ) : (<>
+
             <div style={{ width: '1px', background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
 
             {TEMPLATE_AVATARS.map(av => (
@@ -1162,11 +1186,17 @@ export default function PropertyDetailPage() {
                 </button>
               </button>
             ))}
+            </>)}
           </div>
 
-          {/* — Bakgrunn row — always visible once an avatar is active or images exist — */}
+          {/* — Bildevalg — hvilken versjon av presentatøren som brukes i videoen — */}
           {(activeAvatar || hasOwnAvatar || property.images?.length > 0) && (
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
+
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Velg bilde til videoen</p>
+              <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px' }}>
+                Samme person, ulike omgivelser — portrettet eller en av versjonene fra settings-biblioteket.
+              </p>
 
               <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center', overscrollBehaviorX: 'contain' }}>
 
