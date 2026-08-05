@@ -833,9 +833,28 @@ export default function PropertyDetailPage() {
       }))
     }
 
-    // Prepend a still shot of the property's first image before avatar speaks
-    const introSegment = (resolvedSegments.length > 0 && property?.images?.[0])
-      ? [{ type: 'still' as const, imageUrl: property.images[0], duration: 2.5 }]
+    // Prepend a still shot of the property's first image before avatar speaks.
+    // Har annonsen en tittel, komponeres den inn i bildet (tittelkort) — feiler
+    // det, faller vi stille tilbake til det rene bildet. Worker-en ser bare et
+    // vanlig stillbilde uansett.
+    let introImageUrl: string | undefined = property?.images?.[0]
+    let introDuration = 2.5
+    if (resolvedSegments.length > 0 && introImageUrl && property?.title) {
+      try {
+        setStatusMsg('Lager tittelkort…')
+        const cardRes = await fetch('/api/video/intro-card', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: introImageUrl, title: property.title }),
+        })
+        if (cardRes.ok) {
+          const card = await cardRes.json()
+          if (card.url) { introImageUrl = card.url; introDuration = 3.5 }
+        }
+      } catch { /* stille fallback til rent bilde */ }
+    }
+    const introSegment = (resolvedSegments.length > 0 && introImageUrl)
+      ? [{ type: 'still' as const, imageUrl: introImageUrl, duration: introDuration }]
       : []
     const segmentsWithIntro = [...introSegment, ...resolvedSegments]
 
