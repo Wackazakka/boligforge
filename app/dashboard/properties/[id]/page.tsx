@@ -46,6 +46,7 @@ type Segment = {
   previewAudioUrl?: string   // blob URL for local playback
   audioUrl?: string          // persistent R2 URL — reused by worker to skip TTS
   clipUrl?: string           // forhåndsgodkjent avatar-klipp (R2) — worker hopper over Fabric
+  clipHistory?: string[]     // tidligere takes (nyest først, maks 5) — kan hentes tilbake
 }
 
 type Outro = {
@@ -385,8 +386,9 @@ export default function PropertyDetailPage() {
   // Nytt avatarbilde/setting → eksisterende avatar-klipp er bakt med gammelt
   // utseende og må lages på nytt. No-op (samme referanse) når ingenting å nulle.
   useEffect(() => {
-    setSegments(prev => prev.some(s => s.type === 'avatar' && s.clipUrl)
-      ? prev.map(s => (s.type === 'avatar' && s.clipUrl) ? { ...s, clipUrl: undefined } : s)
+    setSegments(prev => prev.some(s => s.type === 'avatar' && (s.clipUrl || s.clipHistory?.length))
+      ? prev.map(s => (s.type === 'avatar' && (s.clipUrl || s.clipHistory?.length))
+          ? { ...s, clipUrl: undefined, clipHistory: undefined } : s)
       : prev)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAvatarUrl, activeAvatar])
@@ -513,8 +515,8 @@ export default function PropertyDetailPage() {
         // New path: API returns { audioUrl, audioBase64 }
         const data = await res.json()
         const blobUrl = `data:audio/mpeg;base64,${data.audioBase64}`
-        // Ny innlesing gjør et eksisterende avatar-klipp foreldet (bakt med gammel lyd)
-        updateSegment(idx, { previewAudioUrl: blobUrl, audioUrl: data.audioUrl, clipUrl: undefined })
+        // Ny innlesing gjør eksisterende avatar-klipp foreldet (bakt med gammel lyd)
+        updateSegment(idx, { previewAudioUrl: blobUrl, audioUrl: data.audioUrl, clipUrl: undefined, clipHistory: undefined })
         return { playUrl: blobUrl, audioUrl: data.audioUrl }
       } else {
         // Fallback: raw audio binary (R2 upload failed server-side)
@@ -574,7 +576,16 @@ export default function PropertyDetailPage() {
         const data = await pollRes.json()
         if (data.error) { setError(data.error); return }
         if (data.status === 'done' && data.url) {
-          updateSegment(idx, { clipUrl: data.url })
+          // Ny take erstatter den aktive, men den gamle beholdes i historikken
+          setSegments(prev => prev.map((s, i2) => i2 === idx
+            ? {
+                ...s,
+                clipUrl: data.url,
+                clipHistory: s.clipUrl
+                  ? [s.clipUrl, ...(s.clipHistory ?? [])].slice(0, 5)
+                  : s.clipHistory,
+              }
+            : s))
           return
         }
       }
@@ -1632,13 +1643,43 @@ export default function PropertyDetailPage() {
                            klippet) her — det godkjente klippet brukes ordrett i videoen. */
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           {seg.clipUrl ? (
-                            <video
-                              key={seg.clipUrl}
-                              src={seg.clipUrl}
-                              controls
-                              preload="metadata"
-                              style={{ width: 'min(360px, 100%)', borderRadius: '8px', background: '#000' }}
-                            />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <video
+                                key={seg.clipUrl}
+                                src={seg.clipUrl}
+                                controls
+                                preload="metadata"
+                                style={{ width: 'min(360px, 100%)', borderRadius: '8px', background: '#000' }}
+                              />
+                              {(seg.clipHistory?.length ?? 0) > 0 && (
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: '11px', color: 'var(--muted)', paddingTop: '4px' }}>Tidligere takes:</span>
+                                  {seg.clipHistory!.map((histUrl, hIdx) => (
+                                    <div key={histUrl} style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                                      <video
+                                        src={histUrl}
+                                        controls
+                                        preload="metadata"
+                                        style={{ height: '64px', borderRadius: '6px', background: '#000' }}
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          // Bytt aktiv take: den valgte ut av historikken, den aktive inn
+                                          setSegments(prev => prev.map((s2, i2) => i2 === i
+                                            ? {
+                                                ...s2,
+                                                clipUrl: histUrl,
+                                                clipHistory: [s2.clipUrl!, ...s2.clipHistory!.filter((_, j) => j !== hIdx)].slice(0, 5),
+                                              }
+                                            : s2))
+                                        }}
+                                        style={{ fontSize: '10px', color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                      >Bruk denne</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           ) : (selectedAvatarUrl || effectivePortrait) && (
                             <div style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden' }}>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
