@@ -1409,11 +1409,14 @@ export default function PropertyDetailPage() {
               ))}
             </div>
             <div className="flex gap-2">
+              {/* Når manuset finnes er segmentering det anbefalte neste steget —
+                  da får den primær-vekt og Regenerer blir sekundær. */}
               {script && (
                 <button
                   onClick={handleSplitSegments}
                   disabled={classifyingImages}
-                  className="app-btn-secondary text-sm"
+                  className="app-btn-primary text-sm"
+                  style={{ padding: '8px 16px' }}
                 >
                   {classifyingImages ? 'Analyserer bilder…' : 'Del opp i segmenter'}
                 </button>
@@ -1421,7 +1424,7 @@ export default function PropertyDetailPage() {
               <button
                 onClick={handleGenerateScript}
                 disabled={generatingScript}
-                className="app-btn-primary text-sm"
+                className={script ? 'app-btn-secondary text-sm' : 'app-btn-primary text-sm'}
                 style={{ padding: '8px 16px' }}
               >
                 {generatingScript ? 'Genererer...' : script ? 'Regenerer' : 'Generer manus'}
@@ -1439,6 +1442,14 @@ export default function PropertyDetailPage() {
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
               {script.split(/\s+/).length} ord · ca. {Math.round(script.split(/\s+/).length / 2.5)} sek
             </p>
+          )}
+          {/* Anbefal segmentering — uten den blir videoen én sammenhengende opplesning
+              over manuelt valgte bilder, og Generer-knappen er død til bilder er valgt. */}
+          {script && segments.length === 0 && (
+            <div style={{ background: 'var(--blue-soft)', border: '1px solid var(--blue-line)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5 }}>
+              💡 <strong>Anbefalt:</strong> Trykk «Del opp i segmenter» — da kobler AI-en boligbildene til riktig del av manuset automatisk.
+              Hopper du over, leses hele manuset i ett strekk over bilder du velger manuelt under.
+            </div>
           )}
         </div>
 
