@@ -535,7 +535,11 @@ export default function PropertyDetailPage() {
 
   async function handlePlaySegmentAudio(idx: number) {
     const seg = segments[idx]
-    const url = seg.previewAudioUrl ?? (await generateSegmentAudio(idx))?.playUrl
+    // Spill EKSISTERENDE innlesing: lokal kopi først, ellers den varige R2-URL-en
+    // (som er nøyaktig lyden videoen brukte — bulk-TTS før videogenerering setter
+    // bare audioUrl). Generer kun når ingen innlesing finnes i det hele tatt —
+    // ny innlesing er «Ny innlesing» sin jobb.
+    const url = seg.previewAudioUrl ?? seg.audioUrl ?? (await generateSegmentAudio(idx))?.playUrl
     if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
   }
 
