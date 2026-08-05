@@ -751,10 +751,10 @@ export default function ProfilePage() {
             </span>
             <span style={{ flex: 1 }}>
               <span className="text-sm font-semibold" style={{ color: 'var(--ink)', display: 'block' }}>
-                {uploadingPortrait ? 'Laster opp…' : hasOwnPortrait ? 'Ditt eget bilde er valgt' : 'Last opp ditt eget bilde'}
+                {uploadingPortrait ? 'Laster opp…' : hasOwnPortrait ? 'Du presenterer boligene selv' : 'Last opp ditt eget bilde'}
               </span>
               <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                {hasOwnPortrait ? 'Trykk for å bytte bilde.' : 'Anbefalt — da er det du som presenterer boligene dine.'}
+                {hasOwnPortrait ? 'Portrettet er ansiktet i bildene under — de velger du blant når du lager video. Trykk for å bytte portrett.' : 'Anbefalt — da er det du som presenterer boligene dine.'}
               </span>
             </span>
           </button>
