@@ -28,7 +28,10 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const ext = file.name.split('.').pop() || 'jpg'
-    const key = `boligforge/agent/${user.id}/${type}.${ext}`
+    // Tidsstemplet nøkkel: fast nøkkel (agent/{id}/logo.png) gjorde at ny opplasting
+    // beholdt samme URL — nettleser/CDN-cache viste den gamle fila «for alltid».
+    // Fersk URL per opplasting = umiddelbar oppdatering overalt.
+    const key = `boligforge/agent/${user.id}/${type}_${Date.now()}.${ext}`
     const bucket = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 
     await getR2().send(
