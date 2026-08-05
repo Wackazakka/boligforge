@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 
 export async function GET() {
@@ -29,7 +30,27 @@ export async function GET() {
       .eq('id', membership.organization_id)
       .maybeSingle()
 
-    return NextResponse.json({ org, role: membership.role })
+    // Kjede-admin: org-admin med meglerhus-konto (team_admin) kan opprette og
+    // se kontorer under sin org (Kjede-siden). Solo-brukere slipper støyen.
+    // profiles leses med service role (samme RLS-verktøy som dashboardet).
+    let isChainAdmin = false
+    const isAdmin = membership.role === 'admin' ||
+      (!!superadminEmail && user.email === superadminEmail)
+    if (isAdmin) {
+      const serviceClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+      const { data: prof } = await serviceClient
+        .from('profiles')
+        .select('account_type')
+        .eq('id', user.id)
+        .maybeSingle()
+      isChainAdmin = prof?.account_type === 'team_admin'
+    }
+
+    return NextResponse.json({ org, role: membership.role, isChainAdmin })
   } catch (err: unknown) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

@@ -16,11 +16,12 @@ const BASE_LINKS = [
 export default function DashboardNav() {
   const pathname = usePathname()
   const [role, setRole] = useState<string | null>(null)
+  const [isChainAdmin, setIsChainAdmin] = useState(false)
 
   useEffect(() => {
     fetch('/api/org/me')
       .then(r => r.json())
-      .then(d => { setRole(d.role ?? null) })
+      .then(d => { setRole(d.role ?? null); setIsChainAdmin(!!d.isChainAdmin) })
       .catch(() => {})
   }, [])
 
@@ -30,6 +31,7 @@ export default function DashboardNav() {
   const links = [
     ...BASE_LINKS,
     ...(isAdmin      ? [{ href: '/dashboard/team',  label: 'Team'   }] : []),
+    ...(isChainAdmin ? [{ href: '/dashboard/kjede', label: 'Kjede'  }] : []),
     ...(isAdmin      ? [{ href: '/dashboard/admin', label: 'Admin'  }] : []),
     ...(isSuperadmin ? [{ href: '/admin',           label: '⚡ BO'   }] : []),
   ]

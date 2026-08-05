@@ -82,6 +82,21 @@ async function provisionOrg(
     console.log('provisionOrg: brukte fallback UPDATE for organization_id')
   }
 
+  // 2c. Medlemskapsrad — organization_members er kilden til sannhet for rolle/nav
+  // (Team/Admin-menyen og invitasjons-API-et leser HERFRA, ikke fra profiles).
+  // Manglet historisk → byråsjefer uten Team-meny og 403 på invitasjon.
+  const { error: memberError } = await supabase
+    .from('organization_members')
+    .upsert(
+      { organization_id: org.id, user_id: userId, role: 'admin' },
+      { onConflict: 'organization_id,user_id' }
+    )
+
+  if (memberError) {
+    console.error('provisionOrg: organization_members upsert error', memberError)
+    return memberError.message
+  }
+
   // 3. Opprett credits (10 videoer for Pro)
   const { error: creditsError } = await supabase
     .from('credits')

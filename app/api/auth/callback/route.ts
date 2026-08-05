@@ -35,6 +35,11 @@ export async function GET(request: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
+    // Kjede-invitasjoner (opprett kontor) sender role='admin' i metadata — da skal
+    // den inviterte bli kontorsjef (admin) i barne-orgen. Alle andre invitasjoner
+    // (Team-siden sender role='agent') beholder dagens defaults uendret.
+    const invitedAsAdmin = user.user_metadata?.role === 'admin'
+
     const { error: profileError } = await serviceClient
       .from('profiles')
       .upsert(
@@ -42,8 +47,8 @@ export async function GET(request: Request) {
           id:              user.id,
           organization_id: invitedOrgId,
           full_name:       user.user_metadata?.full_name ?? '',
-          role:            'agent',
-          account_type:    'team_member',
+          role:            invitedAsAdmin ? 'admin' : 'agent',
+          account_type:    invitedAsAdmin ? 'team_admin' : 'team_member',
         },
         { onConflict: 'id' }
       )
@@ -66,7 +71,7 @@ export async function GET(request: Request) {
     if (!existingMembership) {
       const { error: memberError } = await serviceClient
         .from('organization_members')
-        .insert({ organization_id: invitedOrgId, user_id: user.id, role: 'member' })
+        .insert({ organization_id: invitedOrgId, user_id: user.id, role: invitedAsAdmin ? 'admin' : 'member' })
       if (memberError) console.error('[auth/callback] organization_members insert error', memberError)
     }
 
