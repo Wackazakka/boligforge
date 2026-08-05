@@ -174,7 +174,7 @@ export default function PropertiesPage() {
             Eiendommer
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-            Lim inn en Finn.no- eller Hjem.no-annonse for å hente inn boligdata
+            Lim inn en Finn.no- eller Hjem.no-annonse for å hente inn boligdata — klikk deretter på eiendommen du vil lage video for
           </p>
         </div>
 
