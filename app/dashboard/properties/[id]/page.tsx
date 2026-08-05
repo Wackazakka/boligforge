@@ -1465,6 +1465,12 @@ export default function PropertyDetailPage() {
               </div>
               <button onClick={() => setSegments([])} className="app-btn-ghost text-xs">Fjern segmentering</button>
             </div>
+            {/* Kvalitetssikring før video: les teksten, hør innlesingen — her fanges
+                rare formuleringer og uttale før det koster en videogenerering. */}
+            <div style={{ background: 'var(--blue-soft)', border: '1px solid var(--blue-line)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5 }}>
+              ✅ <strong>Før du genererer videoen:</strong> Les gjennom teksten i hvert segment og juster den gjerne.
+              Trykk også <strong>«Hør innlesing»</strong> — er du ikke fornøyd med uttalen eller trykket, gir <strong>«Ny innlesing»</strong> en ny versjon.
+            </div>
             <div className="space-y-3">
               {segments.map((seg, i) => (
                 <div
@@ -1519,16 +1525,16 @@ export default function PropertyDetailPage() {
                         className="app-btn-secondary text-xs"
                         style={{ padding: '6px 12px' }}
                       >
-                        {seg.previewingAudio ? '...' : '▶ Hør lyd'}
+                        {seg.previewingAudio ? '...' : '▶ Hør innlesing'}
                       </button>
                       <button
                         onClick={() => handleRegenSegmentAudio(i)}
                         disabled={seg.previewingAudio || !effectiveVoiceId}
-                        title="Generer ny versjon av lyden"
+                        title="Generer en ny versjon av innlesingen"
                         className="app-btn-secondary text-xs"
                         style={{ padding: '6px 12px' }}
                       >
-                        ⟳ Regenerer
+                        ⟳ Ny innlesing
                       </button>
                     </div>
                   </div>
