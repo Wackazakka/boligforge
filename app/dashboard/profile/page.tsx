@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import AccountTabs from './AccountTabs'
 import VideoAvatarOnboarding from './VideoAvatarOnboarding'
 import PvcOnboarding from './PvcOnboarding'
@@ -110,6 +111,7 @@ export default function ProfilePage() {
   // Premium-tilleggene (② og ③) skal ikke dominere profilsiden — sammenlagt som standard
   const [showDigitalVisning, setShowDigitalVisning] = useState(false)
   const [showProffStemme, setShowProffStemme] = useState(false)
+  const [showNextStep, setShowNextStep] = useState(false)
   const [savingOrg, setSavingOrg] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -199,6 +201,9 @@ export default function ProfilePage() {
     if (res.ok) {
       setSavedMsg('Lagret!')
       setTimeout(() => setSavedMsg(''), 3000)
+      // Vis «neste steg»-kortet — lagring uten retning videre etterlot
+      // brukeren uten å vite hva de skulle gjøre nå.
+      setShowNextStep(true)
     } else {
       setSaveError(data?.error || 'Ukjent lagrefeil')
     }
@@ -1115,7 +1120,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Save button */}
-        <div className="flex items-center gap-4 pb-8">
+        <div className="flex items-center gap-4">
           <button
             onClick={handleSave}
             disabled={saving}
@@ -1126,6 +1131,24 @@ export default function ProfilePage() {
           {savedMsg && <span className="text-sm font-medium" style={{ color: '#7ec880' }}>{savedMsg}</span>}
           {saveError && <span className="text-sm" style={{ color: '#e88888' }}>{saveError}</span>}
         </div>
+
+        {/* Neste steg etter lagring — profilen er klar, veiled videre til første video */}
+        {showNextStep && (
+          <div className="pb-8">
+            <div style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: '10px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>✓ Profilen din er klar!</p>
+                <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+                  Neste steg: legg inn din første bolig — lim inn en FINN- eller Hjem-lenke, så lager du video på minutter.
+                </p>
+              </div>
+              <Link href="/dashboard/properties" className="app-btn-primary" style={{ whiteSpace: 'nowrap', fontSize: '14px' }}>
+                Legg inn din første bolig →
+              </Link>
+            </div>
+          </div>
+        )}
+        {!showNextStep && <div className="pb-8" />}
       </div>
 
       {lightbox && (
