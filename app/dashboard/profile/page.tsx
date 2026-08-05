@@ -612,7 +612,7 @@ export default function ProfilePage() {
             <div className="app-card-inner">
               <p className="text-sm font-medium mb-1" style={{ color: 'var(--ink-2)' }}>Klon din stemme</p>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
-                Ta opp minst 2 minutter, eller last opp en eksisterende lydfil. Jo mer lyd, desto bedre resultat.
+                Les hele teksten under — det gir rundt to minutter lyd — eller last opp en eksisterende lydfil. Jo mer lyd, desto bedre resultat.
               </p>
 
               <div className="app-reading-block mb-4">
@@ -621,6 +621,7 @@ export default function ProfilePage() {
                 <p className="mb-2">Kjøkkenet er nyoppusset og utstyrt med integrerte hvitevarer av høy kvalitet. Benkeplaten er i laminat, og det er god lagringsplass i skuffer og skap. Her kan hele familien samles til middag eller frokost i helgene.</p>
                 <p className="mb-2">Soverommet er romslig og har plass til dobbeltseng med nattbord på begge sider. Det er innebygde garderobeskap langs én vegg, noe som gir god oppbevaringsplass. Soverommene mot bakgården er stille og lyse, med utsikt mot den velstelte hagen.</p>
                 <p>Uteplassen er en av boligens store kvaliteter. En romslig terrasse med sørvestlig orientering gir sol store deler av dagen, og hagen er lav i vedlikehold. Alt i alt er dette en bolig som passer perfekt for en familie som ønsker å bo godt, med plass til både hverdagsliv og festlige anledninger.</p>
+                <p>Beliggenheten er også verdt å trekke frem. Det er kort vei til skole, barnehage og dagligvare, og gode kollektivforbindelser gjør hverdagen enkel. I nærområdet finner du flotte turmuligheter, og på lørdager er det bare en kort spasertur til det lokale torget. Velkommen til visning — dette er en bolig du bør oppleve selv.</p>
               </div>
 
               {(voiceRecordState === 'idle' || voiceRecordState === 'error') && (
