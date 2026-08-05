@@ -45,6 +45,7 @@ type Segment = {
   previewingAudio?: boolean
   previewAudioUrl?: string   // blob URL for local playback
   audioUrl?: string          // persistent R2 URL — reused by worker to skip TTS
+  clipUrl?: string           // forhåndsgodkjent avatar-klipp (R2) — worker hopper over Fabric
 }
 
 type Outro = {
@@ -139,6 +140,8 @@ export default function PropertyDetailPage() {
   const [selectedVideoImages, setSelectedVideoImages] = useState<string[]>([])
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
   const [segments, setSegments] = useState<Segment[]>([])
+  // Per-segment avatar-klipp under generering (indeks → true)
+  const [generatingClips, setGeneratingClips] = useState<Record<number, boolean>>({})
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string; own?: boolean }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
@@ -379,6 +382,15 @@ export default function PropertyDetailPage() {
   // fortsatt på siden, men var usynlig fra resultatet.
   const editSectionRef = useRef<HTMLDivElement | null>(null)
 
+  // Nytt avatarbilde/setting → eksisterende avatar-klipp er bakt med gammelt
+  // utseende og må lages på nytt. No-op (samme referanse) når ingenting å nulle.
+  useEffect(() => {
+    setSegments(prev => prev.some(s => s.type === 'avatar' && s.clipUrl)
+      ? prev.map(s => (s.type === 'avatar' && s.clipUrl) ? { ...s, clipUrl: undefined } : s)
+      : prev)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAvatarUrl, activeAvatar])
+
   useEffect(() => {
     fetch(`/api/properties/get?id=${id}`).then(r => r.json()).then((p: Property) => {
       setProperty(p)
@@ -481,7 +493,9 @@ export default function PropertyDetailPage() {
     setSegments(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
   }
 
-  async function generateSegmentAudio(idx: number): Promise<string | null> {
+  // Returnerer { playUrl (for avspilling), audioUrl (varig R2-URL — brukes av
+  // worker og avatar-klipp) }. audioUrl mangler i sjeldne fallback-tilfeller.
+  async function generateSegmentAudio(idx: number): Promise<{ playUrl: string; audioUrl?: string } | null> {
     if (!effectiveVoiceId) { setError('Ingen stemme valgt i profilen'); return null }
     updateSegment(idx, { previewingAudio: true })
     try {
@@ -499,14 +513,15 @@ export default function PropertyDetailPage() {
         // New path: API returns { audioUrl, audioBase64 }
         const data = await res.json()
         const blobUrl = `data:audio/mpeg;base64,${data.audioBase64}`
-        updateSegment(idx, { previewAudioUrl: blobUrl, audioUrl: data.audioUrl })
-        return blobUrl
+        // Ny innlesing gjør et eksisterende avatar-klipp foreldet (bakt med gammel lyd)
+        updateSegment(idx, { previewAudioUrl: blobUrl, audioUrl: data.audioUrl, clipUrl: undefined })
+        return { playUrl: blobUrl, audioUrl: data.audioUrl }
       } else {
         // Fallback: raw audio binary (R2 upload failed server-side)
         const blob = await res.blob()
         const url = URL.createObjectURL(blob)
         updateSegment(idx, { previewAudioUrl: url })
-        return url
+        return { playUrl: url }
       }
     } catch (e) {
       setError(`TTS-feil: ${String(e)}`)
@@ -518,13 +533,57 @@ export default function PropertyDetailPage() {
 
   async function handlePlaySegmentAudio(idx: number) {
     const seg = segments[idx]
-    const url = seg.previewAudioUrl ?? await generateSegmentAudio(idx)
+    const url = seg.previewAudioUrl ?? (await generateSegmentAudio(idx))?.playUrl
     if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
   }
 
   async function handleRegenSegmentAudio(idx: number) {
-    const url = await generateSegmentAudio(idx)
+    const url = (await generateSegmentAudio(idx))?.playUrl
     if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
+  }
+
+  // ── Per-segment avatar-klipp: generer + forhåndsvis Fabric-lipsyncen FØR videoen ──
+  async function generateAvatarClip(idx: number) {
+    const avatarImg = selectedAvatarUrl || effectivePortrait
+    if (!avatarImg) { setError('Velg avatarbilde først'); return }
+
+    // Klippet bakes med lyden — sørg for godkjent innlesing først
+    let audioUrl = segments[idx].audioUrl
+    if (!audioUrl) {
+      audioUrl = (await generateSegmentAudio(idx))?.audioUrl
+      if (!audioUrl) { setError('Kunne ikke lage innlesingen for segmentet'); return }
+    }
+
+    setGeneratingClips(prev => ({ ...prev, [idx]: true }))
+    setError('')
+    try {
+      const res = await fetch('/api/video/avatar-clip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: avatarImg, audioUrl }),
+      })
+      const submitted = await res.json()
+      if (!res.ok || !submitted.request_id) {
+        setError(submitted.error || `Klippgenerering feilet (HTTP ${res.status})`)
+        return
+      }
+      // Poll hvert 5. sek, maks 10 min (Fabric bruker typisk 1–3 min)
+      for (let attempt = 0; attempt < 120; attempt++) {
+        await new Promise(r => setTimeout(r, 5000))
+        const pollRes = await fetch(`/api/video/avatar-clip?request_id=${encodeURIComponent(submitted.request_id)}`)
+        const data = await pollRes.json()
+        if (data.error) { setError(data.error); return }
+        if (data.status === 'done' && data.url) {
+          updateSegment(idx, { clipUrl: data.url })
+          return
+        }
+      }
+      setError('Animasjonen tok for lang tid — prøv igjen')
+    } catch (e) {
+      setError(`Klippgenerering feilet: ${String(e)}`)
+    } finally {
+      setGeneratingClips(prev => ({ ...prev, [idx]: false }))
+    }
   }
 
   async function handleMusicUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -857,6 +916,9 @@ export default function PropertyDetailPage() {
       ? [{ type: 'still' as const, imageUrl: introImageUrl, duration: introDuration }]
       : []
     const segmentsWithIntro = [...introSegment, ...resolvedSegments]
+      // Forhåndsgodkjent avatar-klipp sendes som videoUrl — worker hopper da over
+      // Fabric for segmentet og bruker nøyaktig det klippet brukeren så og godkjente.
+      .map(s => ('clipUrl' in s && s.type === 'avatar' && s.clipUrl) ? { ...s, videoUrl: s.clipUrl } : s)
 
     const body = segments.length > 0
       ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
@@ -1493,6 +1555,7 @@ export default function PropertyDetailPage() {
               ✅ <strong>Før du genererer videoen:</strong> Les gjennom teksten i hvert segment og juster den gjerne.
               Trykk også <strong>«Hør innlesing»</strong> — er du ikke fornøyd med uttalen eller trykket, gir <strong>«Ny innlesing»</strong> en ny versjon.
               Uttales et ord feil? Prøv å stave det slik det skal <em>uttales</em> (f.eks. «førtti» for «førti») — visningsteksten kan du rette tilbake etterpå.
+              På avatar-segmentene kan du også lage og godkjenne selve <strong>animasjonen</strong> — da brukes nøyaktig det klippet i videoen.
             </div>
             <div className="space-y-3">
               {segments.map((seg, i) => (
@@ -1565,10 +1628,18 @@ export default function PropertyDetailPage() {
                   {(seg.type === 'image' || seg.type === 'avatar' || seg.imageUrl) && (
                     <div className="space-y-1.5">
                       {seg.type === 'avatar' && openGalleryForSegment !== i ? (
-                        /* Avatar-segment: vis avataren som skal presentere — ikke et
-                           utgrået boligbilde (det leste som «noe mangler»). */
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {(selectedAvatarUrl || effectivePortrait) && (
+                        /* Avatar-segment: forhåndsvis/generer selve animasjonen (Fabric-
+                           klippet) her — det godkjente klippet brukes ordrett i videoen. */
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          {seg.clipUrl ? (
+                            <video
+                              key={seg.clipUrl}
+                              src={seg.clipUrl}
+                              controls
+                              preload="metadata"
+                              style={{ height: '96px', borderRadius: '8px', background: '#000' }}
+                            />
+                          ) : (selectedAvatarUrl || effectivePortrait) && (
                             <div style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden' }}>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
@@ -1583,10 +1654,31 @@ export default function PropertyDetailPage() {
                               >⤢</button>
                             </div>
                           )}
-                          <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                            Avataren presenterer dette segmentet{seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}.
-                            <br />Ønsker du en ny animasjon? Generer videoen på nytt — innlesingen beholdes.
-                          </span>
+                          {generatingClips[i] ? (
+                            <span style={{ fontSize: '12px', color: 'var(--gold)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              Lager animasjonen… (1–3 min)
+                            </span>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <button
+                                onClick={() => generateAvatarClip(i)}
+                                className="app-btn-secondary text-xs"
+                                style={{ padding: '6px 12px', alignSelf: 'flex-start' }}
+                                title="Generer avatar-animasjonen for dette segmentet — klippet du godkjenner brukes i videoen"
+                              >
+                                {seg.clipUrl ? '↻ Ny animasjon' : '🎬 Lag animasjonen (1–3 min)'}
+                              </button>
+                              <span style={{ fontSize: '11px', color: 'var(--muted)', maxWidth: '340px' }}>
+                                {seg.clipUrl
+                                  ? '✓ Denne animasjonen brukes i videoen. Ikke fornøyd? Lag en ny.'
+                                  : `Avataren presenterer dette segmentet${seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}. Lag animasjonen her for å se og godkjenne den før videoen.`}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       ) : seg.imageUrl && openGalleryForSegment !== i ? (
                         /* Kompakt visning: valgt bilde + bytt-knapp */
