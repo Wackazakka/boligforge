@@ -15,6 +15,7 @@ interface Video {
   video_url: string
   created_at: string
   property_id: string
+  has_recipe?: boolean   // oppskrift lagret → «Rediger» kan gjenåpne redigeringen
 }
 
 type SocialConnection = {
@@ -315,6 +316,15 @@ export default function CollectionsPage() {
                           {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          {v.has_recipe && (
+                            <a
+                              href={`/dashboard/properties/${v.property_id}?editVideo=${v.id}`}
+                              title="Gjenåpne redigeringen — manus, segmenter og godkjente klipp lastes inn"
+                              style={{ fontSize: '12px', color: 'var(--gold)', textDecoration: 'none' }}
+                            >
+                              🖊 Rediger
+                            </a>
+                          )}
                           <a href={v.video_url} download style={{ fontSize: '12px', color: 'var(--blue)', textDecoration: 'none' }}>
                             Last ned
                           </a>

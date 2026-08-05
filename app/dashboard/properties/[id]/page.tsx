@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 
 type Property = {
@@ -396,6 +396,23 @@ export default function PropertyDetailPage() {
   // «Gjør endringer» fra ferdig-video-kortet ruller hit — redigeringen ligger
   // fortsatt på siden, men var usynlig fra resultatet.
   const editSectionRef = useRef<HTMLDivElement | null>(null)
+
+  // «Rediger» fra mappesiden: ?editVideo=<id> gjenåpner den videoens oppskrift
+  // så snart videolisten er lastet. Konsumeres én gang (ref) — ellers ville
+  // enhver senere listeoppdatering nullstilt brukerens påbegynte endringer.
+  const searchParams = useSearchParams()
+  const editVideoConsumedRef = useRef(false)
+  useEffect(() => {
+    if (editVideoConsumedRef.current) return
+    const editId = searchParams.get('editVideo')
+    if (!editId || pastVideos.length === 0) return
+    const v = pastVideos.find(x => x.id === editId)
+    if (v?.recipe) {
+      editVideoConsumedRef.current = true
+      loadRecipe(v.recipe)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pastVideos])
 
   // Nytt avatarbilde/setting → eksisterende avatar-klipp er bakt med gammelt
   // utseende og må lages på nytt. No-op (samme referanse) når ingenting å nulle.
