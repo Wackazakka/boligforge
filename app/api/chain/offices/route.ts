@@ -61,6 +61,9 @@ export async function POST(request: Request) {
       plan: 'pro',
       trial_ends_at: trialEndsAt,
       parent_organization_id: chainId,
+      // owner_id er NOT NULL. Kjedeadmin står som eier til kontorsjefen har
+      // akseptert invitasjonen (eierskifte er en senere støttehandling).
+      owner_id: user.id,
     })
     .select('id, name')
     .single()
