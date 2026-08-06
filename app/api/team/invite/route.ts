@@ -89,7 +89,7 @@ export async function POST(request: Request) {
   // Also send a friendly branded email via Resend on top of Supabase's invite
   try {
     await getResend().emails.send({
-      from:    'ReelHome <hei@reelhome.no>',
+      from:    'ReelHome <hei@reelhome.ai>',
       to:      email.trim(),
       subject: `Du er invitert til ${orgName} på ReelHome`,
       html: `
