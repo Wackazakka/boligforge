@@ -21,8 +21,10 @@ async function agentProfile(client: ReturnType<typeof serviceClient>, userId: st
 }
 
 export async function POST(request: Request) {
+  // Digital visning er KJØPERSIDEN — kjøpere er aldri innlogget, så ingen
+  // auth-krav her. Porten er at propertyId må peke på en reell bolig; megler-
+  // profilen slås alltid opp fra boligen, aldri fra den anonyme besøkende.
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const propertyId = new URL(request.url).searchParams.get('propertyId')
   if (!propertyId) return NextResponse.json({ error: 'Mangler propertyId' }, { status: 400 })
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
   const megler = property.agent_id || property.user_id
   let effectiveUserId: string | null = megler
   let profile = megler ? await agentProfile(client, megler) : null
-  if (!profile?.liveavatar_avatar_id) { effectiveUserId = user.id; profile = await agentProfile(client, user.id) }
+  if (!profile?.liveavatar_avatar_id && user) { effectiveUserId = user.id; profile = await agentProfile(client, user.id) }
   if (!profile?.liveavatar_avatar_id) {
     return NextResponse.json({ error: 'Denne megleren har ingen LiveAvatar-avatar' }, { status: 400 })
   }
