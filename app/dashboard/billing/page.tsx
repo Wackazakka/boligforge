@@ -299,8 +299,8 @@ export default function BillingPage() {
 
             <p style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center' }}>
               Spørsmål?{' '}
-              <a href="mailto:hei@reelhome.no" style={{ color: '#2563eb', textDecoration: 'underline' }}>
-                hei@reelhome.no
+              <a href="mailto:hei@reelhome.ai" style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                hei@reelhome.ai
               </a>
             </p>
           </>

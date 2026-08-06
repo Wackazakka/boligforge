@@ -439,7 +439,7 @@ export default function Home() {
             </div>
             <div className="hero-cta" style={{ justifyContent: "center" }}>
               <Link href="/auth/signup" className="btn btn-primary">Sikre din plass <ArrowIcon /></Link>
-              <a href="mailto:hei@reelhome.no" className="btn btn-ghost">Snakk med oss</a>
+              <a href="mailto:hei@reelhome.ai" className="btn btn-ghost">Snakk med oss</a>
             </div>
           </div>
         </div>
@@ -454,7 +454,7 @@ export default function Home() {
               <h2>Det du lurer på.</h2>
               <p className="side-note">
                 Finner du ikke svaret? Skriv til{" "}
-                <a href="mailto:hei@reelhome.no" suppressHydrationWarning>hei@reelhome.no</a>
+                <a href="mailto:hei@reelhome.ai" suppressHydrationWarning>hei@reelhome.ai</a>
                 {" "}— vi svarer innen samme arbeidsdag.
               </p>
             </div>
@@ -518,7 +518,7 @@ export default function Home() {
             <div>
               <h4>Kontakt</h4>
               <ul>
-                <li><a href="mailto:hei@reelhome.no">hei@reelhome.no</a></li>
+                <li><a href="mailto:hei@reelhome.ai">hei@reelhome.ai</a></li>
               </ul>
             </div>
           </div>
