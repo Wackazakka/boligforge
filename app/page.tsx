@@ -315,7 +315,7 @@ export default function Home() {
           <div className="sec-head">
             <span className="eyebrow"><span className="dot" />Priser</span>
             <h2>Enkel prising. Ingen overraskelser.</h2>
-            <p>Faktureres månedlig i NOK eks. mva. Ubrukte videoer rulles over én måned. Ingen bindingstid.</p>
+            <p>Faktureres månedlig i NOK eks. mva. Ubrukte videoer forsvinner ikke. Ingen bindingstid.</p>
           </div>
 
           <div className="price-grid">
@@ -329,11 +329,11 @@ export default function Home() {
                 <li><CheckIcon /> <span><b>3 videoer</b> per måned</span></li>
                 <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
                 <li><CheckIcon /> Personlig stemmeklone inkludert</li>
-                <li><CheckIcon /> 1080p · 16:9</li>
+                <li><CheckIcon /> 1080p · 16:9, 9:16 og 1:1</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
+                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
             </div>
@@ -348,11 +348,11 @@ export default function Home() {
                 <li><CheckIcon /> <span><b>10 videoer</b> per måned</span></li>
                 <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
                 <li><CheckIcon /> Personlig stemmeklone inkludert</li>
-                <li><CheckIcon /> 1080p · 16:9</li>
+                <li><CheckIcon /> 1080p · 16:9, 9:16 og 1:1</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
+                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Velg Aktiv</Link>
             </div>
@@ -367,11 +367,11 @@ export default function Home() {
                 <li><CheckIcon /> <span><b>7 videoer</b> per megler · mnd</span></li>
                 <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar per megler</li>
                 <li><CheckIcon /> Personlig stemmeklone inkludert</li>
-                <li><CheckIcon /> 1080p · 16:9</li>
+                <li><CheckIcon /> 1080p · 16:9, 9:16 og 1:1</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
+                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
               </ul>
               <a href="mailto:hei@reelhome.ai?subject=Pro-plan%20for%20meglerhuset" className="btn btn-ghost">Snakk med salg</a>
             </div>
@@ -462,23 +462,23 @@ export default function Home() {
             <div>
               <details className="faq-item" open>
                 <summary>Hvor lang tid tar det å lage én video? <span className="icon" /></summary>
-                <p>Fra du har lastet opp prospekt og bilder til ferdig film tar det normalt 4–6 minutter på Starter, og 2–3 minutter på Pro med prioritert rendring.</p>
+                <p>Selve genereringen tar normalt rundt 5 minutter. Med gjennomlesing av manus og valg av musikk er du typisk i mål på ti.</p>
               </details>
               <details className="faq-item">
                 <summary>Kan jeg bruke min egen stemme i stedet for en avatar? <span className="icon" /></summary>
-                <p>Ja. På Pro og Kontor får du en personlig stemmeklone som leverer alle manus med ditt eget tonefall. Du trenger kun å spille inn tre minutter med tekst første gang.</p>
+                <p>Ja. Alle planer inkluderer en personlig stemmeklone som leser alle manus med ditt eget tonefall. Du leser inn rundt to minutter med tekst første gang.</p>
               </details>
               <details className="faq-item">
                 <summary>Følger videoene merkevareprofilen vår? <span className="icon" /></summary>
-                <p>Vi henter inn logoer, farger og typografi fra kontoret ditt. Hver film leveres i din visuelle identitet — fra åpningsbilde til avslutningsskjerm.</p>
+                <p>Du laster opp logoen din, og hver film avsluttes med en plakat som automatisk tilpasser bakgrunnen til logoens farger. Full profilstyring med farger og typografi er på veikartet.</p>
               </details>
               <details className="faq-item">
                 <summary>Hvilke språk støttes? <span className="icon" /></summary>
-                <p>Bokmål og nynorsk er begge støttet på alle avatarer. Engelsk, svensk og dansk er tilgjengelig på Pro og Kontor for internasjonale prospekter.</p>
+                <p>Videoene lages på norsk. Flere språk står på veikartet — si fra hvilke du trenger.</p>
               </details>
               <details className="faq-item">
                 <summary>Hva med GDPR og bilderettigheter? <span className="icon" /></summary>
-                <p>Alle bilder og prospekt lagres i EU (Frankfurt). Stemmekloner er kryptert og kun tilgjengelige for deg. Musikkbiblioteket er royalty-fritt og lisensiert for kommersiell bruk i Norge.</p>
+                <p>Person- og boligdata lagres i EU (Frankfurt). Stemmeklonen din er privat og brukes kun i dine egne videoer. Musikkbiblioteket er royalty-fritt og lisensiert for kommersiell bruk.</p>
               </details>
               <details className="faq-item">
                 <summary>Kan jeg avslutte abonnementet når jeg vil? <span className="icon" /></summary>
@@ -486,7 +486,7 @@ export default function Home() {
               </details>
               <details className="faq-item">
                 <summary>Integreres ReelHome med Vitec Next / Tribe? <span className="icon" /></summary>
-                <p>API-integrasjon mot Vitec Next, Tribe og WebMegler er tilgjengelig på Kontor-planen. Boligen synces inn automatisk når oppdraget opprettes.</p>
+                <p>Ikke ennå — fagsystem-integrasjon står på veikartet. I dag henter ReelHome alt automatisk fra Finn-lenken: bilder, pris, adresse og nøkkeldata på sekunder.</p>
               </details>
             </div>
           </div>
