@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
+import { VIDEOS_BY_PLAN, setPlanForUsers } from '../../../../lib/video-credits'
 
 // Provisjonerer en invitert bruker fra invite-metadataene (organization_id +
 // role satt av team-/org-/kjede-invitasjonsrutene). Kalles fra
@@ -78,6 +79,21 @@ export async function POST() {
       console.error('[accept-invite] organization_members insert error', memberError)
       return NextResponse.json({ error: memberError.message }, { status: 500 })
     }
+  }
+
+  // Kontor-planen er per sete: nye medlemmer i en betalende office-org arver
+  // månedskvoten (7/mnd). Starter/Pro er personlige — der beholder inviterte
+  // medlemmer default-kvoten.
+  const { data: invitedOrg } = await client
+    .from('organizations')
+    .select('plan, stripe_subscription_id')
+    .eq('id', invitedOrgId)
+    .maybeSingle()
+
+  const orgPlan = invitedOrg?.plan ?? ''
+  if ((orgPlan === 'office' || orgPlan === 'kontor') && invitedOrg?.stripe_subscription_id) {
+    const vcError = await setPlanForUsers(client, [user.id], orgPlan, VIDEOS_BY_PLAN[orgPlan])
+    if (vcError) console.error('[accept-invite] video_credits seed error', vcError)
   }
 
   console.log(`[accept-invite] user ${user.id} linked to org ${invitedOrgId} (admin=${invitedAsAdmin})`)

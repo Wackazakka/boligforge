@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { VIDEOS_BY_PLAN, FREE_VIDEOS_PER_MONTH, setPlanForUsers, orgMemberIds } from '../../../../lib/video-credits'
 
 export const runtime = 'nodejs'
 
@@ -144,21 +145,34 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
         }
 
-        // Opprett/oppdater credits basert på plan
-        const videosByPlan: Record<string, number> = { starter: 3, pro: 10, office: 7 }
-        const quantity   = parseInt(session.metadata?.quantity ?? '1', 10)
-        const baseVideos = videosByPlan[plan] ?? 0
-        const total      = plan === 'office' ? baseVideos * quantity : baseVideos
-        const resetAt    = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        // Sett kvoten i video_credits (per bruker) — det er tabellen
+        // /api/video/generate faktisk håndhever. Kontor-planen er per sete:
+        // alle medlemmer i org-en får sin egen månedskvote.
+        const included = VIDEOS_BY_PLAN[plan]
+        if (included == null) {
+          console.warn(`Webhook: ukjent plan "${plan}" — ingen kvote satt`, session.id)
+          break
+        }
 
-        await supabase
-          .from('credits')
-          .upsert(
-            { organization_id: organizationId, total, used: 0, reset_at: resetAt, updated_at: new Date().toISOString() },
-            { onConflict: 'organization_id' }
-          )
+        const quantity = parseInt(session.metadata?.quantity ?? '1', 10)
+        let userIds: string[]
+        if (plan === 'office' || plan === 'kontor') {
+          userIds = await orgMemberIds(supabase, organizationId)
+          if (!userIds.length && session.metadata?.user_id) userIds = [session.metadata.user_id]
+          if (userIds.length > quantity) {
+            console.warn(`Org ${organizationId}: ${userIds.length} medlemmer, men bare ${quantity} betalte seter`)
+          }
+        } else {
+          userIds = session.metadata?.user_id ? [session.metadata.user_id] : []
+        }
 
-        console.log(`Org ${organizationId} oppgradert til "${plan}", ${total} kreditter tildelt`)
+        const vcError = await setPlanForUsers(supabase, userIds, plan, included)
+        if (vcError) {
+          console.error('Supabase video_credits update failed (checkout.session.completed):', vcError)
+          return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+        }
+
+        console.log(`Org ${organizationId} oppgradert til "${plan}" — ${included} videoer/mnd for ${userIds.length} bruker(e)`)
         break
       }
 
@@ -173,6 +187,12 @@ export async function POST(request: Request) {
 
         if (!customerId) break
 
+        const { data: cancelledOrg } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle()
+
         const { error } = await supabase
           .from('organizations')
           .update({ plan: 'cancelled' })
@@ -181,6 +201,14 @@ export async function POST(request: Request) {
         if (error) {
           console.error('Supabase update failed (customer.subscription.deleted):', error)
           return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+        }
+
+        // Nedgrader medlemmenes videokvote til gratis-nivået. Kjøpte
+        // extra_credits beholdes — de ruller over uavhengig av plan.
+        if (cancelledOrg?.id) {
+          const memberIds = await orgMemberIds(supabase, cancelledOrg.id)
+          const vcError = await setPlanForUsers(supabase, memberIds, 'cancelled', FREE_VIDEOS_PER_MONTH)
+          if (vcError) console.error('video_credits downgrade failed (customer.subscription.deleted):', vcError)
         }
 
         console.log(`Kunde ${customerId} — abonnement kansellert`)
