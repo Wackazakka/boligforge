@@ -63,7 +63,7 @@ export default function Home() {
             <h1>Profesjonelle visningsvideoer<br /><span className="blue">På ti minutter.</span></h1>
             <p className="hero-sub">
               ReelHome genererer ferdige visningsvideoer automatisk — med AI-vert, klonet stemme og kuratert musikk.
-              Lim inn Finn-lenken, motta ferdig film klar for Facebook og LinkedIn.
+              Lim inn Finn-lenken, motta ferdig film klar for Facebook, Instagram og LinkedIn.
             </p>
             <div className="hero-cta">
               <Link href="/auth/signup" className="btn btn-primary">
@@ -338,9 +338,9 @@ export default function Home() {
               <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
             </div>
 
-            {/* Aktiv */}
+            {/* Pro */}
             <div className="plan">
-              <div className="nm">Aktiv</div>
+              <div className="nm">Pro</div>
               <div className="for">For aktive meglere</div>
               <div className="price"><span className="v">3 990</span><span className="cur">kr / mnd</span></div>
               <div className="desc">10 ferdig produserte videoer hver måned.</div>
@@ -354,12 +354,12 @@ export default function Home() {
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
               </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Velg Aktiv</Link>
+              <Link href="/auth/signup" className="btn btn-ghost">Velg Pro</Link>
             </div>
 
-            {/* Pro */}
+            {/* Kontor */}
             <div className="plan">
-              <div className="nm">Pro</div>
+              <div className="nm">Kontor</div>
               <div className="for">For hele meglerhuset</div>
               <div className="price"><span className="v">1 990</span><span className="cur">kr / megler · mnd</span></div>
               <div className="desc">7 ferdig produserte videoer per megler hver måned.</div>
@@ -373,38 +373,18 @@ export default function Home() {
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
               </ul>
-              <a href="mailto:hei@reelhome.ai?subject=Pro-plan%20for%20meglerhuset" className="btn btn-ghost">Snakk med salg</a>
+              <a href="mailto:hei@reelhome.ai?subject=Kontor-plan%20for%20meglerhuset" className="btn btn-ghost">Snakk med salg</a>
             </div>
 
-            {/* Enkeltvideo */}
-            <div className="plan">
-              <div className="nm">Enkeltvideo</div>
-              <div className="for">Prøv uten abonnement</div>
-              <div className="price"><span className="v">989</span><span className="cur">kr / video</span></div>
-              <div className="desc">Én ferdig produsert visningsvideo med AI-avatar og stemme — betal per video, ingen binding.</div>
-              <ul>
-                <li><CheckIcon /> Ingen abonnement nødvendig</li>
-                <li><CheckIcon /> AI-avatar og stemmeklone</li>
-                <li><CheckIcon /> 1080p · 9:16, 16:9, 1:1</li>
-                <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
-              </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Kjøp enkeltvideo</Link>
-            </div>
-
-            {/* AI-megler */}
-            <div className="plan">
-              <div className="nm">AI-megler</div>
-              <div className="for">Alltid tilgjengelig for kjøperne</div>
-              <div className="price"><span className="v">999</span><span className="cur">kr / mnd</span></div>
-              <div className="desc">En AI-klone av megleren svarer kjøpernes spørsmål fra salgsoppgaven — døgnet rundt, på norsk.</div>
-              <ul>
-                <li><CheckIcon /> <span><b>4,50 kr / min</b> streaming</span></li>
-                <li><CheckIcon /> Svar fra salgsoppgave og tilstandsrapport</li>
-                <li><CheckIcon /> Norsk stemme og avatar</li>
-                <li><CheckIcon /> Interessentregistrering inkludert</li>
-                <li><CheckIcon /> Unik kjøperlenke per eiendom</li>
-              </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
+            {/* Ekstra videoer — engangskjøp på toppen av abonnementet */}
+            <div className="plan single">
+              <div className="single-info">
+                <div className="nm">Ekstra videoer</div>
+                <div className="for">Når månedskvoten er brukt opp</div>
+                <div className="desc">Kjøp enkeltvideoer ved behov, rett fra dashbordet — samme kvalitet, AI-avatar og stemmeklone som abonnementsvideoene. Ingen planendring nødvendig.</div>
+              </div>
+              <div className="price" style={{ margin: 0 }}><span className="v">989</span><span className="cur">kr / video</span></div>
+              <Link href="/auth/login" className="btn btn-ghost">Logg inn og kjøp</Link>
             </div>
           </div>
         </div>
