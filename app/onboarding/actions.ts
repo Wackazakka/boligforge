@@ -109,18 +109,9 @@ async function provisionOrg(
     return memberError.message
   }
 
-  // 3. Opprett credits (10 videoer for Pro)
-  const { error: creditsError } = await supabase
-    .from('credits')
-    .upsert(
-      { organization_id: org.id, total: 10, used: 0, reset_at: trialEndsAt, updated_at: new Date().toISOString() },
-      { onConflict: 'organization_id' }
-    )
-
-  if (creditsError) {
-    console.error('provisionOrg: credits upsert error', creditsError)
-    return creditsError.message
-  }
+  // Videokvoten ligger i video_credits (per bruker) og auto-opprettes med
+  // default-kvote ved første bruk — den historiske `credits`-tabellen (per org)
+  // leses ikke av noe og skrives ikke lenger.
 
   // 4. Affiliate-attribusjon: knytt org-en til selgeren (first-touch) hvis kommet via ?ref=
   if (ref) {

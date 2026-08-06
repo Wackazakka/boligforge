@@ -85,18 +85,9 @@ export async function POST(request: Request) {
     .insert({ organization_id: org.id, user_id: user.id, role: 'admin' })
   if (memberError) console.error('organization_members insert error:', memberError)
 
-  // 3. Opprett credits (10 videoer for Pro)
-  const { error: creditsError } = await supabase
-    .from('credits')
-    .upsert(
-      { organization_id: org.id, total: 10, used: 0, reset_at: trialEndsAt, updated_at: new Date().toISOString() },
-      { onConflict: 'organization_id' }
-    )
-
-  if (creditsError) {
-    console.error('upsert credits error:', creditsError)
-    return NextResponse.json({ error: creditsError.message }, { status: 500 })
-  }
+  // Videokvoten ligger i video_credits (per bruker) og auto-opprettes med
+  // default-kvote ved første bruk — den historiske `credits`-tabellen (per org)
+  // leses ikke av noe og skrives ikke lenger.
 
   console.log(`Org ${org.id} opprettet for bruker ${user.id} — Pro-trial til ${trialEndsAt}`)
   return NextResponse.json({ org_id: org.id })
