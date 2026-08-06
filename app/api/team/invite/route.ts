@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   const { data: inviteData, error: inviteError } = await client.auth.admin.inviteUserByEmail(
     email.trim(),
     {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding?org=${profile.organization_id}`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/accept-invite`,
       data: {
         organization_id: profile.organization_id,
         invited_by:      user.id,

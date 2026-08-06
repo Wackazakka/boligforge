@@ -77,7 +77,9 @@ export async function POST(request: Request) {
   const { error: inviteError } = await client.auth.admin.inviteUserByEmail(
     adminEmail.trim(),
     {
-      redirectTo: `${BASE_URL}/onboarding?org=${office.id}`,
+      // Mottakssiden konsumerer sesjonstokenene og provisjonerer fra metadata
+      // (/onboarding gjorde aldri det — den inviterte forble uinnlogget).
+      redirectTo: `${BASE_URL}/auth/accept-invite`,
       data: {
         organization_id: office.id,
         invited_by:      user.id,
