@@ -164,7 +164,6 @@ function Chat() {
             onKeyDown={e => { if (e.key === 'Enter') ask(typed) }}
             placeholder="Skriv spørsmålet ditt her…"
             maxLength={600}
-            autoFocus
             style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '1px solid #d4d4d4', fontSize: 14, background: '#fff', outline: 'none' }}
           />
           <button
