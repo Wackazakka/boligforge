@@ -149,7 +149,7 @@ export default async function DashboardPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              Velg plan for å fortsette etter trialen →
+              Velg plan for å fortsette etter prøveperioden →
             </Link>
           </div>
         )}
