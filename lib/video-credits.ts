@@ -33,13 +33,16 @@ export async function setPlanForUsers(
   return error
 }
 
+// Kaster ved oppslagsfeil i stedet for å returnere tom liste — en webhook som
+// svarer 200 uten å ha satt kvote ville aldri blitt retryet av Stripe.
 export async function orgMemberIds(
   supabase: SupabaseClient,
   organizationId: string,
 ): Promise<string[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('organization_members')
     .select('user_id')
     .eq('organization_id', organizationId)
+  if (error) throw new Error(`organization_members-oppslag feilet: ${error.message}`)
   return (data ?? []).map((m) => m.user_id as string)
 }
