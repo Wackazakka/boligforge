@@ -9,7 +9,7 @@
 ## 1. Hva er ReelHome?
 
 ReelHome (reelhome.ai) lager ferdige visningsvideoer for eiendomsmeglere automatisk.
-Du limer inn lenken til boligannonsen på Finn, og ReelHome henter bilder, pris,
+Du limer inn lenken til boligannonsen på Finn eller Hjem, og ReelHome henter bilder, pris,
 adresse og nøkkeldata, skriver et manus, leser det inn med en AI-stemme (eller din
 egen klonede stemme), lar en AI-avatar (eller din egen digitale tvilling) presentere
 boligen, og setter alt sammen til en ferdig film med musikk og din logo.
@@ -44,7 +44,7 @@ megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
 1. Velg avatar — en av seks ferdige AI-meglere, eller last opp ditt eget bilde
 2. Legg til stemme — standardstemme eller klon din egen
 3. Last opp logo (valgfritt) — vises i videoene
-4. Lag din første video — lim inn en Finn-lenke
+4. Lag din første video — lim inn en Finn- eller Hjem-lenke
 
 ---
 
@@ -86,9 +86,9 @@ megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
 ## 4. Lage en video
 
 ### Steg for steg
-1. **Lim inn Finn-lenken** under Eiendommer. ReelHome henter bilder, pris, adresse og
-   nøkkeldata automatisk. (Limer du samme lenke på nytt senere, oppdateres boligen —
-   det lages ikke duplikat.)
+1. **Lim inn annonse-lenken** (Finn eller Hjem) under Eiendommer. ReelHome henter
+   bilder, pris, adresse og nøkkeldata automatisk. (Limer du samme lenke på nytt
+   senere, oppdateres boligen — det lages ikke duplikat.)
 2. **Manus genereres** automatisk, delt i segmenter. Les gjennom teksten i hvert
    segment og juster det du vil.
 3. **Hør innlesingen** per segment før du genererer videoen. Tips: uttaler stemmen
@@ -120,7 +120,7 @@ megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
 - Videoer i mapper kan også redigeres («Rediger»-knappen i mappen).
 
 ### Prisendring på boligen
-- Setter selger ned prisen: lim inn Finn-lenken på nytt (boligen oppdateres), åpne
+- Setter selger ned prisen: lim inn annonse-lenken på nytt (boligen oppdateres), åpne
   Rediger på videoen, oppdater prisen i manus-segmentene der den nevnes, og generer
   på nytt. Tittelkort og faktatekst bygges alltid ferskt fra boligdataene.
 
@@ -208,8 +208,8 @@ megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
 - Musikkbiblioteket er royalty-fritt og lisensiert for kommersiell bruk.
 - Person- og boligdata lagres i EU (Frankfurt — verifisert: Supabase eu-central-1).
   Mediefiler (bilder/video) ligger hos Cloudflare R2.
-- Boligdata hentes fra offentlig tilgjengelige annonser (Finn) som megleren selv
-  limer inn.
+- Boligdata hentes fra offentlig tilgjengelige annonser (Finn eller Hjem) som
+  megleren selv limer inn.
 
 ---
 

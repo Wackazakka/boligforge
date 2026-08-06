@@ -63,7 +63,7 @@ export default function Home() {
             <h1>Profesjonelle visningsvideoer<br /><span className="blue">På ti minutter.</span></h1>
             <p className="hero-sub">
               ReelHome genererer ferdige visningsvideoer automatisk — med AI-vert, klonet stemme og kuratert musikk.
-              Lim inn Finn-lenken, motta ferdig film klar for Facebook, Instagram og LinkedIn.
+              Lim inn lenken fra Finn eller Hjem, motta ferdig film klar for Facebook, Instagram og LinkedIn.
             </p>
             <div className="hero-cta">
               <Link href="/auth/signup" className="btn btn-primary">
@@ -112,8 +112,8 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <h3>Lim inn Finn-lenken</h3>
-              <p>Vi henter bilder, pris, adresse og nøkkeldata automatisk. Ingen opplasting — bare en URL.</p>
+              <h3>Lim inn annonse-lenken</h3>
+              <p>Finn eller Hjem — vi henter bilder, pris, adresse og nøkkeldata automatisk. Ingen opplasting, bare en URL.</p>
             </div>
 
             <div className="step">
@@ -466,7 +466,7 @@ export default function Home() {
               </details>
               <details className="faq-item">
                 <summary>Integreres ReelHome med Vitec Next / Tribe? <span className="icon" /></summary>
-                <p>Ikke ennå — fagsystem-integrasjon står på veikartet. I dag henter ReelHome alt automatisk fra Finn-lenken: bilder, pris, adresse og nøkkeldata på sekunder.</p>
+                <p>Ikke ennå — fagsystem-integrasjon står på veikartet. I dag henter ReelHome alt automatisk fra annonse-lenken (Finn eller Hjem): bilder, pris, adresse og nøkkeldata på sekunder.</p>
               </details>
             </div>
           </div>

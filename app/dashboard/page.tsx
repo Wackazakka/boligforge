@@ -69,7 +69,7 @@ export default async function DashboardPage() {
     { key: 'avatar',  label: 'Velg avatar',            hint: 'Velg en malmegler eller last opp ditt eget bilde', href: '/dashboard/profile',     done: hasAvatar },
     { key: 'voice',   label: 'Legg til en stemme',     hint: 'Velg en standardstemme eller klon din egen', href: '/dashboard/profile',          done: hasVoice },
     { key: 'logo',    label: 'Last opp logo (valgfritt)', hint: 'Vises i videoene dine',                   href: '/dashboard/profile',          done: hasLogo },
-    { key: 'video',   label: 'Lag din første video',   hint: 'Lim inn en FINN-lenke og generer',           href: '/dashboard/properties',       done: hasVideo },
+    { key: 'video',   label: 'Lag din første video',   hint: 'Lim inn en Finn- eller Hjem-lenke og generer',           href: '/dashboard/properties',       done: hasVideo },
   ]
 
   // Vis sjekklisten kun før første video er laget.
