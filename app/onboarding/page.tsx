@@ -40,6 +40,18 @@ export default function OnboardingPage() {
     } catch { /* ignore */ }
   }, [])
 
+  // Sperre: ferdig onboardede brukere skal ikke kunne opprette en ny org herfra
+  // (duplikat-org 2026-08-06 fjernet Team/Kjede-menyene). Server-action har samme
+  // sjekk — dette er bare snarveien tilbake til dashboardet.
+  useEffect(() => {
+    fetch('/api/org/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d?.org) window.location.replace('/dashboard')
+      })
+      .catch(() => { /* uinnlogget/nettfeil — bli stående */ })
+  }, [])
+
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
       <div style={{ marginBottom: '48px' }}>

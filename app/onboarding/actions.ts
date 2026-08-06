@@ -19,6 +19,18 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, '')
 }
 
+// Sperre: en bruker som allerede har en organisasjon skal ALDRI kunne opprette
+// en ny via onboarding (skjedde 2026-08-06 — duplikat-org ga to medlemskap og
+// stille rolle-tap i /api/org/me). Returnerer true hvis brukeren alt er ferdig.
+async function alreadyOnboarded(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', userId)
+    .maybeSingle()
+  return !!data?.organization_id
+}
+
 async function provisionOrg(
   userId: string,
   orgName: string,
@@ -144,6 +156,7 @@ export async function createOrgAction(
 ): Promise<string | null> {
   const user = await getUser()
   if (!user) return 'Ikke innlogget – logg inn og prøv igjen'
+  if (await alreadyOnboarded(user.id)) redirect('/dashboard')
 
   const name = formData.get('orgName')?.toString().trim()
   if (!name) return 'Firmanavn er påkrevd'
@@ -166,6 +179,7 @@ export async function createSoloOrgAction(
 ): Promise<string | null> {
   const user = await getUser()
   if (!user) return 'Ikke innlogget – logg inn og prøv igjen'
+  if (await alreadyOnboarded(user.id)) redirect('/dashboard')
 
   // Bruk fullt navn fra metadata, fallback til e-post-prefix
   const displayName =
