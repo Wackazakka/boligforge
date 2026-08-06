@@ -73,7 +73,8 @@ export default function OnboardingPage() {
                 Jeg jobber alene
               </div>
               <div style={{ fontSize: '13px', color: '#737373' }}>
-                Frittstående megler — ingen team eller kontorsystem.
+                Personlig konto — for frittstående meglere, og for deg som vil i gang
+                før kontoret eller kjeden din bruker ReelHome.
               </div>
             </button>
 
@@ -93,8 +94,10 @@ export default function OnboardingPage() {
                 Jeg representerer et meglerhus eller en kjede
               </div>
               <div style={{ fontSize: '13px', color: '#737373' }}>
-                Konto for hele virksomheten — opprett kontorer og inviter kollegaer etterpå.
-                Er kontoret ditt del av en kjede som allerede bruker ReelHome? Be kjeden invitere deg i stedet.
+                Konto for et meglerkontor eller en hel kjede — inviter kollegaer og opprett
+                kontorer etterpå. Gjelder også enkeltkontor i en kjede: start nå, og koble
+                dere til kjeden når den blir med. Bruker kjeden din allerede ReelHome?
+                Be dem invitere deg i stedet.
               </div>
             </button>
           </div>
