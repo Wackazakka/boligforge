@@ -16,9 +16,10 @@ boligen, og setter alt sammen til en ferdig film med musikk og din logo.
 
 En video tar normalt **rundt 5 minutter** å generere etter at du har trykket «Lag video».
 
-I tillegg tilbyr ReelHome en **AI-megler for kjøpere** («digital visning»): en unik
-lenke per bolig der interessenter kan stille spørsmål til en snakkende AI-utgave av
-megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
+I tillegg har ReelHome en **AI-megler for kjøpere** («digital visning») under
+utrulling: en unik lenke per bolig der interessenter kan stille spørsmål til en
+snakkende AI-utgave av megleren, som svarer fra salgsoppgaven — døgnet rundt, på
+norsk. (Selges ikke som egen plan ennå — se pkt. 8.)
 
 ---
 
@@ -139,17 +140,18 @@ megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
 - **Ubrukte kreditter forsvinner ikke** — de blir med videre. (Bekreftet av Lars 6/8.)
 - Forhåndsvisning av avatar-klipp i redigereren trekker i dag **ikke** kreditter.
 
-### Planer (priser per 6. aug 2026)
+### Planer (priser per 6. aug 2026 — navnene matcher dashbordet og Stripe)
 | Plan | Pris | Innhold |
 |---|---|---|
 | Starter | 2 090 kr/mnd | 3 videoer/mnd — for meglere som tester |
-| Aktiv | 3 990 kr/mnd | 10 videoer/mnd — for aktive meglere |
-| Pro | 1 990 kr/megler/mnd | 7 videoer per megler/mnd — for hele meglerhuset (avtale via hei@reelhome.ai) |
-| Enkeltvideo | 989 kr/video | Én video uten abonnement |
-| AI-megler | 999 kr/mnd + 4,50 kr/min streaming | AI-klonen svarer kjøpere døgnet rundt |
+| Pro | 3 990 kr/mnd | 10 videoer/mnd — for aktive meglere |
+| Kontor | 1 990 kr/megler/mnd | 7 videoer per megler/mnd — for hele meglerhuset (avtale via hei@reelhome.ai) |
+| Ekstra videoer | 989 kr/video | Engangskjøp på toppen av abonnementet, fra dashbordet — krever innlogget abonnent, ingen planendring |
 
 - Alle abonnement starter med 14 dager gratis prøveperiode uten kortinfo.
 - **Grunnlegger-pris**: tidlige brukere låser dagens pris i 2 år.
+- «Ekstra videoer» er en topup for abonnenter — det finnes ikke et frittstående
+  enkeltvideo-kjøp uten konto.
 
 ---
 
@@ -198,7 +200,8 @@ megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
 - **Interessentregistrering**: sier kjøperen at de vil på visning eller kontaktes,
   registrerer AI-megleren navn og kontaktinfo og megleren får beskjed.
 - Bruker meglerens klonede stemme når den finnes.
-- Pris: AI-megler-planen (999 kr/mnd + 4,50 kr/min streaming).
+- **Tilgjengelighet**: AI-megleren er under utrulling og selges ikke som egen plan
+  ennå — interesserte kontakter hei@reelhome.ai. Boten skal ikke oppgi pris på den.
 
 ---
 
@@ -231,11 +234,14 @@ megleren, som svarer fra salgsoppgaven — døgnet rundt, på norsk.
 
 ## Historikk: landingsside-avvik (RETTET 6. aug 2026)
 
-Åtte påstander på landingssiden stemte ikke med produktet (fremmedspråk,
-Vitec-integrasjon, «Kontor»-plan, prioritert rendring, farger/typografi,
-tre-minutters stemmeinnspilling, TikTok-direktepublisering, rollover-formulering).
-Alle ble nedjustert til faktisk produktatferd 6. aug 2026 — landingssiden og denne
-kunnskapsbasen skal nå fortelle samme historie.
+Påstander på landingssiden stemte ikke med produktet (fremmedspråk,
+Vitec-integrasjon, prioritert rendring, farger/typografi, tre-minutters
+stemmeinnspilling, TikTok-direktepublisering, rollover-formulering). I tillegg
+hadde forsiden byttet om plannavnene (viste «Aktiv»/«Pro» der Stripe/dashbordet
+heter «Pro»/«Kontor»), solgte «Enkeltvideo» som abonnementsfritt (989-kjøpet er
+en topup for innloggede abonnenter) og viste AI-megler som kjøpbar plan (finnes
+ikke i Stripe). Alt rettet 6. aug 2026 — landingssiden og denne kunnskapsbasen
+skal nå fortelle samme historie.
 
 Gjenstående å avklare:
 - **[SJEKK: nynorsk]** Avatar-malene Ingrid og Erik er merket «NO·NN» internt —
