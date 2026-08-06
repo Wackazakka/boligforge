@@ -90,10 +90,11 @@ export default function OnboardingPage() {
               }}
             >
               <div style={{ fontWeight: 600, fontSize: '15px', color: '#0f0f0f', marginBottom: '4px' }}>
-                Jeg representerer et meglerhus
+                Jeg representerer et meglerhus eller en kjede
               </div>
               <div style={{ fontSize: '13px', color: '#737373' }}>
-                Konto for hele kontoret — inviter kollegaer etterpå.
+                Konto for hele virksomheten — opprett kontorer og inviter kollegaer etterpå.
+                Er kontoret ditt del av en kjede som allerede bruker ReelHome? Be kjeden invitere deg i stedet.
               </div>
             </button>
           </div>
