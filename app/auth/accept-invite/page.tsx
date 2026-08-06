@@ -24,7 +24,17 @@ export default function AcceptInvitePage() {
     let cancelled = false
 
     async function run() {
-      // Vent til klienten har konsumert tokenene fra URL-en (maks ~10 s)
+      // Supabase-verify legger tokenene i URL-hashen (#access_token=…), men
+      // PKCE-klienten konsumerer ikke det formatet selv — sett sesjonen eksplisitt.
+      const hash = new URLSearchParams(window.location.hash.slice(1))
+      const accessToken  = hash.get('access_token')
+      const refreshToken = hash.get('refresh_token')
+      if (accessToken && refreshToken) {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+
+      // Fallback/bekreftelse: vent til sesjonen er på plass (maks ~10 s)
       let session = null
       for (let i = 0; i < 20; i++) {
         const { data } = await supabase.auth.getSession()
