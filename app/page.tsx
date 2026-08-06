@@ -373,7 +373,7 @@ export default function Home() {
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Direkte publisering: Finn, IG, TikTok</li>
               </ul>
-              <a href="#" className="btn btn-ghost">Snakk med salg</a>
+              <a href="mailto:hei@reelhome.ai?subject=Pro-plan%20for%20meglerhuset" className="btn btn-ghost">Snakk med salg</a>
             </div>
 
             {/* Enkeltvideo */}
