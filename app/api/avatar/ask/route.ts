@@ -13,7 +13,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createMessage } from '../../../../lib/anthropic'
-import { getUser } from '../../../../lib/supabase/server'
 import { serviceClient, retrieveChunks, keywordChunks, neighborChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
 import { isCostQuestion, buildCostBaseSection } from '../../../../lib/avatar/costbase'
 import { speakifyForTTS } from '../../../../lib/norwegian-numbers'
@@ -43,11 +42,15 @@ const LEAD_TOOL: Anthropic.Tool = {
 type HistoryItem = { role: 'user' | 'assistant'; content: string }
 
 export async function POST(request: Request) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  // Kjøpersiden (/bolig-chat og digital visning) er offentlig — kjøpere er aldri
+  // innlogget, så ingen auth-krav (samme beslutning som liveavatar-token 6/8).
+  // Porten er at propertyId må peke på en reell bolig. Rate-limiting hører til
+  // den planlagte sikkerhetsjobben.
   const { propertyId, question, history } = await request.json()
   if (!propertyId || !question) return NextResponse.json({ error: 'Mangler propertyId/question' }, { status: 400 })
+  if (typeof question !== 'string' || question.length > 600) {
+    return NextResponse.json({ error: 'Spørsmålet er for langt (maks 600 tegn)' }, { status: 400 })
+  }
 
   const client = serviceClient()
 
