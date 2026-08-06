@@ -14,6 +14,7 @@ import {
   buildPropertyFacts, buildAvatarSystemPrompt,
 } from '../../../../../../lib/avatar/rag'
 import { isCostQuestion, buildCostBaseSection } from '../../../../../../lib/avatar/costbase'
+import { notifyAgentOfLead } from '../../../../../../lib/avatar/leadNotify'
 import { speakifyForTTS } from '../../../../../../lib/norwegian-numbers'
 
 export const runtime = 'nodejs'
@@ -120,6 +121,8 @@ async function answer(propertyId: string, question: string, history: OAMessage[]
         results.push({ type: 'tool_result', tool_use_id: tu.id,
           content: insErr ? `Registrering feilet: ${insErr.message}` : 'Interessenten er registrert hos megleren.',
           is_error: !!insErr })
+        // Varsle megleren på e-post (fire-and-forget — feiler aldri svaret)
+        if (!insErr) void notifyAgentOfLead(client, property, inp)
       } else {
         results.push({ type: 'tool_result', tool_use_id: tu.id, content: 'Ukjent verktøy', is_error: true })
       }

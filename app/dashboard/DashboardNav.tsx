@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 const BASE_LINKS = [
   { href: '/dashboard/properties', label: 'Eiendommer' },
   { href: '/dashboard/collections', label: 'Mapper' },
+  { href: '/dashboard/interessenter', label: 'Interessenter' },
   { href: '/dashboard/settings/social', label: 'Publisering' },
   { href: '/dashboard/calendar', label: 'Kalender' },
   { href: '/dashboard/profile', label: 'Profil' },

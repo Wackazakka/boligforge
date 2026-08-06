@@ -15,6 +15,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createMessage } from '../../../../lib/anthropic'
 import { serviceClient, retrieveChunks, keywordChunks, neighborChunks, buildPropertyFacts, buildAvatarSystemPrompt } from '../../../../lib/avatar/rag'
 import { isCostQuestion, buildCostBaseSection } from '../../../../lib/avatar/costbase'
+import { notifyAgentOfLead } from '../../../../lib/avatar/leadNotify'
 import { speakifyForTTS } from '../../../../lib/norwegian-numbers'
 
 export const runtime = 'nodejs'
@@ -155,6 +156,8 @@ export async function POST(request: Request) {
           } else {
             leadCaptured = true
             results.push({ type: 'tool_result', tool_use_id: tu.id, content: 'Interessenten er registrert hos megleren.' })
+            // Varsle megleren på e-post (fire-and-forget — feiler aldri svaret)
+            void notifyAgentOfLead(client, property, inp)
           }
         } else {
           results.push({ type: 'tool_result', tool_use_id: tu.id, content: 'Ukjent verktøy', is_error: true })
