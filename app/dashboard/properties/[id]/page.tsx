@@ -183,6 +183,14 @@ export default function PropertyDetailPage() {
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const [playingMusicUrl, setPlayingMusicUrl] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  // Kun én lyd om gangen: ny avspilling stopper forrige (innlesing, stemmeprøve, musikk)
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
+  function playExclusive(audio: HTMLAudioElement) {
+    try { currentAudioRef.current?.pause() } catch { /* allerede stoppet */ }
+    if (playingMusicUrl) { try { audioRef.current?.pause() } catch {} setPlayingMusicUrl(null) }
+    currentAudioRef.current = audio
+    return audio.play()
+  }
 
   // Publish modal
   type SocialConnection = { id: string; platform: string; page_name: string; token_expires_at: string | null }
@@ -582,12 +590,12 @@ export default function PropertyDetailPage() {
     // bare audioUrl). Generer kun når ingen innlesing finnes i det hele tatt —
     // ny innlesing er «Ny innlesing» sin jobb.
     const url = seg.previewAudioUrl ?? seg.audioUrl ?? (await generateSegmentAudio(idx))?.playUrl
-    if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
+    if (url) playExclusive(new Audio(url)).catch(() => setError('Kunne ikke spille av lyd'))
   }
 
   async function handleRegenSegmentAudio(idx: number) {
     const url = (await generateSegmentAudio(idx))?.playUrl
-    if (url) new Audio(url).play().catch(() => setError('Kunne ikke spille av lyd'))
+    if (url) playExclusive(new Audio(url)).catch(() => setError('Kunne ikke spille av lyd'))
   }
 
   // ── Per-segment avatar-klipp: generer + forhåndsvis Fabric-lipsyncen FØR videoen ──
@@ -741,7 +749,7 @@ export default function PropertyDetailPage() {
         setError('Kunne ikke spille av lydeksempel')
         if (audioUrl.startsWith('blob:')) URL.revokeObjectURL(audioUrl)
       }
-      const playPromise = audio.play()
+      const playPromise = playExclusive(audio)
       if (playPromise) await playPromise.catch((e: unknown) => { throw new Error(`Avspilling feilet: ${e instanceof Error ? e.message : String(e)}`) })
     } catch (e) {
       console.error('playVoiceSample error:', e)
@@ -1017,6 +1025,7 @@ export default function PropertyDetailPage() {
     // vanlig stillbilde uansett.
     let introImageUrl: string | undefined = property?.images?.[0]
     let introDuration = 2.5
+    let introBaseImageUrl: string | undefined
     if (resolvedSegments.length > 0 && introImageUrl && property?.title) {
       try {
         setStatusMsg('Lager tittelkort…')
@@ -1027,12 +1036,17 @@ export default function PropertyDetailPage() {
         })
         if (cardRes.ok) {
           const card = await cardRes.json()
-          if (card.url) { introImageUrl = card.url; introDuration = 3.5 }
+          if (card.url) {
+            // baseImageUrl = det rene bildet — worker fader tittelen inn over det
+            introBaseImageUrl = introImageUrl
+            introImageUrl = card.url
+            introDuration = 3.5
+          }
         }
       } catch { /* stille fallback til rent bilde */ }
     }
     const introSegment = (resolvedSegments.length > 0 && introImageUrl)
-      ? [{ type: 'still' as const, imageUrl: introImageUrl, duration: introDuration }]
+      ? [{ type: 'still' as const, imageUrl: introImageUrl, duration: introDuration, ...(introBaseImageUrl ? { baseImageUrl: introBaseImageUrl } : {}) }]
       : []
     const segmentsWithIntro = [...introSegment, ...resolvedSegments]
       // Forhåndsgodkjent avatar-klipp sendes som videoUrl — worker hopper da over
