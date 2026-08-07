@@ -41,6 +41,7 @@ type Segment = {
   text: string
   type: 'avatar' | 'image'
   imageUrl?: string
+  imageUrls?: string[]           // flere bilder per segment — innlesingstiden deles likt; imageUrl holdes synk med [0]
   imageSource?: 'ai' | 'manual'  // 'ai' = AI-foreslått, 'manual' = brukervalgt
   previewingAudio?: boolean
   previewAudioUrl?: string   // blob URL for local playback
@@ -59,6 +60,7 @@ type VideoRecipe = {
   selectedAvatarUrl?: string
   activeAvatarId?: string | null
   selectedImageIdx?: number
+  motion?: boolean               // Ken Burns-bevegelse i bildesegmenter/outro
 }
 
 type Outro = {
@@ -161,6 +163,8 @@ export default function PropertyDetailPage() {
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string; own?: boolean }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [ambienceType, setAmbienceType] = useState<string>('none')
+  // Ken Burns-bevegelse (rolig zoom/panorering) i bildesegmenter og outro — på som standard
+  const [motion, setMotion] = useState(true)
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -647,6 +651,8 @@ export default function PropertyDetailPage() {
     setSelectedAvatarUrl(recipe.selectedAvatarUrl ?? '')
     setActiveAvatar(recipe.activeAvatarId ? (TEMPLATE_AVATARS.find(a => a.id === recipe.activeAvatarId) ?? null) : null)
     if (typeof recipe.selectedImageIdx === 'number') setSelectedImageIdx(recipe.selectedImageIdx)
+    // Eldre oppskrifter (før bevegelse fantes) skal re-generere uendret → av
+    setMotion(recipe.motion ?? false)
     setVideoUrl(null)
     setStatusMsg('')
     // Rull opp til redigereren så man ser hva som ble lastet
@@ -928,7 +934,7 @@ export default function PropertyDetailPage() {
     }
     if (segments.length > 0) {
       // Nummerering i feilmeldinger følger visningen (posisjon), ikke intern id
-      const missingImageIdx = segments.findIndex(s => s.type === 'image' && !s.imageUrl)
+      const missingImageIdx = segments.findIndex(s => s.type === 'image' && !s.imageUrl && !s.imageUrls?.length)
       if (missingImageIdx >= 0) {
         setError(`Segment ${missingImageIdx + 1} er satt til «bilde» men mangler bildevalg.`)
         return
@@ -1039,10 +1045,11 @@ export default function PropertyDetailPage() {
       selectedAvatarUrl,
       activeAvatarId: activeAvatar?.id ?? null,
       selectedImageIdx,
+      motion,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, recipe }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, recipe }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -1832,66 +1839,81 @@ export default function PropertyDetailPage() {
                           )}
                         </div>
                       ) : seg.imageUrl && openGalleryForSegment !== i ? (
-                        /* Kompakt visning: valgt bilde + bytt-knapp */
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div
-                            style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}
-                            onClick={() => setOpenGalleryForSegment(i)}
-                            title="Bytt bilde"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={seg.imageUrl} alt=""
-                              style={{ width: '96px', height: '64px', objectFit: 'cover', display: 'block' }}
-                            />
-                            <button
-                              onClick={e => { e.stopPropagation(); setLightboxUrl(seg.imageUrl ?? null) }}
-                              title="Forstørr"
-                              className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
-                              style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}
-                            >⤢</button>
-                            <span style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>⇄</span>
-                          </div>
+                        /* Kompakt visning: valgte bilder + bytt-knapp */
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          {(seg.imageUrls?.length ? seg.imageUrls : [seg.imageUrl]).map((imgU, ii) => (
+                            <div
+                              key={imgU}
+                              style={{ position: 'relative', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}
+                              onClick={() => setOpenGalleryForSegment(i)}
+                              title="Bytt bilder"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={imgU} alt=""
+                                style={{ width: '96px', height: '64px', objectFit: 'cover', display: 'block' }}
+                              />
+                              <button
+                                onClick={e => { e.stopPropagation(); setLightboxUrl(imgU) }}
+                                title="Forstørr"
+                                className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                                style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}
+                              >⤢</button>
+                              {(seg.imageUrls?.length ?? 0) > 1 && (
+                                <span style={{ position: 'absolute', bottom: '3px', left: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>{ii + 1}</span>
+                              )}
+                            </div>
+                          ))}
                           <button
                             onClick={() => setOpenGalleryForSegment(i)}
                             style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >Bytt bilde →</button>
+                          >Bytt bilder →</button>
                         </div>
                       ) : (
-                        /* Galleri-velger */
+                        /* Galleri-velger — klikk legger til/fjerner; flere bilder deler
+                           innlesingstiden likt (raskere klipp uten hakkete fortelling) */
                         <div className="space-y-1.5">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <p className="text-xs" style={{ color: 'var(--muted)' }}>Velg bilde for dette segmentet:</p>
-                            {openGalleryForSegment === i && (
-                              <button
-                                onClick={() => setOpenGalleryForSegment(null)}
-                                style={{ fontSize: '11px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                              >↩ Lukk</button>
-                            )}
+                            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                              Velg ett eller flere bilder — med flere deles innlesingstiden likt mellom dem:
+                            </p>
+                            <button
+                              onClick={() => setOpenGalleryForSegment(null)}
+                              style={{ fontSize: '11px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                            >✓ Ferdig</button>
                           </div>
                           <div className="flex gap-2 overflow-x-auto pb-1" style={{ overscrollBehaviorX: 'contain' }}>
-                            {(property?.images || []).map((img, j) => (
+                            {(property?.images || []).map((img, j) => {
+                              const selected = seg.imageUrls?.length ? seg.imageUrls : (seg.imageUrl ? [seg.imageUrl] : [])
+                              const pos = selected.indexOf(img)
+                              return (
                               <div key={j} className="relative flex-shrink-0 group">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={img} alt=""
-                                  onClick={() => { updateSegment(i, { imageUrl: img, imageSource: 'manual' as const }); setOpenGalleryForSegment(null) }}
+                                  onClick={() => {
+                                    const next = pos >= 0 ? selected.filter(u => u !== img) : [...selected, img]
+                                    updateSegment(i, { imageUrls: next, imageUrl: next[0], imageSource: 'manual' as const })
+                                  }}
                                   className="w-36 h-24 object-cover rounded-lg cursor-pointer transition-all"
                                   style={{
-                                    border: `2px solid ${seg.imageUrl === img ? 'var(--gold)' : 'transparent'}`,
-                                    opacity: seg.imageUrl === img ? 1 : 0.5,
+                                    border: `2px solid ${pos >= 0 ? 'var(--gold)' : 'transparent'}`,
+                                    opacity: pos >= 0 ? 1 : 0.5,
                                   }}
                                 />
+                                {pos >= 0 && (
+                                  <span style={{ position: 'absolute', top: '4px', right: '4px', background: 'var(--gold)', borderRadius: '99px', minWidth: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#fff', fontWeight: 700 }}>{pos + 1}</span>
+                                )}
                                 <button
                                   onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
                                   className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
                                   style={{ background: 'rgba(13,11,8,0.7)' }}
                                 >⤢</button>
                               </div>
-                            ))}
+                            )})}
                           </div>
-                          {!seg.imageUrl && (
-                            <p className="text-xs" style={{ color: 'var(--gold-deep)' }}>Velg et bilde over</p>
+                          {!seg.imageUrl && !(seg.imageUrls?.length) && (
+                            <p className="text-xs" style={{ color: 'var(--gold-deep)' }}>Velg minst ett bilde over</p>
                           )}
                         </div>
                       )}
@@ -2180,6 +2202,18 @@ export default function PropertyDetailPage() {
           {!generatingVideo && statusMsg && (
             <div className="app-info">{statusMsg}</div>
           )}
+          {/* Bevegelse i bildene — Ken Burns i bildesegmenter og outro (kundeønske 7/8) */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 2px' }}>
+            <input
+              type="checkbox"
+              checked={motion}
+              onChange={e => setMotion(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
+            />
+            <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+              🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— rolig zoom og panorering i boligbildene og avslutningen</span>
+            </span>
+          </label>
           <button
             onClick={handleGenerateVideo}
             disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
