@@ -68,7 +68,9 @@ type Outro = {
   images: string[]
   musicUrl: string
   durationPerImage: number
-  transition?: 'none' | 'fade'   // kryssfade mellom bildene i slideshowet
+  transition?: 'none' | 'fade'   // eldre felt — erstattet av style (leses for bakoverkomp)
+  style?: 'cut' | 'fade' | 'motion'          // outroens stil, uavhengig av segment-bevegelsen
+  motionStrength?: 'subtle' | 'medium' | 'strong'  // kun ved style='motion'
 }
 
 type SettingImage = {
@@ -2069,22 +2071,41 @@ export default function PropertyDetailPage() {
                       ⚡ Hurtigkutt — med musikk gir dette en rytmisk, energisk avslutning.
                     </p>
                   )}
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Overgang mellom bildene</label>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Stil på bildeserien</label>
                     <div className="flex gap-2">
-                      {([['none', 'Rett kutt'], ['fade', 'Kryssfade']] as const).map(([val, label]) => (
+                      {([['cut', 'Rene kutt'], ['fade', 'Kryssfade'], ['motion', 'Bevegelse']] as const).map(([val, label]) => {
+                        const active = (outro.style ?? (outro.transition === 'fade' ? 'fade' : 'cut')) === val
+                        return (
                         <button
                           key={val}
-                          onClick={() => setOutro(o => ({ ...o, transition: val }))}
+                          onClick={() => setOutro(o => ({ ...o, style: val }))}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium"
                           style={{
-                            background: (outro.transition ?? 'none') === val ? 'var(--gold)' : 'var(--surface)',
-                            color: (outro.transition ?? 'none') === val ? '#fff' : 'var(--muted)',
-                            border: `1px solid ${(outro.transition ?? 'none') === val ? 'var(--gold)' : 'var(--line)'}`,
+                            background: active ? 'var(--gold)' : 'var(--surface)',
+                            color: active ? '#fff' : 'var(--muted)',
+                            border: `1px solid ${active ? 'var(--gold)' : 'var(--line)'}`,
                           }}
                         >{label}</button>
-                      ))}
+                      )})}
                     </div>
+                    {(outro.style ?? (outro.transition === 'fade' ? 'fade' : 'cut')) === 'motion' && (
+                      <div className="flex gap-2 items-center">
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>Styrke:</span>
+                        {([['subtle', 'Subtil'], ['medium', 'Middels'], ['strong', 'Sterk']] as const).map(([val, label]) => (
+                          <button
+                            key={val}
+                            onClick={() => setOutro(o => ({ ...o, motionStrength: val }))}
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium"
+                            style={{
+                              background: (outro.motionStrength ?? 'medium') === val ? 'var(--gold)' : 'var(--surface)',
+                              color: (outro.motionStrength ?? 'medium') === val ? '#fff' : 'var(--muted)',
+                              border: `1px solid ${(outro.motionStrength ?? 'medium') === val ? 'var(--gold)' : 'var(--line)'}`,
+                            }}
+                          >{label}</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2289,7 +2310,7 @@ export default function PropertyDetailPage() {
                 style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
               />
               <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
-                🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— zoom og panorering i boligbildene og avslutningen</span>
+                🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— zoom og panorering i segmentbildene (avslutningen styres i outro-seksjonen)</span>
               </span>
             </label>
             {motion && (
