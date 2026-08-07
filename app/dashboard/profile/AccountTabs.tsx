@@ -7,7 +7,7 @@ export default function AccountTabs() {
   const pathname = usePathname()
   const tabs = [
     { href: '/dashboard/profile',         label: 'Profil' },
-    { href: '/dashboard/billing',         label: 'Fakturering' },
+    { href: '/dashboard/billing',         label: 'Abonnement' },
     { href: '/dashboard/settings/social', label: 'Sosiale medier' },
   ]
   return (
