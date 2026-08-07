@@ -1918,6 +1918,9 @@ export default function PropertyDetailPage() {
                             {(property?.images || []).map((img, j) => {
                               const selected = seg.imageUrls?.length ? seg.imageUrls : (seg.imageUrl ? [seg.imageUrl] : [])
                               const pos = selected.indexOf(img)
+                              // Brukt i et ANNET segment → grå kvittering (fortsatt klikkbart)
+                              const usedElsewhere = pos < 0 && segments.some((s2, i2) =>
+                                i2 !== i && (s2.imageUrls?.includes(img) || s2.imageUrl === img))
                               return (
                               <div key={j} className="relative flex-shrink-0 group">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1930,11 +1933,16 @@ export default function PropertyDetailPage() {
                                   className="w-36 h-24 object-cover rounded-lg cursor-pointer transition-all"
                                   style={{
                                     border: `2px solid ${pos >= 0 ? 'var(--gold)' : 'transparent'}`,
-                                    opacity: pos >= 0 ? 1 : 0.5,
+                                    // Full synlighet til bildet er valgt et sted — gråtone er kvitteringen
+                                    opacity: usedElsewhere ? 0.35 : 1,
+                                    filter: usedElsewhere ? 'grayscale(1)' : 'none',
                                   }}
                                 />
                                 {pos >= 0 && (
                                   <span style={{ position: 'absolute', top: '4px', right: '4px', background: 'var(--gold)', borderRadius: '99px', minWidth: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#fff', fontWeight: 700 }}>{pos + 1}</span>
+                                )}
+                                {usedElsewhere && (
+                                  <span style={{ position: 'absolute', top: '4px', left: '4px', background: 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 6px', fontSize: '10px', color: '#fff' }}>Brukt</span>
                                 )}
                                 <button
                                   onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
@@ -2008,8 +2016,9 @@ export default function PropertyDetailPage() {
                           }))}
                           className="relative cursor-pointer rounded-lg overflow-hidden group"
                           style={{
+                            // Full synlighet på uvalgte — gullramme + hake er kvitteringen
                             border: `2px solid ${selected ? 'var(--gold)' : 'transparent'}`,
-                            opacity: selected ? 1 : 0.4,
+                            opacity: 1,
                           }}
                         >
                           <img src={img} alt="" className="w-36 h-24 object-cover" />
