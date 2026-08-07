@@ -109,6 +109,8 @@ export default function ProfilePage() {
   const [portraitVersion, setPortraitVersion] = useState(0)
   const [org, setOrg] = useState({ isAdmin: false, allow_did: true, allow_liveavatar: true, allow_pvc: true })
   // Premium-tilleggene (② og ③) skal ikke dominere profilsiden — sammenlagt som standard
+  // Midlertidig HELT skjult (Lars 7/8, før hjem.no-møtet) — sett true for å vise igjen.
+  const SHOW_PREMIUM_ADDONS = false
   const [showDigitalVisning, setShowDigitalVisning] = useState(false)
   const [showProffStemme, setShowProffStemme] = useState(false)
   const [showNextStep, setShowNextStep] = useState(false)
@@ -986,7 +988,7 @@ export default function ProfilePage() {
         </section>
         </div>
 
-        {(org.isAdmin || org.allow_did || org.allow_liveavatar) && (<>
+        {SHOW_PREMIUM_ADDONS && (org.isAdmin || org.allow_did || org.allow_liveavatar) && (<>
         {/* ── Produkt 2: Digital visning (foto-avatar + video-avatar) ──
             Sammenleggbar: premium-tillegg som ikke skal dominere profilsiden. */}
         <div className="pt-4">
@@ -1037,7 +1039,7 @@ export default function ProfilePage() {
         </>)}
         </>)}
 
-        {(org.isAdmin || org.allow_pvc) && (<>
+        {SHOW_PREMIUM_ADDONS && (org.isAdmin || org.allow_pvc) && (<>
         {/* ── Produkt 3: Proff-stemme (PVC) ──
             Sammenleggbar, samme mønster som ② Digital visning. */}
         <div className="pt-4">
