@@ -927,9 +927,15 @@ export default function PropertyDetailPage() {
       return
     }
     if (segments.length > 0) {
-      const imageSeg = segments.find(s => s.type === 'image' && !s.imageUrl)
-      if (imageSeg) {
-        setError(`Segment ${imageSeg.id + 1} er satt til «bilde» men mangler bildevalg.`)
+      // Nummerering i feilmeldinger følger visningen (posisjon), ikke intern id
+      const missingImageIdx = segments.findIndex(s => s.type === 'image' && !s.imageUrl)
+      if (missingImageIdx >= 0) {
+        setError(`Segment ${missingImageIdx + 1} er satt til «bilde» men mangler bildevalg.`)
+        return
+      }
+      const emptyTextIdx = segments.findIndex(s => !s.text.trim())
+      if (emptyTextIdx >= 0) {
+        setError(`Segment ${emptyTextIdx + 1} mangler tekst — skriv hva som skal sies, eller fjern segmentet.`)
         return
       }
     }
@@ -1895,6 +1901,19 @@ export default function PropertyDetailPage() {
                 </div>
               ))}
             </div>
+
+            {/* Legg til segment — nytt tomt bildesegment nederst (kundeønske hjem.no-møtet 7/8) */}
+            <button
+              onClick={() => setSegments(prev => [...prev, {
+                id: Math.max(0, ...prev.map(s => s.id)) + 1,
+                text: '',
+                type: 'image' as const,
+              }])}
+              className="app-btn-ghost text-sm w-full"
+              style={{ border: '1px dashed var(--line)', borderRadius: '8px', padding: '10px' }}
+            >
+              + Legg til segment
+            </button>
           </div>
         )}
 
