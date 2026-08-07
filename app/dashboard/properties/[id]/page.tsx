@@ -61,6 +61,7 @@ type VideoRecipe = {
   activeAvatarId?: string | null
   selectedImageIdx?: number
   motion?: boolean               // Ken Burns-bevegelse i bildesegmenter/outro
+  motionStrength?: 'subtle' | 'medium' | 'strong'
 }
 
 type Outro = {
@@ -166,6 +167,7 @@ export default function PropertyDetailPage() {
   const [ambienceType, setAmbienceType] = useState<string>('none')
   // Ken Burns-bevegelse (rolig zoom/panorering) i bildesegmenter og outro — på som standard
   const [motion, setMotion] = useState(true)
+  const [motionStrength, setMotionStrength] = useState<'subtle' | 'medium' | 'strong'>('medium')
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -652,8 +654,10 @@ export default function PropertyDetailPage() {
     setSelectedAvatarUrl(recipe.selectedAvatarUrl ?? '')
     setActiveAvatar(recipe.activeAvatarId ? (TEMPLATE_AVATARS.find(a => a.id === recipe.activeAvatarId) ?? null) : null)
     if (typeof recipe.selectedImageIdx === 'number') setSelectedImageIdx(recipe.selectedImageIdx)
-    // Eldre oppskrifter (før bevegelse fantes) skal re-generere uendret → av
+    // Eldre oppskrifter (før bevegelse fantes) skal re-generere uendret → av;
+    // oppskrifter fra før styrkevalget fantes var subtile
     setMotion(recipe.motion ?? false)
+    setMotionStrength(recipe.motionStrength ?? 'subtle')
     setVideoUrl(null)
     setStatusMsg('')
     // Rull opp til redigereren så man ser hva som ble lastet
@@ -1047,10 +1051,11 @@ export default function PropertyDetailPage() {
       activeAvatarId: activeAvatar?.id ?? null,
       selectedImageIdx,
       motion,
+      motionStrength,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, recipe }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, recipe }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -2242,17 +2247,35 @@ export default function PropertyDetailPage() {
             <div className="app-info">{statusMsg}</div>
           )}
           {/* Bevegelse i bildene — Ken Burns i bildesegmenter og outro (kundeønske 7/8) */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 2px' }}>
-            <input
-              type="checkbox"
-              checked={motion}
-              onChange={e => setMotion(e.target.checked)}
-              style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
-            />
-            <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
-              🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— rolig zoom og panorering i boligbildene og avslutningen</span>
-            </span>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '4px 2px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={motion}
+                onChange={e => setMotion(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
+              />
+              <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— zoom og panorering i boligbildene og avslutningen</span>
+              </span>
+            </label>
+            {motion && (
+              <div className="flex gap-2">
+                {([['subtle', 'Subtil'], ['medium', 'Middels'], ['strong', 'Sterk']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setMotionStrength(val)}
+                    className="px-3 py-1 rounded-lg text-xs font-medium"
+                    style={{
+                      background: motionStrength === val ? 'var(--gold)' : 'var(--surface)',
+                      color: motionStrength === val ? '#fff' : 'var(--muted)',
+                      border: `1px solid ${motionStrength === val ? 'var(--gold)' : 'var(--line)'}`,
+                    }}
+                  >{label}</button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={handleGenerateVideo}
             disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
