@@ -1067,8 +1067,8 @@ export default function ProfilePage() {
         )}
         </>)}
 
-        {/* Byrå-innstillinger (kun byråsjef) */}
-        {org.isAdmin && (
+        {/* Byrå-innstillinger (kun byråsjef) — styrer premium-tilleggene, skjules sammen med dem */}
+        {SHOW_PREMIUM_ADDONS && org.isAdmin && (
         <section className="app-card">
           <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Byrå-innstillinger
