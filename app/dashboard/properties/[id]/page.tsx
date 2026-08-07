@@ -67,6 +67,7 @@ type Outro = {
   images: string[]
   musicUrl: string
   durationPerImage: number
+  transition?: 'none' | 'fade'   // kryssfade mellom bildene i slideshowet
 }
 
 type SettingImage = {
@@ -2012,15 +2013,41 @@ export default function PropertyDetailPage() {
               )}
 
               {outro.images.length > 0 && (
-                <div className="flex items-center gap-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
-                  <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Varighet per bilde</label>
-                  <input
-                    type="range" min={2} max={10} step={1}
-                    value={outro.durationPerImage}
-                    onChange={e => setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) }))}
-                    className="flex-1"
-                  />
-                  <span className="text-xs w-12 text-right" style={{ color: 'var(--ink-2)' }}>{outro.durationPerImage} sek</span>
+                <div className="space-y-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Varighet per bilde</label>
+                    <input
+                      type="range" min={0.2} max={10} step={0.1}
+                      value={outro.durationPerImage}
+                      onChange={e => setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) }))}
+                      className="flex-1"
+                    />
+                    <span className="text-xs w-14 text-right" style={{ color: 'var(--ink-2)' }}>
+                      {outro.durationPerImage.toLocaleString('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sek
+                    </span>
+                  </div>
+                  {outro.durationPerImage < 1 && (
+                    <p className="text-xs" style={{ color: 'var(--muted)', marginLeft: '0' }}>
+                      ⚡ Hurtigkutt — med musikk gir dette en rytmisk, energisk avslutning.
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Overgang mellom bildene</label>
+                    <div className="flex gap-2">
+                      {([['none', 'Rett kutt'], ['fade', 'Kryssfade']] as const).map(([val, label]) => (
+                        <button
+                          key={val}
+                          onClick={() => setOutro(o => ({ ...o, transition: val }))}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                          style={{
+                            background: (outro.transition ?? 'none') === val ? 'var(--gold)' : 'var(--surface)',
+                            color: (outro.transition ?? 'none') === val ? '#fff' : 'var(--muted)',
+                            border: `1px solid ${(outro.transition ?? 'none') === val ? 'var(--gold)' : 'var(--line)'}`,
+                          }}
+                        >{label}</button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
