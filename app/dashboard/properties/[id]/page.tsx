@@ -1701,11 +1701,23 @@ export default function PropertyDetailPage() {
                       className="app-textarea flex-1"
                       style={{ fontSize: '13px' }}
                     />
-                    <button
-                      onClick={() => setSegments(prev => prev.filter((_, j) => j !== i))}
-                      title="Fjern segment"
-                      className="mt-1.5 app-btn-ghost text-sm px-1"
-                    >✕</button>
+                    <div className="flex flex-col gap-1 mt-1.5">
+                      <button
+                        onClick={() => setSegments(prev => prev.filter((_, j) => j !== i))}
+                        title="Fjern segment"
+                        className="app-btn-ghost text-sm px-1"
+                      >✕</button>
+                      <button
+                        onClick={() => setSegments(prev => [
+                          ...prev.slice(0, i + 1),
+                          { id: Math.max(0, ...prev.map(s => s.id)) + 1, text: '', type: 'image' as const },
+                          ...prev.slice(i + 1),
+                        ])}
+                        title="Legg til nytt segment rett under dette"
+                        className="app-btn-ghost text-sm px-1"
+                        style={{ color: 'var(--gold-deep)' }}
+                      >＋</button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-y-2">
                     <div className="flex gap-2">
