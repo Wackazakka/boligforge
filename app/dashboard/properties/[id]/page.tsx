@@ -1963,11 +1963,21 @@ export default function PropertyDetailPage() {
           const unused = (property?.images || []).filter(img => !usedUrls.has(img))
           return (
             <div className="app-card space-y-4">
-              <div>
-                <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Outro — gjenværende bilder</h2>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                  {unused.length} bilder ikke brukt i segmentene. Velg hvilke som skal vises etter talen med musikk under.
-                </p>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Outro — gjenværende bilder</h2>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                    {unused.length} bilder ikke brukt i segmentene. Velg hvilke som skal vises etter talen med musikk under.
+                  </p>
+                </div>
+                {unused.length > 0 && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => setOutro(o => ({ ...o, images: unused }))} className="text-xs font-medium" style={{ color: 'var(--gold)' }}>Velg alle</button>
+                    <span style={{ color: 'var(--line-2)' }}>|</span>
+                    <button onClick={() => setOutro(o => ({ ...o, images: [] }))} className="app-btn-ghost text-xs px-0">Fjern alle</button>
+                    <span className="text-xs" style={{ color: 'var(--muted)' }}>{outro.images.length} valgt</span>
+                  </div>
+                )}
               </div>
 
               {unused.length > 0 && (
