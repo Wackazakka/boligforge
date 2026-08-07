@@ -11,3 +11,12 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Same-origin-proxy til R2: «Last ned»-knappene fetch-er videofila som blob,
+# men pub-*.r2.dev sender ingen CORS-headere (og S3-nøklene kan ikke sette
+# bucket-CORS). Via /r2/* blir fila same-origin og nedlastingen fungerer.
+[[redirects]]
+  from = "/r2/*"
+  to = "https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/:splat"
+  status = 200
+  force = true

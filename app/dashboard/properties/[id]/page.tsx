@@ -795,7 +795,12 @@ export default function PropertyDetailPage() {
 
   async function downloadVideo(url: string, filename = 'presentasjon.mp4') {
     try {
-      const res = await fetch(url)
+      // R2-filer hentes via same-origin-proxyen /r2/* (netlify.toml) — pub-
+      // domenet sender ingen CORS-headere, så direkte fetch feiler og falt
+      // tidligere tilbake til «åpne i ny fane» i stedet for ekte nedlasting.
+      const proxied = url.replace(/^https:\/\/pub-[a-z0-9]+\.r2\.dev\//, '/r2/')
+      const res = await fetch(proxied)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
