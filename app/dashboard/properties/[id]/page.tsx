@@ -62,6 +62,8 @@ type VideoRecipe = {
   selectedImageIdx?: number
   motion?: boolean               // Ken Burns-bevegelse i bildesegmenter/outro
   motionStrength?: 'subtle' | 'medium' | 'strong'
+  segmentTransition?: 'cut' | 'fade'   // overgang mellom bilder INNE i et segment
+  noMotionImages?: string[]            // bilder som aldri skal ha bevegelse (per video)
 }
 
 type Outro = {
@@ -170,6 +172,8 @@ export default function PropertyDetailPage() {
   // Ken Burns-bevegelse (rolig zoom/panorering) i bildesegmenter og outro — på som standard
   const [motion, setMotion] = useState(true)
   const [motionStrength, setMotionStrength] = useState<'subtle' | 'medium' | 'strong'>('medium')
+  const [segmentTransition, setSegmentTransition] = useState<'cut' | 'fade'>('cut')
+  const [noMotionImages, setNoMotionImages] = useState<string[]>([])
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -668,6 +672,8 @@ export default function PropertyDetailPage() {
     // oppskrifter fra før styrkevalget fantes var subtile
     setMotion(recipe.motion ?? false)
     setMotionStrength(recipe.motionStrength ?? 'subtle')
+    setSegmentTransition(recipe.segmentTransition ?? 'cut')
+    setNoMotionImages(recipe.noMotionImages ?? [])
     setVideoUrl(null)
     setStatusMsg('')
     // Rull opp til redigereren så man ser hva som ble lastet
@@ -1068,10 +1074,12 @@ export default function PropertyDetailPage() {
       selectedImageIdx,
       motion,
       motionStrength,
+      segmentTransition,
+      noMotionImages,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, recipe }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -1946,6 +1954,18 @@ export default function PropertyDetailPage() {
                                 {usedElsewhere && (
                                   <span style={{ position: 'absolute', top: '4px', left: '4px', background: 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 6px', fontSize: '10px', color: '#fff' }}>Brukt</span>
                                 )}
+                                {pos >= 0 && motion && (
+                                  <button
+                                    onClick={e => {
+                                      e.stopPropagation()
+                                      setNoMotionImages(prev => prev.includes(img) ? prev.filter(u => u !== img) : [...prev, img])
+                                    }}
+                                    title={noMotionImages.includes(img)
+                                      ? 'Bevegelse er AV for dette bildet — klikk for å slå på igjen'
+                                      : 'Slå AV bevegelse for akkurat dette bildet'}
+                                    style={{ position: 'absolute', bottom: '3px', left: '3px', background: noMotionImages.includes(img) ? '#dc2626' : 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 5px', fontSize: '11px', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                  >{noMotionImages.includes(img) ? '🚫🎥' : '🎥'}</button>
+                                )}
                                 <button
                                   onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
                                   className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity text-[9px]"
@@ -2329,6 +2349,21 @@ export default function PropertyDetailPage() {
                 ))}
               </div>
             )}
+            <div className="flex gap-2 items-center">
+              <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Overgang mellom bilder:</span>
+              {([['cut', 'Rett kutt'], ['fade', 'Kryssfade']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setSegmentTransition(val)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium"
+                  style={{
+                    background: segmentTransition === val ? 'var(--gold)' : 'var(--surface)',
+                    color: segmentTransition === val ? '#fff' : 'var(--muted)',
+                    border: `1px solid ${segmentTransition === val ? 'var(--gold)' : 'var(--line)'}`,
+                  }}
+                >{label}</button>
+              ))}
+            </div>
           </div>
           <button
             onClick={handleGenerateVideo}
