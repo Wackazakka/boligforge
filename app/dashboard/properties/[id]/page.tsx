@@ -46,7 +46,7 @@ const SPLIT_STEPS: TourStep[] = [
   {
     selector: '[data-tour="split-segments"]',
     title: 'Neste steg: del opp i segmenter',
-    description: 'Dette er det anbefalte veivalget. AI-en deler manuset i biter og kobler riktige boligbilder til hver del — og du får sjekke hver bit for seg før videoen lages. Hopper du over, leses hele manuset i ett strekk over bilder du velger manuelt.',
+    description: 'Dette er det anbefalte veivalget. AI-en deler manuset i biter og kobler riktige boligbilder til hver del — og du får sjekke hver bit for seg før videoen lages. Hopper du over, leses hele manuset i ett strekk over bare de åtte første bildene fra listen nederst.',
   },
 ]
 
@@ -1897,7 +1897,7 @@ export default function PropertyDetailPage() {
           {script && segments.length === 0 && (
             <div style={{ background: 'var(--blue-soft)', border: '1px solid var(--blue-line)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5 }}>
               💡 <strong>Anbefalt:</strong> Trykk «Del opp i segmenter» — da kobler AI-en boligbildene til riktig del av manuset automatisk.
-              Hopper du over, leses hele manuset i ett strekk over bilder du velger manuelt under.
+              Hopper du over, leses hele manuset i ett strekk over bare de åtte første bildene i listen nederst.
             </div>
           )}
         </div>
@@ -2489,6 +2489,9 @@ export default function PropertyDetailPage() {
                 <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Velg bilder til video</h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                   {selectedVideoImages.length} av {property.images.length} valgt · Klikk for å velge/fjerne
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--gold-deep)' }}>
+                  Uten segmentering brukes bare de {Math.min(8, selectedVideoImages.length)} første i videoen.
                 </p>
               </div>
               <div className="flex gap-2">
