@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ProductTour, { runTourOnce } from '@/app/components/ProductTour'
+
+const TOUR_EMPTY_KEY = 'rh_tour_properties_empty'
+const TOUR_CARD_KEY = 'rh_tour_properties_card'
 
 type Property = {
   id: string
@@ -50,8 +54,21 @@ export default function PropertiesPage() {
         body: JSON.stringify({ url: url.trim() }),
       })
       const data = await res.json()
-      if (!res.ok) setScrapeError(data.error || 'Scraping feilet')
-      else { setUrl(''); await loadProperties() }
+      if (!res.ok || !data.scrapeId) {
+        setScrapeError(data.error || 'Scraping feilet')
+      } else {
+        // Poll til worker er ferdig (hjem.no + mange bilder kan ta ~1 min)
+        let finished = false
+        for (let i = 0; i < 60; i++) {
+          await new Promise(r => setTimeout(r, 3000))
+          const st = await fetch(`/api/properties/scrape?id=${data.scrapeId}`).then(r => r.json()).catch(() => null)
+          if (st?.status === 'done') { finished = true; break }
+          if (st?.status === 'error') { setScrapeError(st.error || 'Scraping feilet'); finished = true; break }
+        }
+        if (!finished) setScrapeError('Hentingen tok for lang tid — prøv å laste siden på nytt om litt.')
+        setUrl('')
+        await loadProperties()
+      }
     } catch (err) { setScrapeError(String(err)) }
     finally { setScraping(false) }
   }
@@ -78,10 +95,24 @@ export default function PropertiesPage() {
   const active = properties.filter(p => p.status !== 'sold')
   const sold   = properties.filter(p => p.status === 'sold')
 
+  // Vis "klikk på boligen"-tipset første gang brukeren har minst én eiendom.
+  useEffect(() => {
+    if (!loading && active.length > 0) {
+      const t = setTimeout(() => runTourOnce(TOUR_CARD_KEY, [{
+        selector: '[data-tour="property-card"]',
+        title: 'Klikk på boligen',
+        description: 'Trykk på et boligkort for å lage videoen — velg bilder, skriv manus og generer.',
+      }]), 150)
+      return () => clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, active.length])
+
   function PropertyCard({ p, isSold }: { p: Property; isSold: boolean }) {
     return (
       <div
         onClick={() => !isSold && router.push(`/dashboard/properties/${p.id}`)}
+        data-tour={!isSold ? 'property-card' : undefined}
         className="rounded-xl overflow-hidden transition-all"
         style={{
           background:  'var(--surface)',
@@ -169,13 +200,41 @@ export default function PropertiesPage() {
     <div className="p-6">
       <div className="max-w-5xl mx-auto space-y-8">
 
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
-            Eiendommer
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-            Lim inn en Finn.no- eller Hjem.no-annonse for å hente inn boligdata — klikk deretter på eiendommen du vil lage video for
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
+              Eiendommer
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
+              Lim inn en Finn.no- eller Hjem.no-annonse for å hente inn boligdata — klikk deretter på eiendommen du vil lage video for
+            </p>
+          </div>
+          <button
+            type="button"
+            title="Vis en rask gjennomgang"
+            onClick={() => {
+              try {
+                window.localStorage.removeItem(TOUR_EMPTY_KEY)
+                window.localStorage.removeItem(TOUR_CARD_KEY)
+              } catch { /* ignore */ }
+              runTourOnce(TOUR_EMPTY_KEY, [
+                {
+                  selector: '[data-tour="scrape-url"]',
+                  title: 'Lim inn boligannonsen',
+                  description: 'Lim inn lenken til Finn.no- eller Hjem.no-annonsen for boligen du vil lage video for.',
+                },
+                {
+                  selector: '[data-tour="scrape-button"]',
+                  title: 'Hent annonsen',
+                  description: 'Trykk her for å hente inn bilder, pris og fakta fra annonsen automatisk.',
+                },
+              ])
+            }}
+            className="app-btn-ghost text-xs"
+            style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            ?
+          </button>
         </div>
 
         {/* Scrape form */}
@@ -187,11 +246,29 @@ export default function PropertiesPage() {
             placeholder="https://www.finn.no/... eller https://hjem.no/property/..."
             className="app-input flex-1 min-w-0"
             style={{ width: 'auto' }}
+            data-tour="scrape-url"
           />
-          <button type="submit" disabled={scraping || !url.trim()} className="app-btn-primary">
+          <button type="submit" disabled={scraping || !url.trim()} className="app-btn-primary" data-tour="scrape-button">
             {scraping ? 'Henter...' : 'Hent annonse'}
           </button>
         </form>
+
+        <ProductTour
+          storageKey={TOUR_EMPTY_KEY}
+          when={!loading && active.length === 0}
+          steps={[
+            {
+              selector: '[data-tour="scrape-url"]',
+              title: 'Lim inn boligannonsen',
+              description: 'Lim inn lenken til Finn.no- eller Hjem.no-annonsen for boligen du vil lage video for.',
+            },
+            {
+              selector: '[data-tour="scrape-button"]',
+              title: 'Hent annonsen',
+              description: 'Trykk her for å hente inn bilder, pris og fakta fra annonsen automatisk.',
+            },
+          ]}
+        />
 
         {scrapeError && <div className="app-error">{scrapeError}</div>}
 
