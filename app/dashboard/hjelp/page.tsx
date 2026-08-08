@@ -227,14 +227,9 @@ const SECTIONS: Section[] = [
   },
 ]
 
-const TOUR_KEYS = [
-  'rh_tour_properties_empty',
-  'rh_tour_properties_card',
-  'rh_tour_profile',
-  'rh_tour_property_setup',
-  'rh_tour_property_split',
-  'rh_tour_property_review',
-]
+// Noeklene er brukerbundne (rh_tour_x:<uid>), saa nullstill paa PREFIKS —
+// en fast liste ville bare truffet de gamle, ikke-bundne navnene.
+const TOUR_KEY_PREFIX = 'rh_tour_'
 
 export default function HelpPage() {
   const [q, setQ] = useState('')
@@ -253,7 +248,11 @@ export default function HelpPage() {
   const hits = sections.reduce((n, s) => n + s.topics.length, 0)
 
   const resetTours = () => {
-    try { TOUR_KEYS.forEach(k => window.localStorage.removeItem(k)) } catch { /* ignore */ }
+    try {
+      Object.keys(window.localStorage)
+        .filter(k => k.startsWith(TOUR_KEY_PREFIX))
+        .forEach(k => window.localStorage.removeItem(k))
+    } catch { /* ignore */ }
     setToursReset(true)
   }
 

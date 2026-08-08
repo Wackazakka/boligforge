@@ -2,7 +2,37 @@
 
 import { useEffect } from 'react'
 import { driver, type DriveStep, type Driver } from 'driver.js'
+import { createBrowserClient } from '@supabase/ssr'
 import 'driver.js/dist/driver.css'
+
+// «Sett»-flagget maa hoere til BRUKEREN, ikke til nettleseren. Uten dette
+// arvet en ny konto den forrige brukerens gjennomganger i samme nettleser:
+// en tester slettet kontoen sin, registrerte seg paa nytt og fikk INGEN hjelp
+// (maalt i prod 8/8). Samme problem paa et delt kontor-PC-er.
+//
+// getSession() leser fra cookie/lagring uten nettverkskall, saa dette koster
+// ikke den forsinkelsen vi allerede har jaget bort en gang.
+let cachedUid: string | null | undefined
+async function currentUserId(): Promise<string | null> {
+  if (cachedUid !== undefined) return cachedUid
+  try {
+    const sb = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+    const { data } = await sb.auth.getSession()
+    cachedUid = data.session?.user?.id ?? null
+  } catch { cachedUid = null }
+  return cachedUid
+}
+
+/** Alle tour-noekler starter med dette — hjelpesiden nullstiller paa prefikset. */
+export const TOUR_KEY_PREFIX = 'rh_tour_'
+
+async function scopedKey(base: string): Promise<string> {
+  const uid = await currentUserId()
+  return uid ? `${base}:${uid}` : base
+}
 
 export type TourStep = {
   selector: string
@@ -75,16 +105,20 @@ function startTour(storageKey: string, steps: TourStep[]) {
 }
 
 /** Viser touren kun første gang — `storageKey` styrer om den alt er sett. */
-export function runTourOnce(storageKey: string, steps: TourStep[]) {
+export async function runTourOnce(storageKey: string, steps: TourStep[]) {
+  const key = await scopedKey(storageKey)
   try {
-    if (window.localStorage.getItem(storageKey) === '1') return
+    // Rydd bort den gamle, ikke-brukerbundne noekkelen. Den skal IKKE arves som
+    // «sett» — det var nettopp den som gjorde nye kontoer hjelpeloese.
+    if (key !== storageKey) window.localStorage.removeItem(storageKey)
+    if (window.localStorage.getItem(key) === '1') return
   } catch { /* ignore */ }
-  startTour(storageKey, steps)
+  startTour(key, steps)
 }
 
 /** Kjører touren uansett — for manuell gjenåpning (f.eks. en "?"-knapp). */
-export function runTour(storageKey: string, steps: TourStep[]) {
-  startTour(storageKey, steps)
+export async function runTour(storageKey: string, steps: TourStep[]) {
+  startTour(await scopedKey(storageKey), steps)
 }
 
 export default function ProductTour({
