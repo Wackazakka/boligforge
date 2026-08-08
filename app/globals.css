@@ -1034,3 +1034,53 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   text-align: center;
 }
 
+/* ─── Produkt-tour (driver.js) — matcher ReelHome-merkevaren ─── */
+.driver-popover {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+  font-family: var(--sans);
+  padding: 18px;
+  max-width: 320px;
+}
+.driver-popover-title {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.driver-popover-description {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.driver-popover-progress-text {
+  color: var(--muted-2);
+  font-size: 12px;
+}
+.driver-popover-footer button {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  text-shadow: none;
+  padding: 6px 12px;
+}
+.driver-popover-footer .driver-popover-next-btn,
+.driver-popover-footer .driver-popover-close-btn {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+}
+.driver-popover-footer .driver-popover-prev-btn {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.driver-popover-close-btn {
+  color: var(--muted);
+}
+.driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-bottom-color: var(--surface);
+}
+

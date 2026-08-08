@@ -2,10 +2,31 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ProductTour, { runTourOnce } from '@/app/components/ProductTour'
+import ProductTour, { runTour, runTourOnce, type TourStep } from '@/app/components/ProductTour'
 
 const TOUR_EMPTY_KEY = 'rh_tour_properties_empty'
 const TOUR_CARD_KEY = 'rh_tour_properties_card'
+
+const EMPTY_STEPS: TourStep[] = [
+  {
+    selector: '[data-tour="scrape-url"]',
+    title: 'Lim inn boligannonsen',
+    description: 'Lim inn lenken til Finn.no- eller Hjem.no-annonsen for boligen du vil lage video for.',
+  },
+  {
+    selector: '[data-tour="scrape-button"]',
+    title: 'Hent annonsen',
+    description: 'Trykk her for å hente inn bilder, pris og fakta fra annonsen automatisk.',
+  },
+]
+
+const CARD_STEPS: TourStep[] = [
+  {
+    selector: '[data-tour="property-card"]',
+    title: 'Klikk på boligen',
+    description: 'Trykk på et boligkort for å lage videoen — velg bilder, skriv manus og generer.',
+  },
+]
 
 type Property = {
   id: string
@@ -98,11 +119,7 @@ export default function PropertiesPage() {
   // Vis "klikk på boligen"-tipset første gang brukeren har minst én eiendom.
   useEffect(() => {
     if (!loading && active.length > 0) {
-      const t = setTimeout(() => runTourOnce(TOUR_CARD_KEY, [{
-        selector: '[data-tour="property-card"]',
-        title: 'Klikk på boligen',
-        description: 'Trykk på et boligkort for å lage videoen — velg bilder, skriv manus og generer.',
-      }]), 150)
+      const t = setTimeout(() => runTourOnce(TOUR_CARD_KEY, CARD_STEPS), 150)
       return () => clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,22 +230,8 @@ export default function PropertiesPage() {
             type="button"
             title="Vis en rask gjennomgang"
             onClick={() => {
-              try {
-                window.localStorage.removeItem(TOUR_EMPTY_KEY)
-                window.localStorage.removeItem(TOUR_CARD_KEY)
-              } catch { /* ignore */ }
-              runTourOnce(TOUR_EMPTY_KEY, [
-                {
-                  selector: '[data-tour="scrape-url"]',
-                  title: 'Lim inn boligannonsen',
-                  description: 'Lim inn lenken til Finn.no- eller Hjem.no-annonsen for boligen du vil lage video for.',
-                },
-                {
-                  selector: '[data-tour="scrape-button"]',
-                  title: 'Hent annonsen',
-                  description: 'Trykk her for å hente inn bilder, pris og fakta fra annonsen automatisk.',
-                },
-              ])
+              if (active.length === 0) runTour(TOUR_EMPTY_KEY, EMPTY_STEPS)
+              else runTour(TOUR_CARD_KEY, CARD_STEPS)
             }}
             className="app-btn-ghost text-xs"
             style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -253,22 +256,7 @@ export default function PropertiesPage() {
           </button>
         </form>
 
-        <ProductTour
-          storageKey={TOUR_EMPTY_KEY}
-          when={!loading && active.length === 0}
-          steps={[
-            {
-              selector: '[data-tour="scrape-url"]',
-              title: 'Lim inn boligannonsen',
-              description: 'Lim inn lenken til Finn.no- eller Hjem.no-annonsen for boligen du vil lage video for.',
-            },
-            {
-              selector: '[data-tour="scrape-button"]',
-              title: 'Hent annonsen',
-              description: 'Trykk her for å hente inn bilder, pris og fakta fra annonsen automatisk.',
-            },
-          ]}
-        />
+        <ProductTour storageKey={TOUR_EMPTY_KEY} when={!loading && active.length === 0} steps={EMPTY_STEPS} />
 
         {scrapeError && <div className="app-error">{scrapeError}</div>}
 
