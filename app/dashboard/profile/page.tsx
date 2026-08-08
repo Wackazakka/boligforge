@@ -5,6 +5,35 @@ import Link from 'next/link'
 import AccountTabs from './AccountTabs'
 import VideoAvatarOnboarding from './VideoAvatarOnboarding'
 import PvcOnboarding from './PvcOnboarding'
+import ProductTour, { runTour, type TourStep } from '@/app/components/ProductTour'
+
+// Profilsiden er det vanskeligste steget i hele produktet: her skal megleren
+// velge stemme, lese inn to minutter, laste opp portrett og eventuelt generere
+// settings. Den var uguidet — touren startet først på Eiendommer-siden.
+const TOUR_PROFILE_KEY = 'rh_tour_profile'
+
+const PROFILE_STEPS: TourStep[] = [
+  {
+    selector: '[data-tour="profile-basics"]',
+    title: '1. Navn og kontaktinfo',
+    description: 'Dette brukes i videoene og i avslutningsbildet. Navnet er også det avataren presenterer seg med.',
+  },
+  {
+    selector: '[data-tour="profile-voice"]',
+    title: '2. Velg stemme — eller bruk din egen',
+    description: 'Hør gjennom standardstemmene og velg en du liker. Vil du ha din egen? Les inn teksten i cirka to minutter, så lages en klone. Ta opptaket i et stille rom — bakgrunnsstøy blir en del av stemmen, og følger da alle videoene dine.',
+  },
+  {
+    selector: '[data-tour="profile-avatar"]',
+    title: '3. Velg hvem som vises i videoene',
+    description: 'Last opp et portrett av deg selv, eller velg en av AI-meglerne. Med eget portrett kan du også generere profesjonelle bakgrunner — det tar ett til to minutter per bilde.',
+  },
+  {
+    selector: '[data-tour="profile-logo"]',
+    title: '4. Last opp logoen',
+    description: 'Valgfritt, men anbefalt — logoen vises på avslutningsbildet i alle videoene dine. Husk å lagre nederst når du er ferdig. Trykk «?» her oppe når du vil se gjennomgangen igjen.',
+  },
+]
 const SETTING_PROMPTS: Record<string, string> = {
   modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent looks confident and natural, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
   office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
@@ -90,6 +119,7 @@ const premiumBadge: React.CSSProperties = {
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({})
+  const [profileLoaded, setProfileLoaded] = useState(false)   // gate for produkt-touren
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -158,6 +188,7 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(d => setProfile(d || {}))
       .catch(console.error)
+      .finally(() => setProfileLoaded(true))
     fetch('/api/org/settings').then(r => r.json()).then(d => { if (d && !d.error) setOrg(d) }).catch(() => {})
     loadSettingImages()
   }, [])
@@ -552,18 +583,35 @@ export default function ProfilePage() {
     <div>
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         <AccountTabs />
-        <div>
-          <h1
-            className="text-xl font-semibold"
-            style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1
+              className="text-xl font-semibold"
+              style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}
+            >
+              Meglerprofil
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>Konfigurer din profil og avatar</p>
+          </div>
+          <button
+            type="button"
+            title="Vis en rask gjennomgang"
+            onClick={() => runTour(TOUR_PROFILE_KEY, PROFILE_STEPS)}
+            className="app-btn-ghost text-xs"
+            style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            Meglerprofil
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>Konfigurer din profil og avatar</p>
+            ?
+          </button>
         </div>
 
+        {/* Førstegangs-gjennomgang. Venter til profilen er lastet, ellers er
+            seksjonene ikke rendret og driver.js finner ingen ankere. */}
+        <ProductTour storageKey={TOUR_PROFILE_KEY} when={profileLoaded} steps={PROFILE_STEPS} />
+
+        {/* Kom-i-gang-hint: hopp rett videre når profilen er satt opp */}
+
         {/* Basic info */}
-        <section className="app-card">
+        <section className="app-card" data-tour="profile-basics">
           <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Grunnleggende info
           </h2>
@@ -600,7 +648,7 @@ export default function ProfilePage() {
         {/* Avatar vises først (column-reverse), så stemme — unngår å flytte store blokker */}
         <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '1.5rem' }}>
         {/* Voice + tone */}
-        <section className="app-card">
+        <section className="app-card" data-tour="profile-voice">
           <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Stemme og tone
           </h2>
@@ -812,7 +860,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Portrait + AI settings */}
-        <section className="app-card">
+        <section className="app-card" data-tour="profile-avatar">
           <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Avatar og setting
           </h2>
@@ -1177,7 +1225,7 @@ export default function ProfilePage() {
         )}
 
         {/* Logo — meglerfirmaets logo, byråsjef laster opp */}
-        <section className="app-card">
+        <section className="app-card" data-tour="profile-logo">
           <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Logo
           </h2>

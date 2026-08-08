@@ -20,19 +20,24 @@ function buildSetupSteps(hasScript: boolean): TourStep[] {
       description: 'Avataren fra profilen din er valgt automatisk. Du kan bytte til en av AI-meglerne for akkurat denne videoen.',
     },
     {
+      selector: '[data-tour="script-style"]',
+      title: '2. Velg målgruppe',
+      description: 'Dette former hvordan manuset skrives — «Luksus» og «Nyetablert» gir ganske ulik tekst om samme bolig. Velg før du lager manuset.',
+    },
+    {
       selector: '[data-tour="generate-script"]',
-      title: '2. Lag manuset',
+      title: '3. Lag manuset',
       description: 'Trykk her, så skriver AI-en et forslag ut fra boligdataene.',
     },
     {
       selector: '[data-tour="script-text"]',
-      title: '3. Les gjennom og rett',
-      description: 'Manuset kan endres fritt — skriv om, legg til eller stryk det du vil.',
+      title: '4. Les gjennom og rett',
+      description: 'Manuset styrer alt videre — bilder, lengde og hva som blir sagt. Endre fritt: skriv om, legg til eller stryk.',
     },
     // Knappen finnes bare når manuset er skrevet.
     ...(hasScript ? [{
       selector: '[data-tour="split-segments"]',
-      title: '4. Del opp i segmenter',
+      title: '5. Del opp i segmenter',
       description: 'Dette må gjøres før du kan lage videoen. AI-en deler manuset i biter og kobler boligbildene til riktig del. Etterpå får du en ny gjennomgang av hva du bør sjekke.',
     }] : []),
   ]
@@ -45,7 +50,7 @@ function buildSetupSteps(hasScript: boolean): TourStep[] {
  * outro-bilder. (Første/siste segment er alltid avatar — derfor peker
  * bilde-steget på første BILDE-segment, ikke på segment 1.)
  */
-function buildReviewSteps(hasImageSegment: boolean, hasOutroImages: boolean): TourStep[] {
+function buildReviewSteps(hasImageSegment: boolean, hasAvatarSegment: boolean): TourStep[] {
   const steps: Array<Omit<TourStep, 'title'> & { title: string }> = []
   const add = (selector: string, title: string, description: string) =>
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
@@ -56,22 +61,18 @@ function buildReviewSteps(hasImageSegment: boolean, hasOutroImages: boolean): To
     'Sjekk tonefall og uttale. Blir et ord uttalt feil, kan du stave det slik det skal HØRES ut — «Kilevold» skrives f.eks. «Kjilevold», så blir det riktig hver gang.')
   if (hasImageSegment) {
     add('[data-tour="segment-images"]', 'Sjekk bildene i segmentet',
-      'Passer bildene til det som sies? Bytt ut de som ikke gjør det — og vurder om det er for mange eller for få.')
+      'Passer bildene til det som sies? Bytt ut de som ikke gjør det. Flere bilder deler taletiden mellom seg — og 🎥-knappen slår av bevegelsen på et enkelt bilde, f.eks. en plantegning.')
   }
-  add('[data-tour="outro-images"]', 'Velg bilder til slideshowet',
-    hasOutroImages
-      ? 'Bildene som ikke er brukt i segmentene vises til slutt. «Velg alle» tar med alle på én gang.'
-      : 'Bildene som ikke er brukt i segmentene kan vises til slutt. «Velg alle» tar med alle på én gang — da får du også valget for hvor lenge hvert bilde skal stå (2,2 sekunder som standard).')
-  if (hasOutroImages) {
-    add('[data-tour="outro-duration"]', 'Hvor lenge hvert bilde står',
-      'Standard er 2,2 sekunder per bilde. Dra i slideren for roligere eller raskere tempo.')
+  if (hasAvatarSegment) {
+    add('[data-tour="avatar-clip"]', 'Se avataren FØR du bruker en video',
+      'Her kan du forhåndsvise animasjonen av avataren og godkjenne den. Er du ikke fornøyd, lager du en ny — uten å bruke opp en av videoene dine. Klippet du godkjenner er nøyaktig det som havner i filmen.')
   }
-  add('[data-tour="outro-music"]', 'Velg musikk',
-    'Musikken spilles under bildeserien etter at presentatøren er ferdig å snakke. Trykk «Hør» for å prøve.')
-  add('[data-tour="ambience"]', 'Velg atmosfærelyd',
-    'Valgfritt — en diskré lydkulisse som ligger bak stemmen mens det snakkes.')
-  add('[data-tour="generate-video"]', 'Nå kan du lage videoen',
-    'Når alt over er sjekket, trykker du her. Videoen tar noen minutter og dukker opp nederst på siden.')
+  // Finpuss samlet i ett steg: åtte steg var for mange, og disse fire henger
+  // sammen (alt handler om avslutningen etter at presentatøren er ferdig).
+  add('[data-tour="outro-images"]', 'Finpuss avslutningen',
+    'Bildene som ikke er brukt i segmentene kan vises til slutt, med musikk under. «Velg alle» tar med alle på én gang — da får du også tempo (2,2 sekunder per bilde som standard), overgangsstil og valgfri atmosfærelyd rett under.')
+  add('[data-tour="generate-video"]', 'Lag videoen',
+    'Nå er du klar. Genereringen tar rundt fem minutter og bruker én av videoene i månedskvoten din. Er du ikke helt fornøyd, kan du trykke «Rediger» på den ferdige videoen og endre alt — manus, bilder, musikk — uten å begynne på nytt. Trykk «?» øverst når du vil se denne gjennomgangen igjen.')
 
   return steps
 }
@@ -1344,7 +1345,8 @@ export default function PropertyDetailPage() {
   // element som ikke er rendret ennå (driver.js hopper ikke over tomme treff).
   const firstImageSegmentIdx = segments.findIndex(s => s.type === 'image')
   const setupSteps  = buildSetupSteps(Boolean(script))
-  const reviewSteps = buildReviewSteps(firstImageSegmentIdx !== -1, outro.images.length > 0)
+  const firstAvatarSegmentIdx = segments.findIndex(s => s.type === 'avatar')
+  const reviewSteps = buildReviewSteps(firstImageSegmentIdx !== -1, firstAvatarSegmentIdx !== -1)
 
   return (
     <div className="p-6">
@@ -1810,7 +1812,7 @@ export default function PropertyDetailPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Presentasjonsmanus</h2>
             {/* Stil-valg */}
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <div data-tour="script-style" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {([
                 { value: 'neutral', label: 'Nøytral' },
                 { value: 'luxury',  label: 'Luksus' },
@@ -2049,7 +2051,7 @@ export default function PropertyDetailPage() {
                               Lager animasjonen… (1–3 min)
                             </span>
                           ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <button
                                 onClick={() => generateAvatarClip(i)}
                                 className="app-btn-secondary text-xs"

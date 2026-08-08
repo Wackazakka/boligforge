@@ -22,11 +22,13 @@ const EMPTY_STEPS: TourStep[] = [
 
 const CARD_STEPS: TourStep[] = [
   {
-    // NB: klikk på selve kortet lukker bare denne boksen (driver.js fanger
-    // klikket) — derfor sier teksten «lukk først», ikke «klikk på boligen».
+    // Verifisert i prod 8/8: det markerte elementet ER klikkbart
+    // (driver.js har disableActiveInteraction=false og setter pointer-events:auto
+    // på .driver-active-element), og klikket navigerer videre — der touren
+    // fortsetter av seg selv. En tidligere kommentar hevdet det motsatte.
     selector: '[data-tour="property-card"]',
-    title: 'Neste steg: åpne en bolig',
-    description: 'Lukk denne boksen, og klikk så på boligen du vil lage video for. Der velger du bilder, skriver manus og genererer videoen.',
+    title: 'Neste steg: åpne boligen',
+    description: 'Klikk på boligen du vil lage video for. Gjennomgangen fortsetter der.',
   },
 ]
 
