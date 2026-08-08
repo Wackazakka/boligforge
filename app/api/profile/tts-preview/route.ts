@@ -1,5 +1,8 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
+import { createClient } from '@supabase/supabase-js'
+import { getUser } from '../../../../lib/supabase/server'
+import { keyForAccount } from '../../../../lib/elevenlabs-accounts'
 
 export const maxDuration = 30
 
@@ -20,10 +23,25 @@ export async function POST(request: Request) {
     return new Response('Missing text or voiceId', { status: 400 })
   }
 
+  // En klonet stemme kan bare brukes med nøkkelen til KONTOEN den bor på
+  // (stemmeplass-taket tvinger fram flere kontoer ved skala). Slå opp hvilken
+  // konto meglerens stemme ligger på; ukjent → primærkontoen, som før.
+  let account: string | null = null
+  try {
+    const user = await getUser()
+    if (user) {
+      const svc = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } })
+      const { data } = await svc.from('agent_profiles').select('elevenlabs_account, cloned_voice_id').eq('user_id', user.id).maybeSingle()
+      const row = data as { elevenlabs_account?: string | null; cloned_voice_id?: string | null } | null
+      if (row && row.cloned_voice_id === voiceId) account = row.elevenlabs_account ?? null
+    }
+  } catch { /* faller tilbake til primærkontoen */ }
+
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
     method: 'POST',
     headers: {
-      'xi-api-key': process.env.ELEVENLABS_API_KEY!,
+      'xi-api-key': keyForAccount(account),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

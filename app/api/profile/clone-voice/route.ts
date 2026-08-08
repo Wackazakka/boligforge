@@ -1,6 +1,20 @@
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { randomUUID } from 'crypto'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
+import { keyForAccount, pickAccountWithCapacity, PRIMARY_ACCOUNT } from '../../../../lib/elevenlabs-accounts'
 
 export const maxDuration = 60
+
+function getR2() {
+  return new S3Client({
+    region: 'auto',
+    endpoint: process.env.R2_ENDPOINT!,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  })
+}
 
 export async function POST(request: Request) {
   try {
@@ -15,20 +29,48 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Mangler lydfil' }, { status: 400 })
     }
 
-    // Send audio to ElevenLabs Instant Voice Cloning.
-    // remove_background_noise: meglere tar ofte opp i åpne kontorlandskap, og
-    // støy i opptaket klones INN i stemmen — den følger da hver eneste video
-    // megleren lager. ElevenLabs renser kildelyden før kloning.
+    // 1) Ta vare på stemmeprøven FØR kloning. Uten den kan en klone aldri
+    // flyttes til en annen ElevenLabs-konto (eller gjenskapes hos en annen
+    // leverandør) uten at megleren må gjøre nytt opptak — og stemmeplassene
+    // per konto har et hardt tak. Feiler opplastingen, blokkerer vi ikke
+    // kloningen; da mangler vi bare flytte-muligheten for akkurat den.
+    const audioBuf = Buffer.from(await audio.arrayBuffer())
+    let sampleUrl: string | null = null
+    try {
+      const ext = (audio.name?.split('.').pop() || 'webm').toLowerCase().slice(0, 5)
+      const key = `boligforge/voice-samples/${user.id}/${randomUUID()}.${ext}`
+      await getR2().send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets',
+        Key: key,
+        Body: audioBuf,
+        ContentType: audio.type || 'audio/webm',
+      }))
+      sampleUrl = `${process.env.R2_PUBLIC_URL}/${key}`
+    } catch (e) {
+      console.error('[clone-voice] kunne ikke lagre stemmeprøve (fortsetter):', e)
+    }
+
+    // 2) Velg konto med ledig stemmeplass. Med bare én konto konfigurert
+    // oppfører dette seg som før (primærkontoen).
+    const picked = await pickAccountWithCapacity()
+    if (!picked) {
+      return Response.json({
+        error: 'Ingen ledige stemmeplasser hos leverandøren akkurat nå. Vi utvider kapasiteten — prøv igjen senere, eller bruk en av standardstemmene i mellomtiden.',
+      }, { status: 503 })
+    }
+    const { account, key: apiKey } = picked
+
+    // 3) Instant Voice Cloning. remove_background_noise: meglere tar ofte opp i
+    // åpne kontorlandskap, og støy i opptaket klones INN i stemmen — den følger
+    // da hver eneste video megleren lager.
     const elForm = new FormData()
     elForm.append('name', name)
-    elForm.append('files', audio, 'recording.webm')
+    elForm.append('files', new Blob([new Uint8Array(audioBuf)], { type: audio.type || 'audio/webm' }), 'recording.webm')
     elForm.append('remove_background_noise', 'true')
 
     const elRes = await fetch('https://api.elevenlabs.io/v1/voices/add', {
       method: 'POST',
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY!,
-      },
+      headers: { 'xi-api-key': apiKey },
       body: elForm,
     })
 
@@ -46,13 +88,20 @@ export async function POST(request: Request) {
     if (!voiceId) {
       return Response.json({ error: 'Ingen voice_id returnert fra ElevenLabs' }, { status: 500 })
     }
+    console.log(`[clone-voice] bruker ${user.id} → voice ${voiceId} på konto ${account}`)
 
     // Save voice_id to agent profile
     const supabase = await createSupabaseServerClient()
     const { error: dbError } = await supabase
       .from('agent_profiles')
       .upsert(
-        { user_id: user.id, default_voice_id: voiceId, cloned_voice_id: voiceId },
+        {
+          user_id: user.id,
+          default_voice_id: voiceId,
+          cloned_voice_id: voiceId,
+          elevenlabs_account: account,
+          ...(sampleUrl ? { voice_sample_url: sampleUrl } : {}),
+        },
         { onConflict: 'user_id' }
       )
 
@@ -66,7 +115,7 @@ export async function POST(request: Request) {
     try {
       const secretId = process.env.LIVEAVATAR_ELEVEN_SECRET_ID
       const laKey = process.env.LIVEAVATAR_API_KEY
-      if (secretId && laKey) {
+      if (secretId && laKey && account === PRIMARY_ACCOUNT) {
         const laRes = await fetch('https://api.liveavatar.com/v1/voices/third_party', {
           method: 'POST',
           headers: { 'X-API-KEY': laKey, 'content-type': 'application/json' },
@@ -91,4 +140,20 @@ export async function POST(request: Request) {
     console.error('[clone-voice]', err)
     return Response.json({ error: String(err) }, { status: 500 })
   }
+}
+
+// Kort referanse for kapasitet — brukes av drift/backoffice for å se hvor nær
+// taket vi er FØR meglere møter en feilmelding.
+export async function GET() {
+  const user = await getUser()
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const key = keyForAccount(PRIMARY_ACCOUNT)
+  if (!key) return Response.json({ error: 'Ingen nøkkel konfigurert' }, { status: 500 })
+  const res = await fetch('https://api.elevenlabs.io/v1/user/subscription', { headers: { 'xi-api-key': key } })
+  const s = await res.json()
+  return Response.json({
+    tier: s.tier,
+    voiceSlots: `${s.voice_slots_used}/${s.voice_limit}`,
+    voiceOpsLeft: (s.max_voice_add_edits ?? 0) - (s.voice_add_edit_counter ?? 0),
+  })
 }
