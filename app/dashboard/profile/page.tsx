@@ -5,7 +5,7 @@ import Link from 'next/link'
 import AccountTabs from './AccountTabs'
 import VideoAvatarOnboarding from './VideoAvatarOnboarding'
 import PvcOnboarding from './PvcOnboarding'
-import ProductTour, { runTour, type TourStep } from '@/app/components/ProductTour'
+import ProductTour, { type TourStep } from '@/app/components/ProductTour'
 
 // Profilsiden er det vanskeligste steget i hele produktet: her skal megleren
 // velge stemme, lese inn to minutter, laste opp portrett og eventuelt generere
@@ -598,8 +598,8 @@ export default function ProfilePage() {
           </div>
           <button
             type="button"
-            title="Vis en rask gjennomgang"
-            onClick={() => runTour(TOUR_PROFILE_KEY, PROFILE_STEPS)}
+            title="Åpne hjelp"
+            onClick={() => window.open('/dashboard/hjelp', '_blank', 'noopener')}
             className="app-btn-ghost text-xs"
             style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >

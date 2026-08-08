@@ -12,6 +12,7 @@ const BASE_LINKS = [
   { href: '/dashboard/settings/social', label: 'Publisering' },
   { href: '/dashboard/calendar', label: 'Kalender' },
   { href: '/dashboard/profile', label: 'Profil' },
+  { href: '/dashboard/hjelp', label: 'Hjelp' },
 ]
 
 export default function DashboardNav() {

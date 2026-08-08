@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ProductTour, { runTour, runTourOnce, type TourStep } from '@/app/components/ProductTour'
+import ProductTour, { runTourOnce, type TourStep } from '@/app/components/ProductTour'
 
 const TOUR_EMPTY_KEY = 'rh_tour_properties_empty'
 const TOUR_CARD_KEY = 'rh_tour_properties_card'
@@ -234,8 +234,7 @@ export default function PropertiesPage() {
             type="button"
             title="Vis en rask gjennomgang"
             onClick={() => {
-              if (active.length === 0) runTour(TOUR_EMPTY_KEY, EMPTY_STEPS)
-              else runTour(TOUR_CARD_KEY, CARD_STEPS)
+              window.open('/dashboard/hjelp', '_blank', 'noopener')
             }}
             className="app-btn-ghost text-xs"
             style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
