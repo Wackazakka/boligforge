@@ -62,16 +62,12 @@ const TONE_PRESETS = [
 ]
 
 import { VOICES } from '../../../lib/voices'
+import { TEMPLATE_AVATARS } from '../../../lib/template-avatars'
 
 const AVATAR_R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
-const STANDARD_AVATARS = [
-  { id: 'sofia',  name: 'Sofia' },
-  { id: 'marius', name: 'Marius' },
-  { id: 'ingrid', name: 'Ingrid' },
-  { id: 'even',   name: 'Even' },
-  { id: 'hanna',  name: 'Hanna' },
-  { id: 'erik',   name: 'Erik' },
-]
+// Utledet, ikke kopiert. En tredje haandskrevet liste over de samme seks var
+// nettopp det som lot Ingrid faa to ulike stemmer (onboarding vs eiendomssiden).
+const STANDARD_AVATARS = TEMPLATE_AVATARS.map(a => ({ id: a.id, name: a.name }))
 
 const PRESETS_BASE = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/presets'
 const AVATAR_PRESETS: Record<string, Record<string, string>> = {
@@ -900,56 +896,56 @@ export default function ProfilePage() {
             </span>
           </button>
 
-          <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>… eller velg en av våre avatarer:</p>
+          {/* Skjult fil-input — brukes av den store «Last opp»-boksen over */}
+          <input
+            ref={portraitRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'portrait'); e.target.value = '' }}
+          />
 
-          {/* Avatar selector row */}
-          <div className="flex gap-3 overflow-x-auto pb-2 mb-5" style={{ overscrollBehaviorX: 'contain' }}>
-
-            {/* Skjult fil-input — brukes av den store «Last opp»-boksen over */}
-            <input
-              ref={portraitRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'portrait'); e.target.value = '' }}
-            />
-
-            {/* Standard avatars */}
-            {STANDARD_AVATARS.map(av => {
-              const avatarUrl = `${AVATAR_R2}/${av.id}.jpg`
-              const isSelected = profile.portrait_url === avatarUrl
-              return (
-                <button
-                  key={av.id}
-                  onClick={async () => {
-                    setProfile(p => ({ ...p, portrait_url: avatarUrl }))
-                    await fetch('/api/profile/save', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ ...profile, portrait_url: avatarUrl }),
-                    })
-                  }}
-                  className="flex flex-col items-center gap-1 flex-shrink-0"
-                  title={av.name}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={avatarUrl}
-                    alt={av.name}
-                    style={{
-                      width: 64, height: 64, objectFit: 'cover', objectPosition: 'center 15%',
-                      borderRadius: 12,
-                      border: isSelected ? '2px solid var(--blue)' : '2px solid transparent',
-                      boxShadow: isSelected ? '0 0 0 2px rgba(37,99,235,0.2)' : 'none',
-                    }}
-                  />
-                  <span className="text-[10px]" style={{ color: isSelected ? 'var(--blue)' : 'var(--muted)' }}>
-                    {av.name}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          {/* Ferdige AI-meglere velges PER VIDEO, ikke her. Galleriet stod ogsaa
+              paa denne siden, og valgte man en her ble hun ditt portrett — og da
+              kunne man generere settinger for henne. Hver malavatar har alt fire
+              ferdige settinger (lib/template-avatars.ts), saa det var aa betale
+              fal.ai for kopier av filer vi allerede leverer. Profilen handler om
+              DEG; malmeglerne hoerer hjemme der videoen lages. */}
+          {activeAvatarId ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', marginBottom: 20,
+                          borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={activePortrait} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', objectPosition: 'center 15%', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+                  {STANDARD_AVATARS.find(a => a.id === activeAvatarId)?.name} presenterer boligene dine
+                </p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                  Hun kommer med fire ferdige settinger. Vil du bruke en annen AI-megler, velger du det
+                  per video på eiendomssiden — eller last opp ditt eget bilde over for å presentere selv.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  setProfile(p => ({ ...p, portrait_url: '' }))
+                  await fetch('/api/profile/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...profile, portrait_url: '' }),
+                  })
+                }}
+                className="app-btn-ghost text-xs"
+                style={{ flexShrink: 0, color: 'var(--muted)' }}
+              >
+                Fjern
+              </button>
+            </div>
+          ) : !hasOwnPortrait ? (
+            <p className="text-xs" style={{ color: 'var(--muted)', marginBottom: 20 }}>
+              Ingen hast — har du ikke eget portrett, velger du en ferdig AI-megler når du lager videoen.
+            </p>
+          ) : null}
 
           {/* Setting generator */}
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: '20px' }}>
@@ -969,7 +965,7 @@ export default function ProfilePage() {
             </div>
             <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
               {activeAvatarId
-                ? 'Preset-bilder er klare til bruk. Klikk for å velge aktivt bilde, eller generer din egen versjon.'
+                ? 'Disse fire følger med AI-megleren og er klare til bruk — du velger mellom dem når du lager videoen.'
                 : profile.portrait_url
                   ? 'Disse bildene velger du fra når du lager en video. Slett de du ikke vil beholde. Generering av et nytt bilde tar vanligvis 1–2 minutter.'
                   : 'Last opp et portrettbilde — alle 4 settings genereres automatisk (tar vanligvis 1–2 minutter).'}
@@ -999,7 +995,7 @@ export default function ProfilePage() {
                         )}
                         <button
                           onClick={() => handleGenerateSetting(s.id)}
-                          disabled={!profile.portrait_url || isGenerating}
+                          disabled={!profile.portrait_url || !!activeAvatarId || isGenerating}
                           className="text-xs"
                           style={{ color: isGenerating ? 'var(--muted)' : 'var(--gold)', opacity: profile.portrait_url ? 1 : 0.4 }}
                           title="Generer nytt bilde for denne settingen"
