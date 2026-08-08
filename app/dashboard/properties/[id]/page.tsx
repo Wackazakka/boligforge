@@ -3,6 +3,34 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
+import ProductTour, { runTour, type TourStep } from '@/app/components/ProductTour'
+
+const TOUR_DETAIL_KEY = 'rh_tour_property_detail'
+
+// Kun elementer som ALLTID finnes på video-fanen — «Del opp i segmenter» og
+// segment-editoren rendres først når manuset finnes, så de kan ikke pekes på her.
+const DETAIL_STEPS: TourStep[] = [
+  {
+    selector: '[data-tour="presenter"]',
+    title: '1. Velg hvem som presenterer',
+    description: 'Avataren fra profilen din er valgt automatisk. Du kan bytte til en av AI-meglerne for akkurat denne videoen.',
+  },
+  {
+    selector: '[data-tour="generate-script"]',
+    title: '2. Lag manuset',
+    description: 'Trykk her, så skriver AI-en et forslag ut fra boligdataene. Etterpå dukker «Del opp i segmenter» opp — den kobler bildene til riktig del av manuset.',
+  },
+  {
+    selector: '[data-tour="script-text"]',
+    title: '3. Les gjennom og rett',
+    description: 'Manuset kan endres fritt her — skriv om, legg til eller stryk det du vil.',
+  },
+  {
+    selector: '[data-tour="generate-video"]',
+    title: '4. Lag videoen',
+    description: 'Til slutt trykker du her. Videoen tar noen minutter, og dukker opp nederst på siden når den er ferdig.',
+  },
+]
 
 type Property = {
   id: string
@@ -187,14 +215,17 @@ export default function PropertyDetailPage() {
   const [generatingClips, setGeneratingClips] = useState<Record<number, boolean>>({})
   // Formatkonvertering per video+format (`url|format` → jobber/feil)
   const [convState, setConvState] = useState<Record<string, 'jobber' | 'feil'>>({})
-  const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 4 })
+  // Standard slideshow: 2,2 s per bilde med kryssfade (Lars 8/8 — rolige
+  // 4-sekundere føltes stillestående). Eldre videoer beholder sitt eget valg
+  // via recipe-hydreringen.
+  const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 2.2, style: 'fade' })
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string; own?: boolean }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [ambienceType, setAmbienceType] = useState<string>('none')
   // Ken Burns-bevegelse (rolig zoom/panorering) i bildesegmenter og outro — på som standard
   const [motion, setMotion] = useState(true)
   const [motionStrength, setMotionStrength] = useState<'subtle' | 'medium' | 'strong'>('medium')
-  const [segmentTransition, setSegmentTransition] = useState<'cut' | 'fade'>('cut')
+  const [segmentTransition, setSegmentTransition] = useState<'cut' | 'fade'>('fade')
   const [noMotionImages, setNoMotionImages] = useState<string[]>([])
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
@@ -531,7 +562,7 @@ export default function PropertyDetailPage() {
     if (!script) return
     const newSegments = splitIntoSegments(script)
     setSegments(newSegments)
-    setOutro({ images: [], musicUrl: '', durationPerImage: 4 })
+    setOutro({ images: [], musicUrl: '', durationPerImage: 2.2, style: 'fade' })
     setOpenGalleryForSegment(null)
 
     const images = property?.images
@@ -1271,13 +1302,27 @@ export default function PropertyDetailPage() {
         {/* Header */}
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="app-btn-ghost text-sm px-0">← Tilbake</button>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
               {property.title || property.address}
             </h1>
             <p className="text-sm" style={{ color: 'var(--muted)' }}>{property.address}</p>
           </div>
+          {activeTab === 'video' && (
+            <button
+              type="button"
+              title="Vis en rask gjennomgang"
+              onClick={() => runTour(TOUR_DETAIL_KEY, DETAIL_STEPS)}
+              className="app-btn-ghost text-xs"
+              style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ?
+            </button>
+          )}
         </div>
+
+        {/* Førstegangs-gjennomgang av videoflyten (kun video-fanen) */}
+        <ProductTour storageKey={TOUR_DETAIL_KEY} when={activeTab === 'video'} steps={DETAIL_STEPS} />
 
         {/* Image gallery */}
         {property.images?.length > 0 && (
@@ -1364,7 +1409,7 @@ export default function PropertyDetailPage() {
         {activeTab === 'video' && (<>
 
         {/* ── Presenter + bakgrunn (unified) ── */}
-        <div className="app-card" style={{ padding: '16px 20px' }}>
+        <div className="app-card" data-tour="presenter" style={{ padding: '16px 20px' }}>
           <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '4px', fontSize: '15px' }}>
             Hvem presenterer boligen?
           </h2>
@@ -1695,6 +1740,7 @@ export default function PropertyDetailPage() {
               <button
                 onClick={handleGenerateScript}
                 disabled={generatingScript}
+                data-tour="generate-script"
                 className={script ? 'app-btn-secondary text-sm' : 'app-btn-primary text-sm'}
                 style={{ padding: '8px 16px' }}
               >
@@ -1708,6 +1754,7 @@ export default function PropertyDetailPage() {
             placeholder="Trykk «Generer manus» for å lage et AI-generert presentasjonsmanus basert på boligdataene..."
             rows={8}
             className="app-textarea"
+            data-tour="script-text"
           />
           {script && (
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
@@ -2409,6 +2456,7 @@ export default function PropertyDetailPage() {
           <button
             onClick={handleGenerateVideo}
             disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
+            data-tour="generate-video"
             className="app-btn-primary w-full"
             style={{ padding: '14px', fontSize: '15px', borderRadius: '12px' }}
           >
