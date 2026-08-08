@@ -4,52 +4,11 @@ import Link from 'next/link'
 import { useActionState, useState } from 'react'
 import { chooseTemplateAvatarAction } from './actions'
 
-const R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
-
-const TEMPLATE_AVATARS = [
-  {
-    id:          'sofia',
-    name:        'Sofia',
-    desc:        'Varm og profesjonell',
-    voiceId:     'uNsWM1StCcpydKYOjKyu',
-    portraitUrl: `${R2}/sofia.jpg`,
-  },
-  {
-    id:          'marius',
-    name:        'Marius',
-    desc:        'Klar og selvsikker',
-    voiceId:     's2xtA7B2CTXPPlJzch1v',
-    portraitUrl: `${R2}/marius.jpg`,
-  },
-  {
-    id:          'ingrid',
-    name:        'Ingrid',
-    desc:        'Nordisk og elegant',
-    voiceId:     'BGEU6wFi2uNm6Kje1Yhk',
-    portraitUrl: `${R2}/ingrid.jpg`,
-  },
-  {
-    id:          'even',
-    name:        'Even',
-    desc:        'Rolig og trygg',
-    voiceId:     'vUmLiNBm6MDcy1NUHaVr',
-    portraitUrl: `${R2}/even.jpg`,
-  },
-  {
-    id:          'hanna',
-    name:        'Hanna',
-    desc:        'Engasjert og moderne',
-    voiceId:     'jsCqWAovK2LkecY7zXl4',
-    portraitUrl: `${R2}/hanna.jpg`,
-  },
-  {
-    id:          'erik',
-    name:        'Erik',
-    desc:        'Erfaren og grundig',
-    voiceId:     'nhvaqgRyAq6BmFs3WcdX',
-    portraitUrl: `${R2}/erik.jpg`,
-  },
-]
+// EN kilde til avatarene. Denne siden hadde sin egen kopi av lista, og kopiene
+// drev fra hverandre: Ingrid fikk voiceId BGEU6wFi2uNm6Kje1Yhk her og
+// cgSgspJ2msm6clMCkdW9 paa eiendomssiden, saa samme avatar byttet stemme
+// underveis i flyten. Aldri to lister over det samme.
+import { TEMPLATE_AVATARS } from '../../../lib/template-avatars'
 
 export default function AvatarOnboardingPage() {
   const [selected, setSelected] = useState<string | null>(null)

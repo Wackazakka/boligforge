@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
+import { VOICES, voiceLabel } from '../../../../lib/voices'
 import ProductTour, { type TourStep } from '@/app/components/ProductTour'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
@@ -110,6 +111,7 @@ type Property = {
 type AgentProfile = {
   name?: string
   voice_id?: string
+  cloned_voice_id?: string
   tone_of_voice?: string
   portrait_url?: string
   logo_url?: string
@@ -137,6 +139,8 @@ type VideoRecipe = {
   outro?: Outro
   ambienceType?: string
   selectedAvatarUrl?: string
+  /** Stemme valgt for AKKURAT denne videoen — tom = foelg avataren/profilen */
+  voiceOverride?: string
   activeAvatarId?: string | null
   selectedImageIdx?: number
   motion?: boolean               // Ken Burns-bevegelse i bildesegmenter/outro
@@ -271,6 +275,10 @@ export default function PropertyDetailPage() {
   const [profile, setProfile] = useState<AgentProfile>({})
   const [settingImages, setSettingImages] = useState<SettingImage[]>([])
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>('')
+  // Stemmen FOELGER avataren. Overstyringen gjelder kun denne videoen, saa
+  // du kan hoere etter og bytte her uten aa rote i profilen.
+  const [voiceOverride, setVoiceOverride] = useState<string>('')
+  const [showVoicePicker, setShowVoicePicker] = useState(false)
   const [generatingAvatar, setGeneratingAvatar] = useState(false)
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null)
   const [cachedCutoutUrl, setCachedCutoutUrl] = useState<string | null>(null)
@@ -541,7 +549,7 @@ export default function PropertyDetailPage() {
   })
 
   // Effective values — template avatar overrides own profile when selected
-  const effectiveVoiceId   = activeAvatar?.voiceId     ?? profile.voice_id    ?? ''
+  const effectiveVoiceId   = voiceOverride || activeAvatar?.voiceId || profile.voice_id || ''
   const effectivePortrait  = activeAvatar?.portraitUrl  ?? profile.portrait_url ?? ''
   const effectiveAgentName = activeAvatar?.name         ?? profile.name         ?? 'megler'
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -823,6 +831,7 @@ export default function PropertyDetailPage() {
     if (recipe.outro) setOutro(recipe.outro)
     if (recipe.ambienceType) setAmbienceType(recipe.ambienceType as typeof ambienceType)
     setSelectedAvatarUrl(recipe.selectedAvatarUrl ?? '')
+    setVoiceOverride(recipe.voiceOverride ?? '')
     setActiveAvatar(recipe.activeAvatarId ? (TEMPLATE_AVATARS.find(a => a.id === recipe.activeAvatarId) ?? null) : null)
     if (typeof recipe.selectedImageIdx === 'number') setSelectedImageIdx(recipe.selectedImageIdx)
     // Eldre oppskrifter (før bevegelse fantes) skal re-generere uendret → av;
@@ -1227,6 +1236,7 @@ export default function PropertyDetailPage() {
       outro,
       ambienceType,
       selectedAvatarUrl,
+      voiceOverride,
       activeAvatarId: activeAvatar?.id ?? null,
       selectedImageIdx,
       motion,
@@ -1627,6 +1637,64 @@ export default function PropertyDetailPage() {
               </button>
             ))}
             </>)}
+          </div>
+
+          {/* — Stemme — følger avataren, men kan overstyres for denne videoen — */}
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Stemme:</span>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>
+                {voiceLabel(effectiveVoiceId, profile.cloned_voice_id)}
+                {!voiceOverride && activeAvatar ? ' — følger avataren' : ''}
+              </span>
+              <button
+                type="button"
+                onClick={() => playVoiceSample(effectiveVoiceId)}
+                disabled={!effectiveVoiceId}
+                className="app-btn-ghost text-xs"
+                style={{ padding: '4px 10px' }}
+              >
+                {playingVoiceId === effectiveVoiceId ? '■ Spiller…' : '▶ Hør'}
+              </button>
+              <button type="button" onClick={() => setShowVoicePicker(v => !v)} className="app-btn-ghost text-xs" style={{ padding: '4px 10px' }}>
+                {showVoicePicker ? 'Lukk' : 'Bytt stemme'}
+              </button>
+              {voiceOverride && (
+                <button type="button" onClick={() => { setVoiceOverride(''); setShowVoicePicker(false) }}
+                  className="app-btn-ghost text-xs" style={{ padding: '4px 10px', color: 'var(--muted)' }}>
+                  Tilbake til avatarens
+                </button>
+              )}
+            </div>
+
+            {showVoicePicker && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
+                {[
+                  ...(profile.cloned_voice_id ? [{ id: profile.cloned_voice_id, name: 'Din egen stemme' }] : []),
+                  ...VOICES,
+                ].map(v => {
+                  const valgt = effectiveVoiceId === v.id
+                  return (
+                    <div key={v.id}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '999px',
+                               border: `1px solid ${valgt ? 'var(--blue)' : 'var(--line)'}`,
+                               background: valgt ? 'var(--blue-soft)' : 'var(--surface-2)', padding: '3px 4px 3px 10px' }}>
+                      <button type="button" onClick={() => setVoiceOverride(v.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px',
+                                 fontWeight: valgt ? 600 : 400, color: valgt ? 'var(--blue)' : 'var(--ink)', padding: 0 }}>
+                        {v.name}
+                      </button>
+                      <button type="button" onClick={() => playVoiceSample(v.id)}
+                        title="Hør stemmen"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px',
+                                 color: playingVoiceId === v.id ? 'var(--blue)' : 'var(--muted)', padding: '0 6px' }}>
+                        {playingVoiceId === v.id ? '■' : '▶'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* — Bildevalg — hvilken versjon av presentatøren som brukes i videoen — */}

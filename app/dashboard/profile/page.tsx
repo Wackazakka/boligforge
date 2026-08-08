@@ -42,15 +42,6 @@ const SETTING_PROMPTS: Record<string, string> = {
   neighborhood: 'A professional Norwegian real estate agent standing outdoors on a sunny Norwegian residential street. Traditional wooden houses painted in muted colors, leafy trees, clear blue sky, golden afternoon light. The agent looks relaxed and confident. Editorial lifestyle photography.',
 }
 
-const VOICES = [
-  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind – Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
-  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis – Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
-  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes – Selvsikker', preview: 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3' },
-  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja – Nordisk, dramatisk', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/ed9b05e6324c457685490352e9a1ec90/voices/BGEU6wFi2uNm6Kje1Yhk/gCIHS9pPkrtwiAjN4VgG.mp3' },
-  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert – Oslo', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/2461cf568dc042a3bbfbf75522203b35/voices/CMbvLbbccSd611KtwxV3/fabf86a6-90db-42c2-9993-47fff3f73a80.mp3' },
-  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/3690d7df74c84d8880e0e0d0641de7f2/voices/vUmLiNBm6MDcy1NUHaVr/6JBvRVvXcssLtXlaqLg1.mp3' },
-  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia – Norsk kvinne', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/a2175a4ce5a74c88868dd9d4a000c9a6/voices/uNsWM1StCcpydKYOjKyu/868f87d5-7724-4786-a7fa-a48e01b2ba54.mp3' },
-]
 
 const SETTINGS = [
   { id: 'modern_home', label: 'Foran en moderne bolig' },
@@ -69,6 +60,8 @@ const TONE_PRESETS = [
   { label: 'Rolig og tillitsvekkende', value: 'Rolig og tillitsvekkende. Trygg, ærlig og nøktern — bygger tillit uten salgssjargong.' },
   { label: 'Saklig og presis', value: 'Saklig og presis. Faktabasert og ryddig, lar boligens kvaliteter tale for seg selv.' },
 ]
+
+import { VOICES } from '../../../lib/voices'
 
 const AVATAR_R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
 const STANDARD_AVATARS = [
@@ -660,7 +653,11 @@ export default function ProfilePage() {
           </h2>
           <div className="space-y-5">
             <div>
-              <label className="app-label mb-3">Foretrukket stemme</label>
+              <label className="app-label mb-1">Foretrukket stemme</label>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+                Dette er standardstemmen din. Velger du en ferdig AI-megler til en video,
+                snakker hun med sin egen stemme — og du kan bytte stemme per video på eiendomssiden.
+              </p>
               <div className="grid grid-cols-1 gap-2">
                 {profile.cloned_voice_id && (
                   <button
