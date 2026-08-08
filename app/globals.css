@@ -1107,3 +1107,13 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   border-bottom-color: var(--surface);
 }
 
+
+/* ─── Lightbox over produkt-touren ───
+   driver.js setter `pointer-events: none` på ALT utenfor det markerte
+   elementet. Forstørrelses-knappen (⤢) ligger inne i markerte seksjoner, så
+   brukeren kan åpne lightboxen midt i en tour — men klikket for å lukke den
+   ble spist, og det store bildet ble hengende (målt 8/8 med Sofia-avataren).
+   Lightboxen er en modal og skal ligge øverst og være klikkbar uansett. */
+.rh-lightbox { z-index: 1000000001; }
+.driver-active .rh-lightbox,
+.driver-active .rh-lightbox * { pointer-events: auto; }

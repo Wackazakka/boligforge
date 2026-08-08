@@ -1386,9 +1386,13 @@ export default function PropertyDetailPage() {
         </div>
       )}
 
+      {/* rh-lightbox: globals.css hever den over driver.js-popoveren og gir den
+          pointer-events tilbake. Uten det ble det forstørrede bildet umulig å
+          lukke mens en produkt-tour kjørte (driver.js dreper pointer-events på
+          alt utenfor det markerte elementet) — målt 8/8 med Sofia-avataren. */}
       {lightboxUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="rh-lightbox fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.85)' }}
           onClick={() => setLightboxUrl(null)}
         >
