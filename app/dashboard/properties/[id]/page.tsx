@@ -9,10 +9,11 @@ import ProductTour, { runTour, type TourStep } from '@/app/components/ProductTou
 // etterpå. Grunnen er at segment-editoren, outroen, musikken og ambiensen
 // først RENDRES når manuset er delt opp — de kan ikke pekes på før det.
 const TOUR_SETUP_KEY  = 'rh_tour_property_setup'
+const TOUR_SPLIT_KEY  = 'rh_tour_property_split'   // egen nudge når manuset finnes
 const TOUR_REVIEW_KEY = 'rh_tour_property_review'
 
 /** Del 1: fram til manuset er delt opp i segmenter. */
-function buildSetupSteps(hasScript: boolean): TourStep[] {
+function buildSetupSteps(): TourStep[] {
   return [
     {
       selector: '[data-tour="presenter"]',
@@ -34,14 +35,20 @@ function buildSetupSteps(hasScript: boolean): TourStep[] {
       title: '4. Les gjennom og rett',
       description: 'Manuset styrer alt videre — bilder, lengde og hva som blir sagt. Endre fritt: skriv om, legg til eller stryk.',
     },
-    // Knappen finnes bare når manuset er skrevet.
-    ...(hasScript ? [{
-      selector: '[data-tour="split-segments"]',
-      title: '5. Del opp i segmenter',
-      description: 'Dette må gjøres før du kan lage videoen. AI-en deler manuset i biter og kobler boligbildene til riktig del. Etterpå får du en ny gjennomgang av hva du bør sjekke.',
-    }] : []),
+    // Segmenteringssteget ligger i SPLIT_STEPS: setup-touren kjører før
+    // manuset finnes hos nye brukere, så et betinget steg her ble aldri vist.
   ]
 }
+
+/** Nudge når manuset er skrevet, men ikke delt opp. Uten segmentering leses
+ *  hele manuset i ett strekk — brukeren må vite at dette er anbefalt veivalg. */
+const SPLIT_STEPS: TourStep[] = [
+  {
+    selector: '[data-tour="split-segments"]',
+    title: 'Neste steg: del opp i segmenter',
+    description: 'Dette er det anbefalte veivalget. AI-en deler manuset i biter og kobler riktige boligbilder til hver del — og du får sjekke hver bit for seg før videoen lages. Hopper du over, leses hele manuset i ett strekk over bilder du velger manuelt.',
+  },
+]
 
 /**
  * Del 2: kvalitetssikring av segmentene og lyden før videoen lages.
@@ -1346,7 +1353,7 @@ export default function PropertyDetailPage() {
   // Stegene bygges fra gjeldende tilstand, slik at vi aldri peker på et
   // element som ikke er rendret ennå (driver.js hopper ikke over tomme treff).
   const firstImageSegmentIdx = segments.findIndex(s => s.type === 'image')
-  const setupSteps  = buildSetupSteps(Boolean(script))
+  const setupSteps  = buildSetupSteps()
   const firstAvatarSegmentIdx = segments.findIndex(s => s.type === 'avatar')
   const reviewSteps = buildReviewSteps(firstImageSegmentIdx !== -1, firstAvatarSegmentIdx !== -1)
 
@@ -1417,7 +1424,9 @@ export default function PropertyDetailPage() {
               title="Vis en rask gjennomgang"
               onClick={() => segments.length > 0
                 ? runTour(TOUR_REVIEW_KEY, reviewSteps)
-                : runTour(TOUR_SETUP_KEY, setupSteps)}
+                : script
+                  ? runTour(TOUR_SPLIT_KEY, SPLIT_STEPS)
+                  : runTour(TOUR_SETUP_KEY, setupSteps)}
               className="app-btn-ghost text-xs"
               style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
@@ -1426,12 +1435,18 @@ export default function PropertyDetailPage() {
           )}
         </div>
 
-        {/* To førstegangs-gjennomganger: oppsett før segmentering, kvalitets-
-            sikring etter. Del 2 utløses av at segmentene faktisk finnes. */}
+        {/* Tre gjennomganger, gjensidig utelukkende og i takt med hvor langt
+            brukeren er kommet: oppsett (før manus) -> del opp (manus finnes,
+            ikke segmentert) -> kvalitetssikring (segmentene finnes). */}
         <ProductTour
           storageKey={TOUR_SETUP_KEY}
-          when={activeTab === 'video' && segments.length === 0}
+          when={activeTab === 'video' && segments.length === 0 && !script}
           steps={setupSteps}
+        />
+        <ProductTour
+          storageKey={TOUR_SPLIT_KEY}
+          when={activeTab === 'video' && segments.length === 0 && !!script}
+          steps={SPLIT_STEPS}
         />
         <ProductTour
           storageKey={TOUR_REVIEW_KEY}
