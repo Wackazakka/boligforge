@@ -68,7 +68,7 @@ function buildReviewSteps(hasImageSegment: boolean, hasAvatarSegment: boolean): 
     'Sjekk tonefall og uttale. Blir et ord uttalt feil, kan du stave det slik det skal HØRES ut — «Kilevold» skrives f.eks. «Kjilevold», så blir det riktig hver gang.')
   if (hasImageSegment) {
     add('[data-tour="segment-images"]', 'Sjekk bildene i segmentet',
-      'Passer bildene til det som sies? Bytt ut de som ikke gjør det. Flere bilder deler taletiden mellom seg — og 🎥-knappen slår av bevegelsen på et enkelt bilde, f.eks. en plantegning.')
+      'Passer bildene til det som sies? Bytt ut de som ikke gjør det. Flere bilder deler taletiden mellom seg — og merket nede til venstre på hvert bilde veksler mellom bevegelse og stillbilde, for eksempel på en plantegning.')
   }
   if (hasAvatarSegment) {
     add('[data-tour="avatar-clip"]', 'Se avataren FØR du bruker en video',
@@ -2122,8 +2122,8 @@ export default function PropertyDetailPage() {
                                   title={noMotionImages.includes(imgU)
                                     ? 'Bevegelse er AV for dette bildet — klikk for å slå på igjen'
                                     : 'Slå AV bevegelse for akkurat dette bildet'}
-                                  style={{ position: 'absolute', bottom: '3px', left: '3px', background: noMotionImages.includes(imgU) ? '#dc2626' : 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 5px', fontSize: '11px', color: '#fff', border: 'none', cursor: 'pointer' }}
-                                >{noMotionImages.includes(imgU) ? '🚫🎥' : '🎥'}</button>
+                                  style={{ position: 'absolute', bottom: '3px', left: '3px', background: noMotionImages.includes(imgU) ? '#dc2626' : 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                >{noMotionImages.includes(imgU) ? 'Stillbilde' : 'Bevegelse'}</button>
                               )}
                             </div>
                           ))}
@@ -2184,8 +2184,8 @@ export default function PropertyDetailPage() {
                                     title={noMotionImages.includes(img)
                                       ? 'Bevegelse er AV for dette bildet — klikk for å slå på igjen'
                                       : 'Slå AV bevegelse for akkurat dette bildet'}
-                                    style={{ position: 'absolute', bottom: '3px', left: '3px', background: noMotionImages.includes(img) ? '#dc2626' : 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 5px', fontSize: '11px', color: '#fff', border: 'none', cursor: 'pointer' }}
-                                  >{noMotionImages.includes(img) ? '🚫🎥' : '🎥'}</button>
+                                    style={{ position: 'absolute', bottom: '3px', left: '3px', background: noMotionImages.includes(img) ? '#dc2626' : 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                  >{noMotionImages.includes(img) ? 'Stillbilde' : 'Bevegelse'}</button>
                                 )}
                                 <button
                                   onClick={e => { e.stopPropagation(); setLightboxUrl(img) }}
