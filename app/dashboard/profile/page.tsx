@@ -117,6 +117,7 @@ export default function ProfilePage() {
   const [savingOrg, setSavingOrg] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const [pendingClone, setPendingClone] = useState<{ blob: Blob; filename: string; warnings: string[] } | null>(null)
   const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null)
@@ -211,6 +212,52 @@ export default function ProfilePage() {
     }
   }
 
+  // Kvalitetssjekk FØR kloning: støy og overstyring i opptaket klones inn i
+  // stemmen og følger deretter hver eneste video megleren lager. Bedre å stoppe
+  // et dårlig opptak her enn å oppdage det tre videoer senere.
+  async function analyseRecording(blob: Blob): Promise<string[]> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext
+      if (!Ctx) return []
+      const ctx = new Ctx()
+      const buf = await ctx.decodeAudioData(await blob.arrayBuffer())
+      const data = buf.getChannelData(0)
+      const sr = buf.sampleRate
+
+      // RMS per 50 ms-vindu
+      const win = Math.floor(sr * 0.05)
+      const rms: number[] = []
+      let clipped = 0
+      for (let i = 0; i + win <= data.length; i += win) {
+        let sum = 0
+        for (let j = i; j < i + win; j++) {
+          const v = data[j]
+          sum += v * v
+          if (Math.abs(v) > 0.99) clipped++
+        }
+        rms.push(Math.sqrt(sum / win))
+      }
+      ctx.close()
+      if (rms.length < 20) return []
+
+      const sorted = [...rms].sort((a, b) => a - b)
+      const noise = sorted[Math.floor(sorted.length * 0.1)] || 1e-6   // stilleste 10 %
+      const speech = sorted[Math.floor(sorted.length * 0.9)]          // høyeste 10 %
+      const snrDb = 20 * Math.log10(Math.max(speech, 1e-6) / Math.max(noise, 1e-6))
+      const speechSec = rms.filter(r => r > noise * 3).length * 0.05
+      const clipPct = (clipped / data.length) * 100
+
+      const w: string[] = []
+      if (snrDb < 15) w.push('Det er mye bakgrunnsstøy i opptaket. Støyen blir en del av den klonede stemmen — prøv et roligere rom, eller lukk døra.')
+      if (clipPct > 0.5) w.push('Lyden er overstyrt (for høy inn). Sitt litt lenger fra mikrofonen, eller snakk litt lavere.')
+      if (speechSec < 20) w.push(`Det er bare rundt ${Math.round(speechSec)} sekunder faktisk tale her. Les gjerne mer — 1–2 minutter gir tydelig bedre klone.`)
+      return w
+    } catch {
+      return []   // kan ikke analysere (f.eks. ukjent format) — la brukeren gå videre
+    }
+  }
+
   async function submitClone(audioBlob: Blob, filename: string) {
     setVoiceRecordState('cloning')
     setVoiceRecordError('')
@@ -271,6 +318,13 @@ export default function ProfilePage() {
 
     mr.onstop = async () => {
       const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+      const warnings = await analyseRecording(blob)
+      if (warnings.length > 0) {
+        // Advar, men lås ikke — analysen kan ta feil, og megleren vet best
+        setPendingClone({ blob, filename: 'recording.webm', warnings })
+        setVoiceRecordState('idle')
+        return
+      }
       await submitClone(blob, 'recording.webm')
     }
     mr.stop()
@@ -635,7 +689,36 @@ export default function ProfilePage() {
                 <p>Beliggenheten er også verdt å trekke frem. Det er kort vei til skole, barnehage og dagligvare, og gode kollektivforbindelser gjør hverdagen enkel. I nærområdet finner du flotte turmuligheter, og på lørdager er det bare en kort spasertur til det lokale torget. Velkommen til visning — dette er en bolig du bør oppleve selv.</p>
               </div>
 
-              {(voiceRecordState === 'idle' || voiceRecordState === 'error') && (
+              {/* Kvalitetsvarsel — advarer, men låser ikke: analysen kan ta feil */}
+              {pendingClone && (
+                <div className="mb-4" style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', padding: '14px 16px' }}>
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#92400e' }}>
+                    Sjekk opptaket før vi lager stemmen
+                  </p>
+                  <ul className="text-sm mb-3" style={{ color: '#92400e', listStyle: 'disc', paddingLeft: '18px' }}>
+                    {pendingClone.warnings.map((w, i) => <li key={i} className="mb-1">{w}</li>)}
+                  </ul>
+                  <p className="text-xs mb-3" style={{ color: '#92400e' }}>
+                    Stemmen du lager nå brukes i alle videoene dine framover, så det lønner seg å ta opptaket på nytt hvis du kan.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => { setPendingClone(null); startRecording() }}
+                      className="app-btn-primary text-sm"
+                    >
+                      Ta opp på nytt
+                    </button>
+                    <button
+                      onClick={() => { const p = pendingClone; setPendingClone(null); submitClone(p.blob, p.filename) }}
+                      className="app-btn-secondary text-sm"
+                    >
+                      Bruk opptaket likevel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(voiceRecordState === 'idle' || voiceRecordState === 'error') && !pendingClone && (
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={startRecording}

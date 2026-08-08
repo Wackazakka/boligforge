@@ -15,10 +15,14 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Mangler lydfil' }, { status: 400 })
     }
 
-    // Send audio to ElevenLabs Instant Voice Cloning
+    // Send audio to ElevenLabs Instant Voice Cloning.
+    // remove_background_noise: meglere tar ofte opp i åpne kontorlandskap, og
+    // støy i opptaket klones INN i stemmen — den følger da hver eneste video
+    // megleren lager. ElevenLabs renser kildelyden før kloning.
     const elForm = new FormData()
     elForm.append('name', name)
     elForm.append('files', audio, 'recording.webm')
+    elForm.append('remove_background_noise', 'true')
 
     const elRes = await fetch('https://api.elevenlabs.io/v1/voices/add', {
       method: 'POST',
