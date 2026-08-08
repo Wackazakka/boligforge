@@ -172,6 +172,32 @@ const TAG_KEYWORDS: Record<string, string[]> = {
   kontor:   ['kontor', 'hjemmekontor', 'arbeidsrom'],
 }
 
+// Nedskaler et boligbilde i nettleseren FØR klassifisering. Claude tokeniserer
+// bilder etter areal: et 1417x945-bilde koster ~1 560 tokens, 768 px ~625.
+// Målt 8/8 på ekte annonse: 768 px gir IDENTISK klassifisering på 20/20 bilder
+// (512 px mistet én sekundærtagg), derfor 768 og ikke lavere.
+// R2-bildene hentes via same-origin-proxyen /r2/* — pub-domenet sender ingen
+// CORS-headere, og canvas ville blitt «tainted» av et direkte kryssdomene-bilde.
+async function downscaleToDataUrl(url: string, max = 768): Promise<string | null> {
+  try {
+    const proxied = url.replace(/^https:\/\/pub-[a-z0-9]+\.r2\.dev\//, '/r2/')
+    const res = await fetch(proxied)
+    if (!res.ok) return null
+    const bmp = await createImageBitmap(await res.blob())
+    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height))  // aldri oppskalering
+    const w = Math.round(bmp.width * scale)
+    const h = Math.round(bmp.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    canvas.getContext('2d')?.drawImage(bmp, 0, 0, w, h)
+    bmp.close()
+    return canvas.toDataURL('image/jpeg', 0.82)
+  } catch {
+    return null   // ruten faller tilbake til å la Claude hente URL-en
+  }
+}
+
 function hasRoomKeyword(text: string): boolean {
   const t = text.toLowerCase()
   return ROOM_KEYWORDS.some(kw => t.includes(kw))
@@ -614,12 +640,31 @@ export default function PropertyDetailPage() {
 
     setClassifyingImages(true)
     try {
-      const res = await fetch('/api/properties/classify-images', {
+      // Fase 1 — hent cachede tagger. Treffer cachen (vanlig ved re-segmentering
+      // etter manusendring) koster klassifiseringen ingenting.
+      const post = (body: object) => fetch('/api/properties/classify-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images }),
-      })
-      const data = await res.json()
+        body: JSON.stringify(body),
+      }).then(r => r.json())
+
+      let data = await post({ images, propertyId: id })
+
+      // Fase 2 — skaler ned bildene som mangler tagger og send dem i porsjoner.
+      // Klienten styrer porsjoneringen (15 av gangen ≈ 1,3 MB), så payloaden
+      // holder seg trygt under Netlifys grense og løkken kan ikke henge.
+      while (data.needThumbs?.length) {
+        const chunk: string[] = data.needThumbs.slice(0, 15)
+        const thumbs: Record<string, string> = {}
+        await Promise.all(chunk.map(async u => {
+          const d = await downscaleToDataUrl(u)
+          if (d) thumbs[u] = d
+        }))
+        const next = await post({ images, propertyId: id, classify: chunk, thumbs })
+        if (!next?.imageTags) break
+        data = next
+      }
+
       if (data.imageTags) {
         const usedImages = new Set<string>()
         const last = newSegments.length - 1
