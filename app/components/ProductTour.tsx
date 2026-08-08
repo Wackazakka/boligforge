@@ -31,8 +31,18 @@ function startTour(storageKey: string, steps: TourStep[]) {
     doneBtnText: 'Skjønner!',
     progressText: '{{current}} av {{total}}',
     steps: driveSteps,
+    // driver.js 1.8 fjerner ikke .driver-active-element fra forrige steg —
+    // målt i prod 8/8: etter fire steg hadde ALLE fire elementene klassen.
+    // Klassen styrer pointer-events under touren, så da forblir seksjoner man
+    // har forlatt klikkbare. Rydd selv ved hvert bytte.
+    onHighlightStarted: (el?: Element) => {
+      document.querySelectorAll('.driver-active-element').forEach(e => {
+        if (e !== el) e.classList.remove('driver-active-element')
+      })
+    },
     onDestroyed: () => {
       activeTour = null
+      document.querySelectorAll('.driver-active-element').forEach(e => e.classList.remove('driver-active-element'))
       try { window.localStorage.setItem(storageKey, '1') } catch { /* ignore */ }
     },
   })
