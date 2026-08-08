@@ -1902,7 +1902,19 @@ export default function PropertyDetailPage() {
                                 style={{ background: 'rgba(13,11,8,0.6)', color: '#fff', border: 'none', cursor: 'zoom-in' }}
                               >⤢</button>
                               {(seg.imageUrls?.length ?? 0) > 1 && (
-                                <span style={{ position: 'absolute', bottom: '3px', left: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>{ii + 1}</span>
+                                <span style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.65)', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', color: '#fff' }}>{ii + 1}</span>
+                              )}
+                              {motion && (
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    setNoMotionImages(prev => prev.includes(imgU) ? prev.filter(u => u !== imgU) : [...prev, imgU])
+                                  }}
+                                  title={noMotionImages.includes(imgU)
+                                    ? 'Bevegelse er AV for dette bildet — klikk for å slå på igjen'
+                                    : 'Slå AV bevegelse for akkurat dette bildet'}
+                                  style={{ position: 'absolute', bottom: '3px', left: '3px', background: noMotionImages.includes(imgU) ? '#dc2626' : 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 5px', fontSize: '11px', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                >{noMotionImages.includes(imgU) ? '🚫🎥' : '🎥'}</button>
                               )}
                             </div>
                           ))}
