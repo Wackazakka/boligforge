@@ -322,6 +322,7 @@ export default function PropertyDetailPage() {
   const [loadingCollections, setLoadingCollections] = useState(false)
   const [folderFeedback, setFolderFeedback] = useState<{ text: string; ok: boolean } | null>(null)
   const [activeAvatar, setActiveAvatar] = useState<TemplateAvatar | null>(null)
+  const preselectDone = useRef(false)
   // Mal-avatarene skjules bak en toggle når brukeren har egen avatar — presentatøren
   // er allerede valgt på profilsiden, byttet er unntaket.
   const [showTemplateAvatars, setShowTemplateAvatars] = useState(false)
@@ -530,6 +531,22 @@ export default function PropertyDetailPage() {
   }
 
   // True only if the user has uploaded/generated their own portrait (not a template placeholder)
+  useEffect(() => {
+    // Kjoerer én gang: en gjenopprettet oppskrift eller et eget klikk skal vinne.
+    if (preselectDone.current || activeAvatar) return
+    if (!profile.portrait_url) return
+    const mal = TEMPLATE_AVATARS.find(a => a.portraitUrl === profile.portrait_url)
+    if (mal) {
+      setActiveAvatar(mal)
+      // Forhaandsvalget skal gjoere et skjult valg synlig - ikke endre det.
+      // Har brukeren bevisst lagret en ANNEN stemme enn avatarens (maalt i
+      // prod: en profil med Marius' portrett og Sofias stemme), ville
+      // effectiveVoiceId braatt byttet til avatarens. Behold deres kombinasjon.
+      if (profile.voice_id && profile.voice_id !== mal.voiceId) setVoiceOverride(profile.voice_id)
+    }
+    preselectDone.current = true
+  }, [profile.portrait_url, activeAvatar])
+
   const hasOwnAvatar = !!profile.portrait_url &&
     !TEMPLATE_AVATARS.some(av => av.portraitUrl === profile.portrait_url)
 
