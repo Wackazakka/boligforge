@@ -99,6 +99,10 @@ type Profile = {
   cloned_voice_id?: string
   tone_of_voice?: string
   logo_url?: string
+  // Løst av lib/org-branding: kjede-/kontorlogo overstyrer den personlige
+  logo_locked?: boolean
+  logo_from_parent?: boolean
+  logo_source?: string | null
   portrait_url?: string
   selected_avatar_url?: string
 }
@@ -621,7 +625,9 @@ export default function ProfilePage() {
               ['phone', 'Telefon', 'tel', '+47 900 00 000'],
               ['email', 'E-post', 'email', 'ola@meglerkontor.no'],
               ['website', 'Nettside', 'url', 'https://meglerkontor.no'],
-            ] as [keyof Profile, string, string, string][]).map(([key, label, type, placeholder]) => (
+              // Kun tekstfelt her — smalere enn keyof Profile, som nå også
+              // inneholder boolske felter (logo_locked m.fl.)
+            ] as ['name' | 'title' | 'phone' | 'email' | 'website', string, string, string][]).map(([key, label, type, placeholder]) => (
               <div key={key} className={key === 'website' || key === 'email' ? 'sm:col-span-2' : ''}>
                 <label className="app-label">{label}</label>
                 <input
@@ -1236,15 +1242,27 @@ export default function ProfilePage() {
               <div className="w-20 h-20 rounded-lg flex items-center justify-center text-xs text-center px-2"
                 style={{ border: '2px dashed var(--line-2)', color: 'var(--muted)' }}>Ingen logo</div>
             )}
-            {org.isAdmin ? (
+            {/* Kjeden vinner over kontoret: har en overordnet kjede satt logo,
+                kan heller ikke kontorsjefen overstyre det felles uttrykket. */}
+            {profile.logo_from_parent ? (
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Logoen er satt av {profile.logo_source ?? 'kjeden'} og er felles for alle kontorene.
+              </p>
+            ) : org.isAdmin ? (
               <div>
                 <button onClick={() => logoRef.current?.click()} disabled={uploadingLogo} className="app-btn-secondary">
                   {uploadingLogo ? 'Laster opp...' : 'Last opp logo'}
                 </button>
-                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>PNG eller SVG anbefalt</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                  PNG eller SVG anbefalt · gjelder alle meglerne i {profile.logo_source ?? 'meglerhuset'}
+                </p>
               </div>
             ) : (
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>Meglerfirmaets logo styres av byråsjef.</p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                {profile.logo_url
+                  ? `Logoen er satt av ${profile.logo_source ?? 'byråsjefen'} og brukes i videoene dine.`
+                  : 'Meglerfirmaets logo styres av byråsjef.'}
+              </p>
             )}
             <input ref={logoRef} type="file" accept="image/*" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void handleUpload(f, 'logo'); e.target.value = '' }} />

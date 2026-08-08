@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
+import { resolveLogo } from '../../../../lib/org-branding'
 
 export async function GET() {
   const user = await getUser()
@@ -24,5 +25,15 @@ export async function GET() {
     })
   }
   const { default_voice_id, cloned_voice_id, ...rest } = data
-  return NextResponse.json({ ...rest, voice_id: default_voice_id, cloned_voice_id })
+  // Kjeden/meglerhuset kan ha satt en offisiell logo som overstyrer den
+  // personlige — videogenereringen leser logo_url herfra, så den løses her.
+  const logo = await resolveLogo(user.id, rest.logo_url)
+  return NextResponse.json({
+    ...rest,
+    logo_url: logo.url,
+    logo_locked: logo.locked,
+    logo_source: logo.source,
+    voice_id: default_voice_id,
+    cloned_voice_id,
+  })
 }

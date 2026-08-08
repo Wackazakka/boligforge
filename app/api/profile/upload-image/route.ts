@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { createClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
+import { orgAdminOf } from '../../../../lib/org-branding'
 
 function getR2() {
   return new S3Client({
@@ -47,7 +49,22 @@ export async function POST(request: Request) {
       { onConflict: 'user_id' }
     )
 
-    return NextResponse.json({ url })
+    // Logo lastet opp av en byråsjef/kjedeadmin blir organisasjonens OFFISIELLE
+    // logo — meglerne under arver den og kan ikke overstyre. Meglere i en kjede
+    // skal ha et uniformt uttrykk (Lars 8/8).
+    let orgLogoSet = false
+    if (type === 'logo') {
+      const orgId = await orgAdminOf(user.id)
+      if (orgId) {
+        const svc = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { autoRefreshToken: false, persistSession: false } })
+        const { error } = await svc.from('organizations').update({ logo_url: url }).eq('id', orgId)
+        if (error) console.error('[upload-image] kunne ikke sette org-logo:', error)
+        else orgLogoSet = true
+      }
+    }
+
+    return NextResponse.json({ url, orgLogoSet })
   } catch (err: unknown) {
     console.error('[upload-image]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
