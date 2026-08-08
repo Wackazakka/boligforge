@@ -17,14 +17,6 @@ let activeTour: Driver | null = null
 function startTour(storageKey: string, steps: TourStep[]) {
   activeTour?.destroy()
 
-  // Marker som vist ved START, ikke ved avslutning.
-  // driver.js 1.8 kaller onDestroyed KUN hvis et element fortsatt er aktivt
-  // (`if (n && r)` i destroy-sekvensen) — avslutter man fra siste steg er det
-  // ikke det, så hooken fyrer aldri. Målt i prod 8/8: touren ble lukket, men
-  // nøkkelen forble null, så gjennomgangen dukket opp igjen ved HVERT besøk.
-  // «Vist én gang» er dessuten riktigere semantikk: lukker brukeren tidlig,
-  // skal den ikke tvinges fram på nytt — «?»-knappen er veien tilbake.
-  try { window.localStorage.setItem(storageKey, '1') } catch { /* ignore */ }
 
   const driveSteps: DriveStep[] = steps.map(s => ({
     element: s.selector,
@@ -52,6 +44,18 @@ function startTour(storageKey: string, steps: TourStep[]) {
       document.querySelectorAll('.driver-active-element').forEach(e => {
         if (e !== el) e.classList.remove('driver-active-element')
       })
+    },
+    // «Sett» = brukeren avsluttet selv (× eller «Skjønner!»). onDestroyStarted
+    // fyrer KUN på brukerinitiert lukking — driver.js' egen destroy() kaller
+    // h(false) og hopper over hooken, så ingen rekursjon her.
+    //
+    // Hvorfor ikke merke ved start: da mistet man gjennomgangen for godt hvis
+    // siden lastet på nytt før man rakk å lese (profilsiden har opplastinger
+    // og lagring). Og hvorfor ikke onDestroyed: den fyrer aldri når man
+    // avslutter fra siste steg — se måling i prod 8/8.
+    onDestroyStarted: () => {
+      try { window.localStorage.setItem(storageKey, '1') } catch { /* ignore */ }
+      activeTour?.destroy()
     },
     onDestroyed: () => {
       activeTour = null
