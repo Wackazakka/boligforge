@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createMessage } from '../../../../lib/anthropic'
 import { MODELS } from '../../../../lib/models'
+import { getUser } from '../../../../lib/supabase/server'
 
 const CATEGORIES = ['stue', 'kjøkken', 'bad', 'soverom', 'fasade', 'terrasse', 'hage', 'gang', 'kontor', 'annet']
 
@@ -76,6 +77,11 @@ function svc() {
 
 export async function POST(req: Request) {
   try {
+    // Ruten bruker Claude-tokens per kall og var historisk uautentisert.
+    // Kalles kun fra boligsiden, som ligger bak innlogging.
+    const user = await getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { images, propertyId, classify, thumbs } = await req.json() as {
       images: string[]
       propertyId?: string
