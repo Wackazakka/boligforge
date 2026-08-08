@@ -39,7 +39,9 @@ function startTour(storageKey: string, steps: TourStep[]) {
     popoverOffset: 16,
     nextBtnText: 'Neste →',
     prevBtnText: '← Tilbake',
-    doneBtnText: 'Skjønner!',
+    // Handlingsspraak, ikke kursspraak: en flertrinns gjennomgang er «Ferdig»
+    // naar du har gjort siste steg; et enkeltstaaende dytt kvitteres med «OK».
+    doneBtnText: steps.length > 1 ? 'Ferdig' : 'OK',
     progressText: '{{current}} av {{total}}',
     steps: driveSteps,
     // driver.js 1.8 fjerner ikke .driver-active-element fra forrige steg —

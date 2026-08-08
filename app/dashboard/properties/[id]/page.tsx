@@ -46,7 +46,7 @@ const SPLIT_STEPS: TourStep[] = [
   {
     selector: '[data-tour="split-segments"]',
     title: 'Neste steg: del opp i segmenter',
-    description: 'Dette er det anbefalte veivalget. AI-en deler manuset i biter og kobler riktige boligbilder til hver del — og du får sjekke hver bit for seg før videoen lages. Hopper du over, leses hele manuset i ett strekk over bare de åtte første bildene fra listen nederst.',
+    description: 'Trykk «Del opp i segmenter». Da kobles riktig boligbilde til hver del av manuset, og du får sjekke hver bit for seg før videoen lages.',
   },
 ]
 
@@ -62,24 +62,22 @@ function buildReviewSteps(hasImageSegment: boolean, hasAvatarSegment: boolean): 
   const add = (selector: string, title: string, description: string) =>
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
 
-  add('[data-tour="segment-card"]', 'Les teksten i hvert segment',
-    'Gå gjennom segmentene ett for ett. Sitter formuleringen? Teksten kan endres fritt her.')
-  add('[data-tour="segment-audio"]', 'Hør hvordan det leses opp',
-    'Sjekk tonefall og uttale. Blir et ord uttalt feil, kan du stave det slik det skal HØRES ut — «Kilevold» skrives f.eks. «Kjilevold», så blir det riktig hver gang.')
+  add('[data-tour="segment-card"]', 'Les teksten i segment 1',
+    'Klikk i feltet og rett det du vil ha annerledes.')
+  add('[data-tour="segment-audio"]', 'Hør på innlesingen',
+    'Trykk «Hør innlesing». Er tonefallet greit, går du videre.')
   if (hasImageSegment) {
-    add('[data-tour="segment-images"]', 'Sjekk bildene i segmentet',
-      'Passer bildene til det som sies? Bytt ut de som ikke gjør det. Flere bilder deler taletiden mellom seg — og merket nede til venstre på hvert bilde veksler mellom bevegelse og stillbilde, for eksempel på en plantegning.')
+    add('[data-tour="segment-images"]', 'Se om bildene passer til det som sies',
+      'Klikk på et bilde for å bytte det ut.')
   }
   if (hasAvatarSegment) {
-    add('[data-tour="avatar-clip"]', 'Se avataren FØR du bruker en video',
-      'Her kan du forhåndsvise animasjonen av avataren og godkjenne den. Er du ikke fornøyd, lager du en ny — uten å bruke opp en av videoene dine. Klippet du godkjenner er nøyaktig det som havner i filmen.')
+    add('[data-tour="avatar-clip"]', 'Lag avatar-animasjonen',
+      'Trykk «Forhåndsvis animasjonen» og se resultatet før du bruker det.')
   }
-  // Finpuss samlet i ett steg: åtte steg var for mange, og disse fire henger
-  // sammen (alt handler om avslutningen etter at presentatøren er ferdig).
-  add('[data-tour="outro-images"]', 'Finpuss avslutningen',
-    'Bildene som ikke er brukt i segmentene kan vises til slutt, med musikk under. «Velg alle» tar med alle på én gang — da får du også tempo (2,2 sekunder per bilde som standard), overgangsstil og valgfri atmosfærelyd rett under.')
-  add('[data-tour="generate-video"]', 'Lag videoen',
-    'Nå er du klar. Genereringen tar rundt fem minutter og bruker én av videoene i månedskvoten din. Er du ikke helt fornøyd, kan du trykke «Rediger» på den ferdige videoen og endre alt — manus, bilder, musikk — uten å begynne på nytt. Trykk «?» øverst når du vil se denne gjennomgangen igjen.')
+  add('[data-tour="outro-images"]', 'Velg bilder til avslutningen',
+    'Trykk «Velg alle», eller plukk ut de du vil ha. Hopp over hvis du ikke vil ha noen.')
+  add('[data-tour="generate-video"]', 'Trykk «Generer presentasjonsvideo»',
+    'Så er du i gang. Resten av segmentene går du gjennom på samme måte neste gang.')
 
   return steps
 }
@@ -2002,6 +2000,11 @@ export default function PropertyDetailPage() {
                         ⟳ Ny innlesing
                       </button>
                     </div>
+                    {i === 0 && (
+                      <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '5px', maxWidth: '420px' }}>
+                        Blir et navn uttalt feil? Stav det i teksten slik det skal HØRES ut — «Kilevold» som «Kjilevold».
+                      </p>
+                    )}
                   </div>
                   {/* ── Bilde-seksjon: boligbilde for image-segmenter, avatar-forhåndsvisning for avatar-segmenter ── */}
                   {(seg.type === 'image' || seg.type === 'avatar' || seg.imageUrl) && (
@@ -2083,7 +2086,7 @@ export default function PropertyDetailPage() {
                               </button>
                               <span style={{ fontSize: '11px', color: 'var(--muted)', maxWidth: '340px' }}>
                                 {seg.clipUrl
-                                  ? '✓ Denne animasjonen brukes i videoen. Ikke fornøyd? Lag en ny.'
+                                  ? '✓ Denne animasjonen brukes i videoen. Ikke fornøyd? Lag en ny — det koster ingen video.'
                                   : `Avataren presenterer dette segmentet${seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}. Videoen får uansett en animasjon — her kan du se og godkjenne den på forhånd.`}
                               </span>
                             </div>
@@ -2615,6 +2618,9 @@ export default function PropertyDetailPage() {
           >
             {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}
           </button>
+          <p style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '8px' }}>
+            Tar rundt fem minutter og bruker én av videoene dine. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
+          </p>
         </div>
 
         {/* Video result */}

@@ -15,25 +15,26 @@ const TOUR_PROFILE_KEY = 'rh_tour_profile'
 const PROFILE_STEPS: TourStep[] = [
   {
     selector: '[data-tour="profile-basics"]',
-    title: '1. Navn og kontaktinfo',
-    description: 'Dette brukes i videoene og i avslutningsbildet. Navnet er også det avataren presenterer seg med.',
+    title: '1. Fyll inn navn og kontaktinfo',
+    description: 'Skriv det inn i feltene her. Avataren presenterer seg med navnet ditt.',
   },
   {
     selector: '[data-tour="profile-voice"]',
-    title: '2. Velg stemme — eller bruk din egen',
-    description: 'Hør gjennom standardstemmene og velg en du liker. Vil du ha din egen? Les inn teksten i cirka to minutter, så lages en klone. Ta opptaket i et stille rom — bakgrunnsstøy blir en del av stemmen, og følger da alle videoene dine.',
+    title: '2. Velg en stemme',
+    description: 'Hør gjennom standardstemmene og velg en. Vil du heller bruke din egen, leser du inn en tekst i cirka to minutter — sett deg i et stille rom først.',
   },
   {
     selector: '[data-tour="profile-avatar"]',
     title: '3. Velg hvem som vises i videoene',
-    description: 'Last opp et portrett av deg selv, eller velg en av AI-meglerne. Med eget portrett kan du også generere profesjonelle bakgrunner — det tar ett til to minutter per bilde.',
+    description: 'Last opp et portrett av deg selv, eller velg en av AI-meglerne.',
   },
   {
     selector: '[data-tour="profile-logo"]',
-    title: '4. Last opp logoen',
-    description: 'Valgfritt, men anbefalt — logoen vises på avslutningsbildet i alle videoene dine. Husk å lagre nederst når du er ferdig. Trykk «?» her oppe når du vil se gjennomgangen igjen.',
+    title: '4. Last opp logoen — eller hopp over',
+    description: 'Den vises på avslutningsbildet, og kan legges inn senere. Husk å lagre nederst når du er ferdig.',
   },
 ]
+
 const SETTING_PROMPTS: Record<string, string> = {
   modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent looks confident and natural, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
   office: 'A professional Norwegian real estate agent standing in a bright Scandinavian open-plan office. Light wood surfaces, tall windows with soft daylight, subtle greenery in the background. The agent looks approachable and confident. Clean editorial photography look.',
