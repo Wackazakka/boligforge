@@ -33,6 +33,11 @@ const PROFILE_STEPS: TourStep[] = [
     title: '4. Last opp logoen — eller hopp over',
     description: 'Den vises på avslutningsbildet, og kan legges inn senere. Husk å lagre nederst når du er ferdig.',
   },
+  {
+    selector: '[data-tour="profile-status"]',
+    title: '5. Sjekk hva som gjenstår',
+    description: 'Denne linjen står her hele tiden og teller. Er alt haket av, er du klar til å lage din første video.',
+  },
 ]
 
 const SETTING_PROMPTS: Record<string, string> = {
@@ -151,6 +156,18 @@ export default function ProfilePage() {
 
   // Show images for the currently active portrait.
   const activePortrait = profile.portrait_url
+  // Hva staar igjen. En produkttur er flyktig — den kan ikke vite hva du har
+  // gjort, og kan ikke minne deg paa det etterpaa. En tester klikket seg gjennom
+  // alle fire stegene og havnet nederst paa siden uten aa ha valgt noe.
+  const profilLastet = Object.keys(profile).length > 0
+  const oppsett = [
+    { navn: 'Navn',      ok: !!profile.name?.trim(),                              mangler: 'skriv inn navnet ditt' },
+    { navn: 'Stemme',    ok: !!(profile.voice_id || profile.cloned_voice_id),     mangler: 'velg en stemme' },
+    { navn: 'Presentør', ok: !!profile.portrait_url,                              mangler: 'last opp portrett, eller velg AI-megler når du lager videoen' },
+    { navn: 'Logo',      ok: !!profile.logo_url, valgfri: true,                   mangler: 'valgfritt' },
+  ]
+  const gjenstaar = oppsett.filter(o => !o.ok && !o.valgfri)
+
   const hasOwnPortrait = !!(profile.portrait_url && !STANDARD_AVATARS.some(a => profile.portrait_url?.includes(a.id)))
   const photoReady = !!profile.portrait_url
   const hasClone = !!profile.cloned_voice_id
@@ -595,6 +612,38 @@ export default function ProfilePage() {
             ?
           </button>
         </div>
+
+        {profilLastet && (
+          <div data-tour="profile-status" className="app-card" style={{ marginBottom: '1.5rem', padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+                {gjenstaar.length === 0 ? '✓ Profilen er klar' : `Gjenstår: ${gjenstaar.length}`}
+              </span>
+              {gjenstaar.length === 0 && (
+                <Link href="/dashboard/properties" className="text-xs" style={{ color: 'var(--gold)' }}>
+                  Lag din første video →
+                </Link>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+              {oppsett.map(o => (
+                <span key={o.navn}
+                  title={o.ok ? 'På plass' : o.mangler}
+                  style={{ fontSize: 12, borderRadius: 999, padding: '3px 10px',
+                           border: `1px solid ${o.ok ? 'var(--gold-deep)' : 'var(--line)'}`,
+                           background: o.ok ? 'var(--surface-2)' : 'transparent',
+                           color: o.ok ? 'var(--ink)' : 'var(--muted)' }}>
+                  {o.ok ? '✓' : '○'} {o.navn}{!o.ok && o.valgfri ? ' (valgfritt)' : ''}
+                </span>
+              ))}
+            </div>
+            {gjenstaar.length > 0 && (
+              <p className="text-xs" style={{ color: 'var(--muted)', marginTop: 8 }}>
+                {gjenstaar.map(o => o.mangler).join(' · ')}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Førstegangs-gjennomgang. Seksjonene rendres uavhengig av data, og
             ProductTour venter selv på at ankeret finnes — å gate på at
