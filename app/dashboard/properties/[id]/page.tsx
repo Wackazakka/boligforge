@@ -99,6 +99,7 @@ type Property = {
   summary: string | null
   images: string[]
   finn_url: string
+  hjem_url?: string | null
 }
 
 type AgentProfile = {
@@ -146,6 +147,7 @@ type Outro = {
   transition?: 'none' | 'fade'   // eldre felt — erstattet av style (leses for bakoverkomp)
   style?: 'cut' | 'fade' | 'motion'          // outroens stil, uavhengig av segment-bevegelsen
   motionStrength?: 'subtle' | 'medium' | 'strong'  // kun ved style='motion'
+  portalLogo?: boolean            // egen plakat ETTER meglerens (f.eks. hjem.no)
 }
 
 type SettingImage = {
@@ -2290,6 +2292,23 @@ export default function PropertyDetailPage() {
                     <p className="text-xs" style={{ color: 'var(--muted)', marginLeft: '0' }}>
                       ⚡ Hurtigkutt — med musikk gir dette en rytmisk, energisk avslutning.
                     </p>
+                  )}
+                  {/* Portal-plakat: egen logoplakat ETTER meglerens. Vises som
+                      valg når boligen er hentet fra hjem.no, og er da på som
+                      standard — annonsen kommer tross alt derfra. */}
+                  {property?.hjem_url && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={outro.portalLogo !== false}
+                        onChange={e => setOutro(o => ({ ...o, portalLogo: e.target.checked }))}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
+                      />
+                      <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                        Avslutt med Hjem.no-plakat
+                        <span style={{ color: 'var(--muted)' }}> — egen plakat etter din egen logo</span>
+                      </span>
+                    </label>
                   )}
                   <div className="flex items-center gap-3 flex-wrap">
                     <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Stil på bildeserien</label>

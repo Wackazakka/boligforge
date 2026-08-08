@@ -94,6 +94,15 @@ export async function POST(request: Request) {
       } catch { /* behold default (svart) hos worker */ }
     }
 
+    // Portal-plakat: egen sluttplakat ETTER meglerens (kundeønske 8/8).
+    // URL-en settes her, ikke av klienten — da kan ingen sende en vilkårlig
+    // logo inn i videoene. Hjem.no-logoen er mørk skrift → hvit plakat.
+    if (outro?.portalLogo) {
+      outro.portalLogoUrl = `${process.env.R2_PUBLIC_URL}/boligforge/brand/portal-hjem-no.png`
+      outro.portalLogoBg = 'white'
+    }
+    if (outro) delete outro.portalLogo
+
     // Create a pending job record in property_videos.
     // recipe = redigeringstilstanden (manus, segmenter m/ innlesinger og godkjente
     // avatar-klipp, outro, valg) — gjør «Rediger» på tidligere videoer mulig.
