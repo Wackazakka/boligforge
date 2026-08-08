@@ -22,9 +22,11 @@ const EMPTY_STEPS: TourStep[] = [
 
 const CARD_STEPS: TourStep[] = [
   {
+    // NB: klikk på selve kortet lukker bare denne boksen (driver.js fanger
+    // klikket) — derfor sier teksten «lukk først», ikke «klikk på boligen».
     selector: '[data-tour="property-card"]',
-    title: 'Klikk på boligen',
-    description: 'Trykk på et boligkort for å lage videoen — velg bilder, skriv manus og generer.',
+    title: 'Neste steg: åpne en bolig',
+    description: 'Lukk denne boksen, og klikk så på boligen du vil lage video for. Der velger du bilder, skriver manus og genererer videoen.',
   },
 ]
 

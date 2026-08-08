@@ -5,32 +5,76 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 import ProductTour, { runTour, type TourStep } from '@/app/components/ProductTour'
 
-const TOUR_DETAIL_KEY = 'rh_tour_property_detail'
+// To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
+// etterpå. Grunnen er at segment-editoren, outroen, musikken og ambiensen
+// først RENDRES når manuset er delt opp — de kan ikke pekes på før det.
+const TOUR_SETUP_KEY  = 'rh_tour_property_setup'
+const TOUR_REVIEW_KEY = 'rh_tour_property_review'
 
-// Kun elementer som ALLTID finnes på video-fanen — «Del opp i segmenter» og
-// segment-editoren rendres først når manuset finnes, så de kan ikke pekes på her.
-const DETAIL_STEPS: TourStep[] = [
-  {
-    selector: '[data-tour="presenter"]',
-    title: '1. Velg hvem som presenterer',
-    description: 'Avataren fra profilen din er valgt automatisk. Du kan bytte til en av AI-meglerne for akkurat denne videoen.',
-  },
-  {
-    selector: '[data-tour="generate-script"]',
-    title: '2. Lag manuset',
-    description: 'Trykk her, så skriver AI-en et forslag ut fra boligdataene. Etterpå dukker «Del opp i segmenter» opp — den kobler bildene til riktig del av manuset.',
-  },
-  {
-    selector: '[data-tour="script-text"]',
-    title: '3. Les gjennom og rett',
-    description: 'Manuset kan endres fritt her — skriv om, legg til eller stryk det du vil.',
-  },
-  {
-    selector: '[data-tour="generate-video"]',
-    title: '4. Lag videoen',
-    description: 'Til slutt trykker du her. Videoen tar noen minutter, og dukker opp nederst på siden når den er ferdig.',
-  },
-]
+/** Del 1: fram til manuset er delt opp i segmenter. */
+function buildSetupSteps(hasScript: boolean): TourStep[] {
+  return [
+    {
+      selector: '[data-tour="presenter"]',
+      title: '1. Velg hvem som presenterer',
+      description: 'Avataren fra profilen din er valgt automatisk. Du kan bytte til en av AI-meglerne for akkurat denne videoen.',
+    },
+    {
+      selector: '[data-tour="generate-script"]',
+      title: '2. Lag manuset',
+      description: 'Trykk her, så skriver AI-en et forslag ut fra boligdataene.',
+    },
+    {
+      selector: '[data-tour="script-text"]',
+      title: '3. Les gjennom og rett',
+      description: 'Manuset kan endres fritt — skriv om, legg til eller stryk det du vil.',
+    },
+    // Knappen finnes bare når manuset er skrevet.
+    ...(hasScript ? [{
+      selector: '[data-tour="split-segments"]',
+      title: '4. Del opp i segmenter',
+      description: 'Dette må gjøres før du kan lage videoen. AI-en deler manuset i biter og kobler boligbildene til riktig del. Etterpå får du en ny gjennomgang av hva du bør sjekke.',
+    }] : []),
+  ]
+}
+
+/**
+ * Del 2: kvalitetssikring av segmentene og lyden før videoen lages.
+ * Nummereringen bygges løpende fordi to av stegene er betinget:
+ * bilde-steget krever et bildesegment, varighets-slideren krever valgte
+ * outro-bilder. (Første/siste segment er alltid avatar — derfor peker
+ * bilde-steget på første BILDE-segment, ikke på segment 1.)
+ */
+function buildReviewSteps(hasImageSegment: boolean, hasOutroImages: boolean): TourStep[] {
+  const steps: Array<Omit<TourStep, 'title'> & { title: string }> = []
+  const add = (selector: string, title: string, description: string) =>
+    steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
+
+  add('[data-tour="segment-card"]', 'Les teksten i hvert segment',
+    'Gå gjennom segmentene ett for ett. Sitter formuleringen? Teksten kan endres fritt her.')
+  add('[data-tour="segment-audio"]', 'Hør hvordan det leses opp',
+    'Sjekk tonefall og uttale. Blir et ord uttalt feil, kan du stave det slik det skal HØRES ut — «Kilevold» skrives f.eks. «Kjilevold», så blir det riktig hver gang.')
+  if (hasImageSegment) {
+    add('[data-tour="segment-images"]', 'Sjekk bildene i segmentet',
+      'Passer bildene til det som sies? Bytt ut de som ikke gjør det — og vurder om det er for mange eller for få.')
+  }
+  add('[data-tour="outro-images"]', 'Velg bilder til slideshowet',
+    hasOutroImages
+      ? 'Bildene som ikke er brukt i segmentene vises til slutt. «Velg alle» tar med alle på én gang.'
+      : 'Bildene som ikke er brukt i segmentene kan vises til slutt. «Velg alle» tar med alle på én gang — da får du også valget for hvor lenge hvert bilde skal stå (2,2 sekunder som standard).')
+  if (hasOutroImages) {
+    add('[data-tour="outro-duration"]', 'Hvor lenge hvert bilde står',
+      'Standard er 2,2 sekunder per bilde. Dra i slideren for roligere eller raskere tempo.')
+  }
+  add('[data-tour="outro-music"]', 'Velg musikk',
+    'Musikken spilles under bildeserien etter at presentatøren er ferdig å snakke. Trykk «Hør» for å prøve.')
+  add('[data-tour="ambience"]', 'Velg atmosfærelyd',
+    'Valgfritt — en diskré lydkulisse som ligger bak stemmen mens det snakkes.')
+  add('[data-tour="generate-video"]', 'Nå kan du lage videoen',
+    'Når alt over er sjekket, trykker du her. Videoen tar noen minutter og dukker opp nederst på siden.')
+
+  return steps
+}
 
 type Property = {
   id: string
@@ -1251,6 +1295,12 @@ export default function PropertyDetailPage() {
     opacity: active ? 1 : 0.6,
   })
 
+  // Stegene bygges fra gjeldende tilstand, slik at vi aldri peker på et
+  // element som ikke er rendret ennå (driver.js hopper ikke over tomme treff).
+  const firstImageSegmentIdx = segments.findIndex(s => s.type === 'image')
+  const setupSteps  = buildSetupSteps(Boolean(script))
+  const reviewSteps = buildReviewSteps(firstImageSegmentIdx !== -1, outro.images.length > 0)
+
   return (
     <div className="p-6">
       {/* No credits modal */}
@@ -1312,7 +1362,9 @@ export default function PropertyDetailPage() {
             <button
               type="button"
               title="Vis en rask gjennomgang"
-              onClick={() => runTour(TOUR_DETAIL_KEY, DETAIL_STEPS)}
+              onClick={() => segments.length > 0
+                ? runTour(TOUR_REVIEW_KEY, reviewSteps)
+                : runTour(TOUR_SETUP_KEY, setupSteps)}
               className="app-btn-ghost text-xs"
               style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
@@ -1321,8 +1373,18 @@ export default function PropertyDetailPage() {
           )}
         </div>
 
-        {/* Førstegangs-gjennomgang av videoflyten (kun video-fanen) */}
-        <ProductTour storageKey={TOUR_DETAIL_KEY} when={activeTab === 'video'} steps={DETAIL_STEPS} />
+        {/* To førstegangs-gjennomganger: oppsett før segmentering, kvalitets-
+            sikring etter. Del 2 utløses av at segmentene faktisk finnes. */}
+        <ProductTour
+          storageKey={TOUR_SETUP_KEY}
+          when={activeTab === 'video' && segments.length === 0}
+          steps={setupSteps}
+        />
+        <ProductTour
+          storageKey={TOUR_REVIEW_KEY}
+          when={activeTab === 'video' && segments.length > 0}
+          steps={reviewSteps}
+        />
 
         {/* Image gallery */}
         {property.images?.length > 0 && (
@@ -1731,6 +1793,7 @@ export default function PropertyDetailPage() {
                 <button
                   onClick={handleSplitSegments}
                   disabled={classifyingImages}
+                  data-tour="split-segments"
                   className="app-btn-primary text-sm"
                   style={{ padding: '8px 16px' }}
                 >
@@ -1795,6 +1858,7 @@ export default function PropertyDetailPage() {
               {segments.map((seg, i) => (
                 <div
                   key={seg.id}
+                  data-tour={i === 0 ? 'segment-card' : undefined}
                   className="rounded-lg p-4 space-y-3"
                   style={{ border: '1px solid var(--line)', background: 'var(--surface-2)' }}
                 >
@@ -1854,6 +1918,7 @@ export default function PropertyDetailPage() {
                       <button
                         onClick={() => handlePlaySegmentAudio(i)}
                         disabled={seg.previewingAudio || !effectiveVoiceId}
+                        data-tour={i === 0 ? 'segment-audio' : undefined}
                         className="app-btn-secondary text-xs"
                         style={{ padding: '6px 12px' }}
                       >
@@ -1872,7 +1937,7 @@ export default function PropertyDetailPage() {
                   </div>
                   {/* ── Bilde-seksjon: boligbilde for image-segmenter, avatar-forhåndsvisning for avatar-segmenter ── */}
                   {(seg.type === 'image' || seg.type === 'avatar' || seg.imageUrl) && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5" data-tour={i === firstImageSegmentIdx ? 'segment-images' : undefined}>
                       {seg.type === 'avatar' && openGalleryForSegment !== i ? (
                         /* Avatar-segment: forhåndsvis/generer selve animasjonen (Fabric-
                            klippet) her — det godkjente klippet brukes ordrett i videoen. */
@@ -2094,7 +2159,7 @@ export default function PropertyDetailPage() {
           const usedUrls = new Set(segments.filter(s => s.type === 'image' && s.imageUrl).map(s => s.imageUrl!))
           const unused = (property?.images || []).filter(img => !usedUrls.has(img))
           return (
-            <div className="app-card space-y-4">
+            <div className="app-card space-y-4" data-tour="outro-images">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Outro — gjenværende bilder</h2>
@@ -2161,7 +2226,7 @@ export default function PropertyDetailPage() {
               )}
 
               {outro.images.length > 0 && (
-                <div className="space-y-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                <div className="space-y-3 pt-3" data-tour="outro-duration" style={{ borderTop: '1px solid var(--line)' }}>
                   <div className="flex items-center gap-3">
                     <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Varighet per bilde</label>
                     <input
@@ -2219,7 +2284,7 @@ export default function PropertyDetailPage() {
               )}
 
               {/* Musikk */}
-              <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+              <div className="space-y-2 pt-3" data-tour="outro-music" style={{ borderTop: '1px solid var(--line)' }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-xs" style={{ color: 'var(--muted)' }}>Bakgrunnsmusikk (valgfritt)</label>
@@ -2268,7 +2333,7 @@ export default function PropertyDetailPage() {
               </div>
 
               {/* Atmosfærelyd */}
-              <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+              <div className="space-y-2 pt-3" data-tour="ambience" style={{ borderTop: '1px solid var(--line)' }}>
                 <div>
                   <label className="text-xs" style={{ color: 'var(--muted)' }}>Atmosfærelyd (valgfritt)</label>
                   <p className="text-xs" style={{ color: 'var(--muted-2)', marginTop: '2px' }}>Ligger diskré bak presentatøren og skaper stemning mens hen snakker.</p>
