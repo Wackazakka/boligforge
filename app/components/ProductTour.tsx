@@ -35,6 +35,10 @@ function startTour(storageKey: string, steps: TourStep[]) {
 
   activeTour = driver({
     showProgress: steps.length > 1,
+    // Litt større avstand til det markerte elementet: standard 10 px lot
+    // popoveren klistre seg til kortet, som forsterket inntrykket av at den
+    // var en del av samme skjema.
+    popoverOffset: 16,
     nextBtnText: 'Neste →',
     prevBtnText: '← Tilbake',
     doneBtnText: 'Skjønner!',
