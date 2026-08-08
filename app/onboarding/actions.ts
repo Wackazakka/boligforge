@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../lib/supabase/server'
+import { VIDEOS_BY_PLAN, FREE_VIDEOS_PER_MONTH, setPlanForUsers } from '../../lib/video-credits'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +37,8 @@ async function provisionOrg(
   orgName: string,
   accountType: 'solo' | 'team_admin',
   ref?: string | null,
-  wantsDiscount?: boolean
+  wantsDiscount?: boolean,
+  fullName?: string | null
 ): Promise<string | null> {
   const slug        = `${slugify(orgName)}-${Math.random().toString(36).slice(2, 7)}`
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
@@ -60,7 +62,9 @@ async function provisionOrg(
       {
         id:              userId,
         organization_id: org.id,
-        full_name:       '',
+        // Navnet fra registreringen — ble tidligere overskrevet med tom
+        // streng, så dashbordet hilste «Hei, 👋» uten navn på ferske brukere.
+        full_name:       fullName?.trim() || '',
         role:            'admin',
         account_type:    accountType,
       },
@@ -109,9 +113,17 @@ async function provisionOrg(
     return memberError.message
   }
 
-  // Videokvoten ligger i video_credits (per bruker) og auto-opprettes med
-  // default-kvote ved første bruk — den historiske `credits`-tabellen (per org)
-  // leses ikke av noe og skrives ikke lenger.
+  // 2d. Videokvote for prøveperioden. Raden ble tidligere opprettet først ved
+  // FØRSTE bruk, så dashbordet møtte helt ferske brukere med «0 gjenstående
+  // videoer · Ingen aktiv plan» midt i den gratis prøveperioden — verifisert
+  // i prod 8/8. Nye org-er får plan 'pro', så prøvekvoten følger den.
+  // (Den historiske `credits`-tabellen per org leses ikke av noe.)
+  const trialVideos = VIDEOS_BY_PLAN.pro ?? FREE_VIDEOS_PER_MONTH
+  const vcError = await setPlanForUsers(supabase, [userId], 'pro', trialVideos)
+  if (vcError) {
+    // Ikke-blokkerende: kvoten auto-opprettes uansett ved første generering.
+    console.error('provisionOrg: video_credits seed error', vcError)
+  }
 
   // 4. Affiliate-attribusjon: knytt org-en til selgeren (first-touch) hvis kommet via ?ref=
   if (ref) {
@@ -154,7 +166,8 @@ export async function createOrgAction(
 
   const ref = formData.get('ref')?.toString() || null
   const wantsDiscount = formData.get('discount')?.toString() === '1'
-  const err = await provisionOrg(user.id, name, 'team_admin', ref, wantsDiscount)
+  const err = await provisionOrg(user.id, name, 'team_admin', ref, wantsDiscount,
+    user.user_metadata?.full_name?.toString())
   if (err) return err
 
   redirect('/onboarding/avatar')
@@ -182,7 +195,8 @@ export async function createSoloOrgAction(
 
   const ref = formData.get('ref')?.toString() || null
   const wantsDiscount = formData.get('discount')?.toString() === '1'
-  const err = await provisionOrg(user.id, orgName, 'solo', ref, wantsDiscount)
+  const err = await provisionOrg(user.id, orgName, 'solo', ref, wantsDiscount,
+    user.user_metadata?.full_name?.toString())
   if (err) return err
 
   redirect('/onboarding/avatar')
