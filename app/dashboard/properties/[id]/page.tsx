@@ -123,20 +123,30 @@ function matchSegmentToImages(
   // Kandidater i prioritert rekkefølge: beste kategori først (flere ulike
   // soverom til et soverom-segment), deretter øvrige ubrukte i annonsens orden.
   const picks: string[] = []
-  const take = (img: string) => { if (!picks.includes(img) && !usedImages.has(img)) picks.push(img) }
   for (const [tag] of sorted) {
-    for (const img of images) {
-      if (picks.length >= count) break
-      if (imageTags[img]?.includes(tag)) take(img)
-    }
-  }
-  for (const img of images) {
     if (picks.length >= count) break
-    take(img)
+    const candidates = images.filter(img =>
+      !usedImages.has(img) && !picks.includes(img) && imageTags[img]?.includes(tag))
+    picks.push(...spreadPick(candidates, count - picks.length))
+  }
+  if (picks.length < count) {
+    const rest = images.filter(img => !usedImages.has(img) && !picks.includes(img))
+    picks.push(...spreadPick(rest, count - picks.length))
   }
   // Alt brukt? Fall tilbake til første bilde så segmentet aldri står tomt.
   if (picks.length === 0 && images[0]) picks.push(images[0])
   return picks
+}
+
+// Plukk `count` bilder SPREDT utover kandidatlisten i stedet for de første på
+// rad. Fotografer skyter serier av samme rom (bilde 4,5,6,7 = samme stue fra
+// nesten samme vinkel), så nabobilder gir monotone sekvenser — spredning
+// henter genuint ulike vinkler fra samme romkategori.
+function spreadPick(candidates: string[], count: number): string[] {
+  if (count <= 0) return []
+  if (candidates.length <= count) return candidates
+  const step = candidates.length / count
+  return Array.from({ length: count }, (_, i) => candidates[Math.floor(i * step)])
 }
 
 // Anslått taletid for norsk TTS (eleven turbo): ~17 tegn/sek. Med mål om
