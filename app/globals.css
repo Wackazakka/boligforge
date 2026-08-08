@@ -1034,8 +1034,12 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   text-align: center;
 }
 
-/* ─── Produkt-tour (driver.js) — matcher ReelHome-merkevaren ─── */
-.driver-popover {
+/* ─── Produkt-tour (driver.js) — matcher ReelHome-merkevaren ───
+   NB: driver.js sin egen CSS importeres i ProductTour-komponenten og havner
+   ETTER denne fila i bundelen. Doblet klassenavn hever spesifisiteten slik at
+   merkevare-stilingen vinner uten !important. Verifisert i prod 8/8: uten
+   dette fikk popoveren driver.js sine standardstiler (5px radius, hvit bg). */
+.driver-popover.driver-popover {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -1044,21 +1048,21 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   padding: 18px;
   max-width: 320px;
 }
-.driver-popover-title {
+.driver-popover.driver-popover .driver-popover-title {
   color: var(--ink);
   font-size: 15px;
   font-weight: 700;
 }
-.driver-popover-description {
+.driver-popover.driver-popover .driver-popover-description {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
-.driver-popover-progress-text {
+.driver-popover.driver-popover .driver-popover-progress-text {
   color: var(--muted-2);
   font-size: 12px;
 }
-.driver-popover-footer button {
+.driver-popover.driver-popover .driver-popover-footer button {
   font-family: var(--sans);
   font-size: 13px;
   font-weight: 600;
@@ -1067,7 +1071,7 @@ footer.landing-footer { padding: 64px 0 32px; border-top: 1px solid var(--line);
   padding: 6px 12px;
 }
 .driver-popover-footer .driver-popover-next-btn,
-.driver-popover-footer .driver-popover-close-btn {
+.driver-popover-footer .driver-popover.driver-popover .driver-popover-close-btn {
   background: var(--blue);
   color: #fff;
   border: none;
