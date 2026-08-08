@@ -30,7 +30,9 @@ export async function chooseTemplateAvatarAction(
       title:            'Eiendomsmegler',
       email:            user.email ?? '',
       default_voice_id: voiceId,
-      cloned_voice_id:  voiceId,
+      // IKKE cloned_voice_id: det feltet betyr «stemmen brukeren selv har
+      // klonet». Sto malmeglerens stemme der, ble Sofias stemme presentert som
+      // «Din egen stemme» — og profilen tilbød en klone brukeren aldri har laget.
       portrait_url:     portraitUrl || null,
       tone_of_voice:    'Varm og profesjonell. Snakker klart og tydelig om boligens fordeler.',
       default_emotion:  'neutral',
