@@ -27,6 +27,12 @@ function startTour(storageKey: string, steps: TourStep[]) {
 
   activeTour = driver({
     showProgress: steps.length > 1,
+    // Kun × og «Skjønner!» avslutter. Standard er at et klikk hvor som helst
+    // på det dimmede overlayet lukker touren — og da forsvant den når man
+    // byttet til et annet program og klikket tilbake i vinduet (målt 8/8):
+    // fokus-klikket traff overlayet. Ekstra viktig nå som lukking lagres
+    // permanent — et vådeklikk ville drept gjennomgangen for godt.
+    allowClose: false,
     // Litt større avstand til det markerte elementet: standard 10 px lot
     // popoveren klistre seg til kortet, som forsterket inntrykket av at den
     // var en del av samme skjema.
@@ -91,9 +97,22 @@ export default function ProductTour({
 }) {
   useEffect(() => {
     if (!when) return
-    // Vent én tick så elementene med data-tour-attributter er rendret.
-    const t = setTimeout(() => runTourOnce(storageKey, steps), 150)
-    return () => clearTimeout(t)
+    // Start så snart FØRSTE anker finnes i DOM-en — ikke etter en fast pause
+    // og ikke etter at data er lastet. Å gate på et API-svar ga 3–4 sekunders
+    // forsinkelse ved kald Netlify-funksjon (målt 8/8): brukeren hadde
+    // allerede begynt å lese skjemaet da boksen plutselig dukket opp.
+    let cancelled = false
+    let tries = 0
+    const tick = () => {
+      if (cancelled) return
+      if (steps[0] && document.querySelector(steps[0].selector)) {
+        runTourOnce(storageKey, steps)
+        return
+      }
+      if (tries++ < 50) setTimeout(tick, 100)   // gir opp etter ~5 s
+    }
+    const t = setTimeout(tick, 50)
+    return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [when, storageKey])
 

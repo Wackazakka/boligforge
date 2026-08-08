@@ -119,7 +119,6 @@ const premiumBadge: React.CSSProperties = {
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({})
-  const [profileLoaded, setProfileLoaded] = useState(false)   // gate for produkt-touren
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -188,7 +187,6 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(d => setProfile(d || {}))
       .catch(console.error)
-      .finally(() => setProfileLoaded(true))
     fetch('/api/org/settings').then(r => r.json()).then(d => { if (d && !d.error) setOrg(d) }).catch(() => {})
     loadSettingImages()
   }, [])
@@ -604,9 +602,10 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Førstegangs-gjennomgang. Venter til profilen er lastet, ellers er
-            seksjonene ikke rendret og driver.js finner ingen ankere. */}
-        <ProductTour storageKey={TOUR_PROFILE_KEY} when={profileLoaded} steps={PROFILE_STEPS} />
+        {/* Førstegangs-gjennomgang. Seksjonene rendres uavhengig av data, og
+            ProductTour venter selv på at ankeret finnes — å gate på at
+            profil-API-et svarte ga 3–4 sekunders forsinkelse ved kaldstart. */}
+        <ProductTour storageKey={TOUR_PROFILE_KEY} steps={PROFILE_STEPS} />
 
         {/* Kom-i-gang-hint: hopp rett videre når profilen er satt opp */}
 
