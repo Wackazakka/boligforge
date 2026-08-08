@@ -58,10 +58,10 @@ export default function AvatarOnboardingPage() {
   const selectedAvatar = TEMPLATE_AVATARS.find(a => a.id === selected)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 24px' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 24px' }}>
 
       {/* Logo */}
-      <div style={{ marginBottom: '48px', alignSelf: 'flex-start', marginLeft: 'auto', marginRight: 'auto', maxWidth: '760px', width: '100%' }}>
+      <div style={{ marginBottom: '28px', alignSelf: 'flex-start', marginLeft: 'auto', marginRight: 'auto', maxWidth: '760px', width: '100%' }}>
         <Link href="/" className="rh-lockup" style={{ textDecoration: 'none' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand-kit/reelhome-mark.svg" alt="" width="36" height="36" />
@@ -70,7 +70,7 @@ export default function AvatarOnboardingPage() {
       </div>
 
       {/* Step indicator */}
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '40px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '28px' }}>
         <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>1</div>
         <div style={{ width: '32px', height: '2px', background: '#d1d5db' }} />
         <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: '#fff' }}>2</div>
@@ -84,7 +84,7 @@ export default function AvatarOnboardingPage() {
           Du kan alltid bytte til din egen avatar senere under Profil.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
 
           {/* ── Alternativ A: Malmegler ── */}
           <div className="app-card" style={{ padding: '28px' }}>
@@ -165,7 +165,7 @@ export default function AvatarOnboardingPage() {
               Last opp portrettbilde og klon din stemme. Videoene ser ut som du snakker direkte til kjøperne.
             </p>
 
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
                 '🎙 Din stemme, klonet med AI',
                 '📸 Ditt ansikt i profesjonelle settings',
