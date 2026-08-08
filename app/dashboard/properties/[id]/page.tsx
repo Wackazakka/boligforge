@@ -105,12 +105,13 @@ function hasRoomKeyword(text: string): boolean {
   return ROOM_KEYWORDS.some(kw => t.includes(kw))
 }
 
-function matchSegmentToImage(
+function matchSegmentToImages(
   text: string,
   imageTags: Record<string, string[]>,
   images: string[],
-  usedImages: Set<string>   // bilder allerede valgt av tidligere segmenter
-): string | null {
+  usedImages: Set<string>,  // bilder allerede valgt av tidligere segmenter
+  count: number             // hvor mange bilder segmentet trenger (fra taletid)
+): string[] {
   const t = text.toLowerCase()
   const scores: Record<string, number> = {}
   for (const [tag, keywords] of Object.entries(TAG_KEYWORDS)) {
@@ -119,19 +120,30 @@ function matchSegmentToImage(
   }
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1])
 
-  if (sorted.length > 0) {
-    // Prøv hvert tag i score-rekkefølge — finn ubrukt bilde
-    for (const [best] of sorted) {
-      const hit = images.find(img => !usedImages.has(img) && imageTags[img]?.includes(best))
-      if (hit) return hit
+  // Kandidater i prioritert rekkefølge: beste kategori først (flere ulike
+  // soverom til et soverom-segment), deretter øvrige ubrukte i annonsens orden.
+  const picks: string[] = []
+  const take = (img: string) => { if (!picks.includes(img) && !usedImages.has(img)) picks.push(img) }
+  for (const [tag] of sorted) {
+    for (const img of images) {
+      if (picks.length >= count) break
+      if (imageTags[img]?.includes(tag)) take(img)
     }
-    // Alle matchende bilder er brukt — finn ubrukt bilde av riktig kategori
-    const hit = images.find(img => !usedImages.has(img))
-    if (hit) return hit
   }
+  for (const img of images) {
+    if (picks.length >= count) break
+    take(img)
+  }
+  // Alt brukt? Fall tilbake til første bilde så segmentet aldri står tomt.
+  if (picks.length === 0 && images[0]) picks.push(images[0])
+  return picks
+}
 
-  // Fallback: første ubrukte bilde, eller første bilde om alt er brukt
-  return images.find(img => !usedImages.has(img)) ?? images[0] ?? null
+// Anslått taletid for norsk TTS (eleven turbo): ~17 tegn/sek. Med mål om
+// ~2,5 s per bilde gir det 1–4 foreslåtte bilder per segment.
+function suggestedImageCount(text: string): number {
+  const estSeconds = text.length / 17
+  return Math.min(4, Math.max(1, Math.round(estSeconds / 2.5)))
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -529,14 +541,21 @@ export default function PropertyDetailPage() {
         const matched = newSegments.map((seg, idx) => {
           const isFirst = idx === 0
           const isLast = idx === last
-          const suggested = matchSegmentToImage(seg.text, data.imageTags, images, usedImages)
-          if (suggested) usedImages.add(suggested)
-          // First and last segment: always avatar
+          // Avatar-segmenter (første/siste) trenger bare ett bakgrunnsbilde;
+          // bildesegmenter får antall etter anslått taletid (~2,5 s per bilde).
+          const count = (isFirst || isLast) ? 1 : suggestedImageCount(seg.text)
+          const suggested = matchSegmentToImages(seg.text, data.imageTags, images, usedImages, count)
+          suggested.forEach(img => usedImages.add(img))
           if (isFirst || isLast) {
-            return { ...seg, type: 'avatar' as const, imageUrl: suggested ?? seg.imageUrl }
+            return { ...seg, type: 'avatar' as const, imageUrl: suggested[0] ?? seg.imageUrl }
           }
-          // Middle segments: always image
-          return { ...seg, type: 'image' as const, imageUrl: suggested ?? seg.imageUrl, imageSource: 'ai' as const }
+          return {
+            ...seg,
+            type: 'image' as const,
+            imageUrl: suggested[0] ?? seg.imageUrl,
+            imageUrls: suggested.length > 0 ? suggested : undefined,
+            imageSource: 'ai' as const,
+          }
         })
         setSegments(matched)
       }
