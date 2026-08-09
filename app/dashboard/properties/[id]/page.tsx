@@ -91,7 +91,7 @@ function buildReviewSteps(imageIdx: number, avatarIdx: number): TourStep[] {
   const segmentSteg: Array<{ idx: number; kjoer: () => void }> = []
   if (avatarIdx >= 0) segmentSteg.push({ idx: avatarIdx, kjoer: () =>
     add('[data-tour="avatar-clip"]', `Se avataren i segment ${avatarIdx + 1}`,
-      'Trykk «Forhåndsvis animasjonen» og se resultatet før du bruker det. Er du ikke fornøyd, lager du en ny — det koster ingen video.') })
+      'Trykk «Forhåndsvis animasjonen» — det tar ett til tre minutter. Spill av klippet når det kommer; hjelpen blir stående. Er du fornøyd, går du videre med «Neste». Ellers gir «Lag ny animasjon» et nytt forsøk, og det koster ingen video.') })
   if (imageIdx >= 0) segmentSteg.push({ idx: imageIdx, kjoer: () =>
     add('[data-tour="segment-images"]', `Sjekk bildene i segment ${imageIdx + 1}`,
       'Passer de til det som sies? Klikk på et bilde for å bytte det ut.') })
