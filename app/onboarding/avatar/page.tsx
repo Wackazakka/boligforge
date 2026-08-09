@@ -40,7 +40,7 @@ export default function AvatarOnboardingPage() {
           Velg hvordan du vil starte
         </h1>
         <p style={{ fontSize: '15px', color: '#737373', marginBottom: '40px' }}>
-          Du kan alltid bytte til din egen avatar senere under Profil.
+          Ingenting er låst — alt kan endres under Profil senere.
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
@@ -48,13 +48,14 @@ export default function AvatarOnboardingPage() {
           {/* ── Alternativ A: Malmegler ── */}
           <div className="app-card" style={{ padding: '28px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-              Raskeste start
+              Raskeste start · under 1 minutt
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f0f0f', marginBottom: '8px' }}>
               Bruk en malmegler
             </h2>
             <p style={{ fontSize: '14px', color: '#737373', marginBottom: '24px', lineHeight: 1.6 }}>
-              Velg en av våre forhåndslagde AI-meglere. Klar til å lage video på 2 klikk.
+              Velg en av våre forhåndslagde AI-meglere. Du er ferdig med én gang og kan lage
+              den første videoen nå — og bytte til din egen avatar når du vil.
             </p>
 
             {/* Avatar grid */}
@@ -115,13 +116,15 @@ export default function AvatarOnboardingPage() {
           {/* ── Alternativ B: Egen avatar ── */}
           <div className="app-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#737373', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-              Mer personlig
+              Mer personlig · rundt 5 minutter
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f0f0f', marginBottom: '8px' }}>
               Sett opp din egen avatar
             </h2>
             <p style={{ fontSize: '14px', color: '#737373', marginBottom: '24px', lineHeight: 1.6 }}>
-              Last opp portrettbilde og klon din stemme. Videoene ser ut som du snakker direkte til kjøperne.
+              Last opp portrettbilde og les inn stemmen din i cirka to minutter. Videoene ser ut
+              som du snakker direkte til kjøperne. Sitter du et sted der innlesing ikke passer,
+              kan du gjøre den delen senere.
             </p>
 
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
