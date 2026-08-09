@@ -119,6 +119,8 @@ type Profile = {
   logo_source?: string | null
   portrait_url?: string
   selected_avatar_url?: string
+  /** Satt av /api/profile/get — har brukeren en ferdig video fra foer? */
+  has_video?: boolean
 }
 
 type SettingImage = {
@@ -674,7 +676,7 @@ export default function ProfilePage() {
                          background: 'var(--green)', color: '#fff', fontSize: 15, fontWeight: 600,
                          textDecoration: 'none' }}
               >
-                Lag din første video →
+                {profile.has_video ? 'Lag en ny video →' : 'Lag din første video →'}
               </Link>
             )}
           </div>
