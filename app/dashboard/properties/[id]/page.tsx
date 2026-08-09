@@ -1066,7 +1066,15 @@ export default function PropertyDetailPage() {
     const data = await res.json()
     setGeneratingScript(false)
     if (data.error) setError(data.error)
-    else setScript(data.script)
+    else {
+      setScript(data.script)
+      // Rull ned til manuset. Feltet ligger under settingsvelgeren, saa etter
+      // ~10 sekunders generering sto brukeren igjen med uendret utsikt og maatte
+      // selv gjette at resultatet laa lenger nede.
+      requestAnimationFrame(() =>
+        document.querySelector('[data-tour="script-text"]')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    }
   }
 
   async function handleGenerateAvatar() {
