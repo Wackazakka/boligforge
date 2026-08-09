@@ -78,7 +78,7 @@ function buildReviewSteps(imageIdx: number): TourStep[] {
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
 
   add('[data-tour="segment-card"]', 'Gå gjennom segment 1',
-    'Alt for dette segmentet ligger her: rett teksten i feltet, hør innlesingen, og — på avatar-segmenter — lag selve animasjonen. Animasjonen tar ett til tre minutter, og du kan spille den av og lage en ny så mange ganger du vil uten at det koster en video.')
+    'Alt for dette segmentet ligger her: rett teksten i feltet, hør innlesingen, og — på avatar-segmenter — se eller lag animasjonen. Er den ikke laget ennå, tar den ett til tre minutter. Du kan spille den av og lage en ny så mange ganger du vil uten at det koster en video.')
   // Ikke noe eget lyd-steg: det pekte paa SAMME kort som steget over, der
   // «Hoer innlesing» og «Ny innlesing» alt staar synlige og navngitte - og
   // uttale-hintet ligger inline rett under dem. Steget forklarte knapper
