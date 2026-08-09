@@ -714,7 +714,7 @@ export default function ProfilePage() {
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
                 Passer det dårlig å lese inn akkurat nå? Velg en ferdig stemme under i mellomtiden —
                 du kan komme tilbake hit og bytte til din egen når som helst. Videoene du lager
-                etterpå bruker den nye stemmen.
+                senere vil da bruke den nye stemmen.
               </p>
 
               <div className="app-reading-block mb-4">
