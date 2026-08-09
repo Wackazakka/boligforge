@@ -1727,7 +1727,7 @@ export default function PropertyDetailPage() {
 
               <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Velg setting til videoen</p>
               <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px' }}>
-                Samme person, ulike omgivelser — portrettet eller en av settingene fra biblioteket ditt.
+                Samme person, ulike omgivelser — portrettet, en setting fra biblioteket ditt, eller et av boligens egne bilder (da settes presentøren inn i bildet).
               </p>
 
               <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center', overscrollBehaviorX: 'contain' }}>
