@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 import { VOICES, voiceLabel } from '../../../../lib/voices'
-import ProductTour, { type TourStep } from '@/app/components/ProductTour'
+import ProductTour, { closeTour, type TourStep } from '@/app/components/ProductTour'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
 // etterpå. Grunnen er at segment-editoren, outroen, musikken og ambiensen
@@ -1028,6 +1028,9 @@ export default function PropertyDetailPage() {
   }
 
   async function handleGenerateScript() {
+    // Turen peker paa denne knappen som siste steg. Trykker du den, er hjelpen
+    // gjort sin jobb - da skal den ikke bli staaende og kreve et klikk til.
+    closeTour()
     if (!property) return
     setGeneratingScript(true)
     setError('')

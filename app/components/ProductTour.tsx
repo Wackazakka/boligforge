@@ -43,9 +43,11 @@ export type TourStep = {
 // Kun én driver.js-instans om gangen — uten dette kan et automatisk
 // engangs-tour og et manuelt "?"-trigget tour kollidere i samme overlay.
 let activeTour: Driver | null = null
+let activeKey: string | null = null
 
 function startTour(storageKey: string, steps: TourStep[]) {
   activeTour?.destroy()
+  activeKey = storageKey
 
 
   const driveSteps: DriveStep[] = steps.map(s => ({
@@ -69,9 +71,10 @@ function startTour(storageKey: string, steps: TourStep[]) {
     popoverOffset: 16,
     nextBtnText: 'Neste →',
     prevBtnText: '← Tilbake',
-    // Handlingsspraak, ikke kursspraak: en flertrinns gjennomgang er «Ferdig»
-    // naar du har gjort siste steg; et enkeltstaaende dytt kvitteres med «OK».
-    doneBtnText: steps.length > 1 ? 'Ferdig' : 'OK',
+    // «Lukk», ikke «Ferdig». Siste steg er ofte selve handlingen («Trykk
+    // Generer manus»), og da stod «Ferdig» som et konkurrerende alternativ til
+    // knappen ved siden av - som om man kunne bli ferdig uten aa gjoere noe.
+    doneBtnText: 'Lukk',
     progressText: '{{current}} av {{total}}',
     steps: driveSteps,
     // driver.js 1.8 fjerner ikke .driver-active-element fra forrige steg —
@@ -97,6 +100,7 @@ function startTour(storageKey: string, steps: TourStep[]) {
     },
     onDestroyed: () => {
       activeTour = null
+      activeKey = null
       document.querySelectorAll('.driver-active-element').forEach(e => e.classList.remove('driver-active-element'))
     },
   })
@@ -114,6 +118,15 @@ export async function runTourOnce(storageKey: string, steps: TourStep[]) {
     if (window.localStorage.getItem(key) === '1') return
   } catch { /* ignore */ }
   startTour(key, steps)
+}
+
+/** Lukker en aktiv tur — brukes naar brukeren utfoerer handlingen turen peker paa.
+ *  Maa skrive «sett»-flagget selv: driver.js' destroy() kaller h(false) og hopper
+ *  over onDestroyStarted, saa turen ville ellers dukket opp igjen neste gang. */
+export function closeTour() {
+  if (!activeTour) return
+  try { if (activeKey) window.localStorage.setItem(activeKey, '1') } catch { /* ignore */ }
+  activeTour.destroy()
 }
 
 /** Kjører touren uansett — for manuell gjenåpning (f.eks. en "?"-knapp). */
