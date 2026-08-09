@@ -72,7 +72,7 @@ const SPLIT_STEPS: TourStep[] = [
  * outro-bilder. (Første/siste segment er alltid avatar — derfor peker
  * bilde-steget på første BILDE-segment, ikke på segment 1.)
  */
-function buildReviewSteps(hasImageSegment: boolean, hasAvatarSegment: boolean): TourStep[] {
+function buildReviewSteps(imageIdx: number, avatarIdx: number): TourStep[] {
   const steps: Array<Omit<TourStep, 'title'> & { title: string }> = []
   const add = (selector: string, title: string, description: string) =>
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
@@ -83,14 +83,20 @@ function buildReviewSteps(hasImageSegment: boolean, hasAvatarSegment: boolean): 
   // «Hoer innlesing» og «Ny innlesing» alt staar synlige og navngitte - og
   // uttale-hintet ligger inline rett under dem. Steget forklarte knapper
   // brukeren allerede saa.
-  if (hasImageSegment) {
-    add('[data-tour="segment-images"]', 'Se om bildene passer til det som sies',
-      'Klikk på et bilde for å bytte det ut.')
-  }
-  if (hasAvatarSegment) {
-    add('[data-tour="avatar-clip"]', 'Lag avatar-animasjonen',
-      'Trykk «Forhåndsvis animasjonen» og se resultatet før du bruker det.')
-  }
+
+  // Segment-stegene maa foelge SIDEN, ikke koden. Bilde-steget stod foerst her,
+  // mens bildesegmentet ligger etter avatarsegmentet paa skjermen - turen hoppet
+  // dermed segment 1 -> segment 2 -> tilbake til segment 1, og man mistet stedet.
+  // Segmentnummeret staar i teksten av samme grunn.
+  const segmentSteg: Array<{ idx: number; kjoer: () => void }> = []
+  if (avatarIdx >= 0) segmentSteg.push({ idx: avatarIdx, kjoer: () =>
+    add('[data-tour="avatar-clip"]', `Se avataren i segment ${avatarIdx + 1}`,
+      'Trykk «Forhåndsvis animasjonen» og se resultatet før du bruker det. Er du ikke fornøyd, lager du en ny — det koster ingen video.') })
+  if (imageIdx >= 0) segmentSteg.push({ idx: imageIdx, kjoer: () =>
+    add('[data-tour="segment-images"]', `Sjekk bildene i segment ${imageIdx + 1}`,
+      'Passer de til det som sies? Klikk på et bilde for å bytte det ut.') })
+  segmentSteg.sort((a, b) => a.idx - b.idx).forEach(s => s.kjoer())
+
   add('[data-tour="outro-images"]', 'Velg bilder til avslutningen',
     'Trykk «Velg alle», eller plukk ut de du vil ha. Hopp over hvis du ikke vil ha noen.')
   add('[data-tour="generate-video"]', 'Trykk «Generer presentasjonsvideo»',
@@ -1399,7 +1405,7 @@ export default function PropertyDetailPage() {
   const firstImageSegmentIdx = segments.findIndex(s => s.type === 'image')
   const setupSteps  = buildSetupSteps()
   const firstAvatarSegmentIdx = segments.findIndex(s => s.type === 'avatar')
-  const reviewSteps = buildReviewSteps(firstImageSegmentIdx !== -1, firstAvatarSegmentIdx !== -1)
+  const reviewSteps = buildReviewSteps(firstImageSegmentIdx, firstAvatarSegmentIdx)
 
   return (
     <div className="p-6">
