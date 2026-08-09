@@ -24,18 +24,23 @@ const PROFILE_STEPS: TourStep[] = [
     description: 'Les teksten øverst i cirka to minutter, så snakker videoene med din egen stemme. Sitter du et sted der det ikke passer? Velg en ferdig stemme i listen under så lenge, og bytt til din egen senere.',
   },
   {
+    selector: '[data-tour="profile-tone"]',
+    title: '3. Sjekk tonen i manusene',
+    description: 'Tonen preger hvordan manusene skrives. «Varm og profesjonell» er valgt fra start — bytt hvis en annen passer deg bedre.',
+  },
+  {
     selector: '[data-tour="profile-avatar"]',
-    title: '3. Last opp portrettet ditt — eller hopp over',
+    title: '4. Last opp portrettet ditt — eller hopp over',
     description: 'Vil du presentere boligene selv, laster du opp et portrett her. Ellers hopper du over — da velger du en ferdig AI-megler når du lager videoen.',
   },
   {
     selector: '[data-tour="profile-logo"]',
-    title: '4. Last opp logoen — eller hopp over',
+    title: '5. Last opp logoen — eller hopp over',
     description: 'Den vises på avslutningsbildet, og kan legges inn senere. Husk å lagre nederst når du er ferdig.',
   },
   {
     selector: '[data-tour="profile-status"]',
-    title: '5. Sjekk hva som gjenstår',
+    title: '6. Sjekk hva som gjenstår',
     description: 'Denne linjen står her hele tiden og teller. Er alt haket av, er du klar til å lage din første video.',
   },
 ]
@@ -899,7 +904,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div>
+            <div data-tour="profile-tone">
               <label className="app-label">Tone i manus</label>
               <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>
                 Din faste tone i alle manus — stilvalget per video (Luksus, Familie osv.) legger seg oppå denne. Velg den som passer deg best.
