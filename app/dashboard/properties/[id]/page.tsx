@@ -14,6 +14,17 @@ const TOUR_SPLIT_KEY  = 'rh_tour_property_split'   // egen nudge når manuset fi
 const TOUR_REVIEW_KEY = 'rh_tour_property_review'
 
 /** Del 1: fram til manuset er delt opp i segmenter. */
+/**
+ * Kompositt-bakgrunn: velg et av boligens egne bilder, og AI-en setter
+ * presentoeren inn i det (/api/profile/composite-avatar, ~20 sek).
+ *
+ * SKRUDD AV 2026-08-09: Lars testet den og resultatet holder ikke maal ennaa.
+ * Koden staar urort bak denne bryteren - sett true for aa faa tilbake
+ * boligbilde-gruppen i setting-raden, «?»-hintet og «Generer foran valgt
+ * bilde»-knappen. Ingen andre steder maa endres.
+ */
+const VIS_KOMPOSITT_BAKGRUNN = false
+
 function buildSetupSteps(): TourStep[] {
   return [
     {
@@ -1722,12 +1733,12 @@ export default function PropertyDetailPage() {
           </div>
 
           {/* — Bildevalg — hvilken versjon av presentatøren som brukes i videoen — */}
-          {(activeAvatar || hasOwnAvatar || property.images?.length > 0) && (
+          {(activeAvatar || hasOwnAvatar || (VIS_KOMPOSITT_BAKGRUNN && property.images?.length > 0)) && (
             <div data-tour="setting-pick" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
 
               <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Velg setting til videoen</p>
               <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px' }}>
-                Samme person, ulike omgivelser — portrettet, en setting fra biblioteket ditt, eller et av boligens egne bilder (da settes presentøren inn i bildet).
+                Samme person, ulike omgivelser — portrettet eller en av settingene fra biblioteket ditt.
               </p>
 
               <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center', overscrollBehaviorX: 'contain' }}>
@@ -1839,7 +1850,7 @@ export default function PropertyDetailPage() {
                 )}
 
                 {/* Separator + property images for composite generation */}
-                {property.images?.length > 0 && (
+                {VIS_KOMPOSITT_BAKGRUNN && property.images?.length > 0 && (
                   <>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px', gap: '3px' }}>
                       <div style={{ width: '1px', height: '22px', background: 'var(--line)' }} />
@@ -1882,7 +1893,7 @@ export default function PropertyDetailPage() {
               </div>
 
               {/* Hint for property image compositing */}
-              {showBgHint && (
+              {VIS_KOMPOSITT_BAKGRUNN && showBgHint && (
                 <div style={{
                   marginTop: '8px', padding: '10px 12px',
                   background: 'var(--surface-2)', border: '1px solid var(--line)',
@@ -1893,7 +1904,7 @@ export default function PropertyDetailPage() {
               )}
 
               {/* Generate button — only when a property image is selected */}
-              {selectedImageIdx >= 0 && property.images?.length > 0 && (
+              {VIS_KOMPOSITT_BAKGRUNN && selectedImageIdx >= 0 && property.images?.length > 0 && (
                 <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <button onClick={handleGenerateAvatar}
                     disabled={generatingAvatar || (!effectivePortrait && !selectedAvatarUrl)}
