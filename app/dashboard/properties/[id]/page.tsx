@@ -72,7 +72,7 @@ const SPLIT_STEPS: TourStep[] = [
  * outro-bilder. (Første/siste segment er alltid avatar — derfor peker
  * bilde-steget på første BILDE-segment, ikke på segment 1.)
  */
-function buildReviewSteps(imageIdx: number): TourStep[] {
+function buildReviewSteps(imageIdx: number, flereSegmenter: boolean): TourStep[] {
   const steps: Array<Omit<TourStep, 'title'> & { title: string }> = []
   const add = (selector: string, title: string, description: string) =>
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
@@ -95,9 +95,17 @@ function buildReviewSteps(imageIdx: number): TourStep[] {
   }
 
   add('[data-tour="outro-images"]', 'Velg bilder til avslutningen',
-    'Trykk «Velg alle», eller plukk ut de du vil ha. Hopp over hvis du ikke vil ha noen.')
-  add('[data-tour="generate-video"]', 'Trykk «Generer presentasjonsvideo»',
-    'Så er du i gang. Resten av segmentene går du gjennom på samme måte neste gang.')
+    'Bildene som ikke er brukt i segmentene kan rulle etter at presentøren er ferdig. «Velg alle» tar med alle — eller hopp over hvis du ikke vil ha noen.')
+  add('[data-tour="outro-music"]', 'Legg på musikk',
+    'Bakgrunnsmusikken ligger under bildene på slutten. Last opp en MP3, eller la det være — den er valgfri.')
+  add('[data-tour="ambience"]', 'Atmosfærelyd bak presentøren',
+    'Ligger diskré under stemmen mens presentøren snakker og gir litt stemning. Også valgfri.')
+  if (flereSegmenter) {
+    add('[data-tour="segment-next"]', 'Gå gjennom resten av segmentene',
+      'Du har bare sett det første. Gå gjennom hvert segment på samme måte — tekst, innlesing, bilder og eventuell animasjon — så du vet at alt sitter før videoen lages.')
+  }
+  add('[data-tour="generate-video"]', 'Til slutt: lag videoen',
+    'Når alle segmentene er gjennomgått, trykker du «Generer presentasjonsvideo» nederst. Det tar rundt fem minutter og bruker én av videoene dine.')
 
   return steps
 }
@@ -1424,7 +1432,7 @@ export default function PropertyDetailPage() {
   const firstImageSegmentIdx = segments.findIndex(s => s.type === 'image')
   const setupSteps  = buildSetupSteps()
   const firstAvatarSegmentIdx = segments.findIndex(s => s.type === 'avatar')
-  const reviewSteps = buildReviewSteps(firstImageSegmentIdx)
+  const reviewSteps = buildReviewSteps(firstImageSegmentIdx, segments.length > 1)
 
   return (
     <div className="p-6">
@@ -2054,7 +2062,7 @@ export default function PropertyDetailPage() {
               {segments.map((seg, i) => (
                 <div
                   key={seg.id}
-                  data-tour={i === 0 ? 'segment-card' : undefined}
+                  data-tour={i === 0 ? 'segment-card' : i === 1 ? 'segment-next' : undefined}
                   className="rounded-lg p-4 space-y-3"
                   style={{ border: '1px solid var(--line)', background: 'var(--surface-2)' }}
                 >
