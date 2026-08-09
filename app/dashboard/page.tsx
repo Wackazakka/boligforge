@@ -66,11 +66,14 @@ export default async function DashboardPage() {
   // Malmegler-veien gaar rett fra onboarding til dashbordet og innom aldri
   // profilskjemaet - i motsetning til «egen avatar»-veien, som lander midt i
   // det. Uten dette steget ble navn og kontaktinfo aldri etterspurt.
-  const hasDetails = Boolean(agentProfile?.name && agentProfile?.phone)
+  // Navn er det eneste som har konsekvenser (avataren presenterer seg med det).
+  // Telefon og nettside LAGRES, men leses ikke noe sted i dag - aa kreve dem her
+  // ville vaert oppdiktet friksjon.
+  const hasDetails = Boolean(agentProfile?.name)
 
   const checklistSteps: ChecklistStep[] = [
     { key: 'account', label: 'Konto opprettet',       hint: '',                                           href: '/dashboard',                  done: true },
-    { key: 'details', label: 'Fyll inn profilen din',  hint: 'Navn, tittel og kontaktinfo',               href: '/dashboard/profile',          done: hasDetails },
+    { key: 'details', label: 'Sjekk profilen din',     hint: 'Navn, tittel og kontaktinfo',               href: '/dashboard/profile',          done: hasDetails },
     { key: 'avatar',  label: 'Velg avatar',            hint: 'Velg en malmegler eller last opp ditt eget bilde', href: '/dashboard/profile',     done: hasAvatar },
     { key: 'voice',   label: 'Legg til en stemme',     hint: 'Velg en standardstemme eller klon din egen', href: '/dashboard/profile',          done: hasVoice },
     { key: 'logo',    label: 'Last opp logo (valgfritt)', hint: 'Vises i videoene dine',                   href: '/dashboard/profile',          done: hasLogo },

@@ -15,8 +15,8 @@ const TOUR_PROFILE_KEY = 'rh_tour_profile'
 const PROFILE_STEPS: TourStep[] = [
   {
     selector: '[data-tour="profile-basics"]',
-    title: '1. Fyll inn navn og kontaktinfo',
-    description: 'Skriv det inn i feltene her. Avataren presenterer seg med navnet ditt.',
+    title: '1. Sjekk at navnet stemmer',
+    description: 'Navn og e-post er hentet fra registreringen — avataren presenterer seg med navnet. Telefon og nettside er valgfrie, så du kan gå videre uten dem.',
   },
   {
     selector: '[data-tour="profile-voice"]',
@@ -657,6 +657,10 @@ export default function ProfilePage() {
           <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--ink-2)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Grunnleggende info
           </h2>
+          <p className="text-xs" style={{ color: 'var(--muted)', marginTop: -12, marginBottom: 16 }}>
+            Navn og e-post er allerede hentet fra registreringen. Telefon og nettside er valgfrie —
+            du kan gå videre uten dem.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {([
               ['name', 'Navn', 'text', 'Ola Nordmann'],
