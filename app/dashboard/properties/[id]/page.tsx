@@ -2105,7 +2105,7 @@ export default function PropertyDetailPage() {
                     </div>
                     {i === 0 && (
                       <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '5px', maxWidth: '420px' }}>
-                        Blir et navn uttalt feil? Stav det i teksten slik det skal HØRES ut — «Kilevold» som «Kjilevold».
+                        Blir et ord uttalt feil? Stav det i teksten slik det skal HØRES ut — «kylling» som «kjylling».
                       </p>
                     )}
                   </div>

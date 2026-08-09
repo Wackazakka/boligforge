@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
 import { keyForAccount } from '../../../../lib/elevenlabs-accounts'
+import { fiksUttale } from '../../../../lib/tts-uttale'
 
 export const maxDuration = 30
 
@@ -45,7 +46,8 @@ export async function POST(request: Request) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      text,
+      // Manuset beholder riktig skrivemaate; omskrivingen skjer kun her.
+      text: fiksUttale(text),
       model_id: 'eleven_turbo_v2_5',
       language_code: 'no',
       voice_settings: { stability: 0.5, similarity_boost: 0.8 },

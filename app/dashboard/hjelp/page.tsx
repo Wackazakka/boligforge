@@ -84,7 +84,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: 'Stemmen uttaler et navn feil',
-        a: 'Stav ordet i manuset slik det skal HØRES ut. «Kilevold» skrives «Kjilevold», «Skjeberg» skrives «Sjeberg». Da blir det riktig hver gang.',
+        a: 'Stav ordet i manuset slik det skal HØRES ut — «kylling» skrives «kjylling», «Skjeberg» skrives «Sjeberg». Da blir det riktig hver gang.',
       },
       {
         q: 'Hva er forskjellen på «Hør innlesing» og «Ny innlesing»?',
