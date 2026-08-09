@@ -45,9 +45,45 @@ export default function AvatarOnboardingPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
 
-          {/* ── Alternativ A: Malmegler ── */}
-          <div className="app-card" style={{ padding: '28px' }}>
+          {/* ── Venstre (anbefalt): egen avatar ── */}
+          <div className="app-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
+              Anbefalt · rundt 5 minutter
+            </div>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f0f0f', marginBottom: '8px' }}>
+              Sett opp din egen avatar
+            </h2>
+            <p style={{ fontSize: '14px', color: '#737373', marginBottom: '24px', lineHeight: 1.6 }}>
+              Last opp portrettbilde og les inn stemmen din i cirka to minutter. Videoene ser ut
+              som du snakker direkte til kjøperne. Sitter du et sted der innlesing ikke passer,
+              kan du gjøre den delen senere.
+            </p>
+
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                '🎙 Din stemme, klonet med AI',
+                '📸 Ditt ansikt i profesjonelle settings',
+                '🏠 Boligens megler presenterer boligen',
+              ].map(item => (
+                <li key={item} style={{ fontSize: '14px', color: '#374151', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <span>{item.split(' ')[0]}</span>
+                  <span>{item.split(' ').slice(1).join(' ')}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              href="/dashboard/profile"
+              className="app-btn-secondary w-full"
+              style={{ marginTop: '24px', display: 'block', textAlign: 'center', textDecoration: 'none', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#0f0f0f' }}
+            >
+              Sett opp min avatar →
+            </Link>
+          </div>
+
+          {/* ── Høyre: malmegler, den raske veien ── */}
+          <div className="app-card" style={{ padding: '28px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#737373', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
               Raskeste start · under 1 minutt
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f0f0f', marginBottom: '8px' }}>
@@ -111,42 +147,6 @@ export default function AvatarOnboardingPage() {
                 {isPending ? 'Starter…' : selected ? `Fortsett med ${selectedAvatar?.name} →` : 'Velg en avatar over'}
               </button>
             </form>
-          </div>
-
-          {/* ── Alternativ B: Egen avatar ── */}
-          <div className="app-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#737373', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-              Mer personlig · rundt 5 minutter
-            </div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f0f0f', marginBottom: '8px' }}>
-              Sett opp din egen avatar
-            </h2>
-            <p style={{ fontSize: '14px', color: '#737373', marginBottom: '24px', lineHeight: 1.6 }}>
-              Last opp portrettbilde og les inn stemmen din i cirka to minutter. Videoene ser ut
-              som du snakker direkte til kjøperne. Sitter du et sted der innlesing ikke passer,
-              kan du gjøre den delen senere.
-            </p>
-
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                '🎙 Din stemme, klonet med AI',
-                '📸 Ditt ansikt i profesjonelle settings',
-                '🏠 Boligens megler presenterer boligen',
-              ].map(item => (
-                <li key={item} style={{ fontSize: '14px', color: '#374151', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <span>{item.split(' ')[0]}</span>
-                  <span>{item.split(' ').slice(1).join(' ')}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Link
-              href="/dashboard/profile"
-              className="app-btn-secondary w-full"
-              style={{ marginTop: '24px', display: 'block', textAlign: 'center', textDecoration: 'none', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#0f0f0f' }}
-            >
-              Sett opp min avatar →
-            </Link>
           </div>
 
         </div>
