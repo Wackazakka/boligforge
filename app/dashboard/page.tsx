@@ -66,14 +66,16 @@ export default async function DashboardPage() {
   // Malmegler-veien gaar rett fra onboarding til dashbordet og innom aldri
   // profilskjemaet - i motsetning til «egen avatar»-veien, som lander midt i
   // det. Uten dette steget ble navn og kontaktinfo aldri etterspurt.
-  // Navn er det eneste som har konsekvenser (avataren presenterer seg med det).
-  // Telefon og nettside LAGRES, men leses ikke noe sted i dag - aa kreve dem her
-  // ville vaert oppdiktet friksjon.
-  const hasDetails = Boolean(agentProfile?.name)
+  // Navn settes alltid ved registrering, saa et steg som haker av paa navn ville
+  // vaert et groent merke for noe brukeren aldri gjorde. Telefon og nettside er
+  // derimot ALDRI etterspurt paa malmegler-veien - den gaar rett til dashbordet og
+  // innom aldri profilskjemaet. Steget staar derfor aapent til det er fylt ut,
+  // merket valgfritt (som logo), saa muligheten er synlig uten aa vaere et krav.
+  const hasDetails = Boolean(agentProfile?.phone)
 
   const checklistSteps: ChecklistStep[] = [
     { key: 'account', label: 'Konto opprettet',       hint: '',                                           href: '/dashboard',                  done: true },
-    { key: 'details', label: 'Sjekk profilen din',     hint: 'Navn, tittel og kontaktinfo',               href: '/dashboard/profile',          done: hasDetails },
+    { key: 'details', label: 'Legg til kontaktinfo (valgfritt)', hint: 'Telefon, tittel og nettside på profilen din',               href: '/dashboard/profile',          done: hasDetails },
     { key: 'avatar',  label: 'Velg avatar',            hint: 'Velg en malmegler eller last opp ditt eget bilde', href: '/dashboard/profile',     done: hasAvatar },
     { key: 'voice',   label: 'Legg til en stemme',     hint: 'Velg en standardstemme eller klon din egen', href: '/dashboard/profile',          done: hasVoice },
     { key: 'logo',    label: 'Last opp logo (valgfritt)', hint: 'Vises i videoene dine',                   href: '/dashboard/profile',          done: hasLogo },
