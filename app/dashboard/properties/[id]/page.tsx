@@ -2061,6 +2061,62 @@ export default function PropertyDetailPage() {
               Uttales et ord feil? Prøv å stave det slik det skal <em>uttales</em> (f.eks. «førtti» for «førti») — visningsteksten kan du rette tilbake etterpå.
               På avatar-segmentene kan du også lage og godkjenne selve <strong>animasjonen</strong> — da brukes nøyaktig det klippet i videoen.
             </div>
+            {/* Bevegelse og overgang for SEGMENTbildene. Laa foer helt nederst, ved
+                generer-knappen — over 600 linjer unna bildene den styrer, mens
+                outro-seksjonens tilsvarende valg staar rett under sine bilder.
+                Her staar den rett over segmentlisten, som er det den gjelder. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '4px 2px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={motion}
+                  onChange={e => setMotion(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
+                />
+                <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                  🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— alle bildene under får langsom zoom eller panorering i stedet for å stå stille</span>
+                </span>
+              </label>
+              {motion && (
+                <div className="flex gap-2">
+                  {([['subtle', 'Subtil'], ['medium', 'Middels'], ['strong', 'Sterk']] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => setMotionStrength(val)}
+                      className="px-3 py-1 rounded-lg text-xs font-medium"
+                      style={{
+                        background: motionStrength === val ? 'var(--gold)' : 'var(--surface)',
+                        color: motionStrength === val ? '#fff' : 'var(--muted)',
+                        border: `1px solid ${motionStrength === val ? 'var(--gold)' : 'var(--line)'}`,
+                      }}
+                    >{label}</button>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2 items-center">
+                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Overgang mellom bilder:</span>
+                {([['cut', 'Rett kutt'], ['fade', 'Kryssfade']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setSegmentTransition(val)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-medium"
+                    style={{
+                      background: segmentTransition === val ? 'var(--gold)' : 'var(--surface)',
+                      color: segmentTransition === val ? '#fff' : 'var(--muted)',
+                      border: `1px solid ${segmentTransition === val ? 'var(--gold)' : 'var(--line)'}`,
+                    }}
+                  >{label}</button>
+                ))}
+              </div>
+            </div>
+
+            {motion && (
+              <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '-4px 2px 0' }}>
+                Skal ett bilde stå helt stille likevel — for eksempel en plantegning —
+                bruker du merket nede til venstre på det bildet.
+              </p>
+            )}
+
             <div className="space-y-3">
               {segments.map((seg, i) => (
                 <div
@@ -2713,51 +2769,6 @@ export default function PropertyDetailPage() {
           {!generatingVideo && statusMsg && (
             <div className="app-info">{statusMsg}</div>
           )}
-          {/* Bevegelse i bildene — Ken Burns i bildesegmenter og outro (kundeønske 7/8) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '4px 2px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={motion}
-                onChange={e => setMotion(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
-              />
-              <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
-                🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— zoom og panorering i segmentbildene (avslutningen styres i outro-seksjonen)</span>
-              </span>
-            </label>
-            {motion && (
-              <div className="flex gap-2">
-                {([['subtle', 'Subtil'], ['medium', 'Middels'], ['strong', 'Sterk']] as const).map(([val, label]) => (
-                  <button
-                    key={val}
-                    onClick={() => setMotionStrength(val)}
-                    className="px-3 py-1 rounded-lg text-xs font-medium"
-                    style={{
-                      background: motionStrength === val ? 'var(--gold)' : 'var(--surface)',
-                      color: motionStrength === val ? '#fff' : 'var(--muted)',
-                      border: `1px solid ${motionStrength === val ? 'var(--gold)' : 'var(--line)'}`,
-                    }}
-                  >{label}</button>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-2 items-center">
-              <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Overgang mellom bilder:</span>
-              {([['cut', 'Rett kutt'], ['fade', 'Kryssfade']] as const).map(([val, label]) => (
-                <button
-                  key={val}
-                  onClick={() => setSegmentTransition(val)}
-                  className="px-2.5 py-1 rounded-lg text-xs font-medium"
-                  style={{
-                    background: segmentTransition === val ? 'var(--gold)' : 'var(--surface)',
-                    color: segmentTransition === val ? '#fff' : 'var(--muted)',
-                    border: `1px solid ${segmentTransition === val ? 'var(--gold)' : 'var(--line)'}`,
-                  }}
-                >{label}</button>
-              ))}
-            </div>
-          </div>
           <button
             onClick={handleGenerateVideo}
             disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
