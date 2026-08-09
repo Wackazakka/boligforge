@@ -100,12 +100,15 @@ function buildReviewSteps(imageIdx: number, flereSegmenter: boolean): TourStep[]
     'Bakgrunnsmusikken ligger under bildene på slutten. Last opp en MP3, eller la det være — den er valgfri.')
   add('[data-tour="ambience"]', 'Atmosfærelyd bak presentøren',
     'Ligger diskré under stemmen mens presentøren snakker og gir litt stemning. Også valgfri.')
+  // Siste steg. Ikke noe eget «trykk Generer video»-steg: knappen staar nederst
+  // med sin egen tekst om tid og kostnad, og herfra klarer brukeren seg selv.
   if (flereSegmenter) {
     add('[data-tour="segment-next"]', 'Gå gjennom resten av segmentene',
-      'Du har bare sett det første. Gå gjennom hvert segment på samme måte — tekst, innlesing, bilder og eventuell animasjon — så du vet at alt sitter før videoen lages.')
+      'Du har bare sett det første. Gå gjennom hvert segment på samme måte — tekst, innlesing, bilder og eventuell animasjon. Når alt sitter, ligger «Generer presentasjonsvideo» nederst på siden.')
+  } else {
+    add('[data-tour="generate-video"]', 'Til slutt: lag videoen',
+      'Trykk «Generer presentasjonsvideo» når du er fornøyd.')
   }
-  add('[data-tour="generate-video"]', 'Til slutt: lag videoen',
-    'Når alle segmentene er gjennomgått, trykker du «Generer presentasjonsvideo» nederst. Det tar rundt fem minutter og bruker én av videoene dine.')
 
   return steps
 }
