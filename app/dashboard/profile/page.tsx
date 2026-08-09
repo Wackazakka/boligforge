@@ -20,8 +20,8 @@ const PROFILE_STEPS: TourStep[] = [
   },
   {
     selector: '[data-tour="profile-voice"]',
-    title: '2. Velg en stemme',
-    description: 'Hør gjennom standardstemmene og velg en. Vil du heller bruke din egen, leser du inn en tekst i cirka to minutter — sett deg i et stille rom først.',
+    title: '2. Les inn stemmen din',
+    description: 'Les teksten øverst i cirka to minutter, så snakker videoene med din egen stemme. Sett deg i et stille rom først. Vil du heller ha en ferdig stemme, velger du en i listen under.',
   },
   {
     selector: '[data-tour="profile-avatar"]',
@@ -697,90 +697,15 @@ export default function ProfilePage() {
             Stemme og tone
           </h2>
           <div className="space-y-5">
-            <div>
-              <label className="app-label mb-1">Foretrukket stemme</label>
-              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
-                Dette er standardstemmen din. Velger du en ferdig AI-megler til en video,
-                snakker hun med sin egen stemme — og du kan bytte stemme per video på eiendomssiden.
-              </p>
-              <div className="grid grid-cols-1 gap-2">
-                {profile.cloned_voice_id && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      set('voice_id', profile.cloned_voice_id!)
-                      await fetch('/api/profile/save', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...profile, voice_id: profile.cloned_voice_id }),
-                      })
-                    }}
-                    className={`app-voice-row${profile.voice_id === profile.cloned_voice_id ? ' active' : ''}`}
-                  >
-                    <span>🎙 Din klonede stemme</span>
-                    <span className="flex items-center gap-2">
-                      {profile.voice_id === profile.cloned_voice_id && (
-                        <span className="text-xs" style={{ color: 'var(--gold)' }}>Aktiv</span>
-                      )}
-                      <span
-                        onClick={e => { e.stopPropagation(); void playVoiceSample(profile.cloned_voice_id!) }}
-                        className="text-xs px-2 py-0.5 rounded"
-                        style={{
-                          color: playingVoiceId === profile.cloned_voice_id || loadingPreviewId === profile.cloned_voice_id
-                            ? 'var(--gold)' : 'var(--muted)',
-                          cursor: 'pointer',
-                        }}
-                        title="Hør forhåndsvisning"
-                      >
-                        {loadingPreviewId === profile.cloned_voice_id
-                          ? '...'
-                          : playingVoiceId === profile.cloned_voice_id
-                            ? '■ Stopp'
-                            : '▶ Hør'}
-                      </span>
-                    </span>
-                  </button>
-                )}
-                {VOICES.map(v => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={async () => {
-                      set('voice_id', v.id)
-                      await fetch('/api/profile/save', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...profile, voice_id: v.id }),
-                      })
-                    }}
-                    className={`app-voice-row${profile.voice_id === v.id ? ' active' : ''}`}
-                  >
-                    <span>{v.name}</span>
-                    <span
-                      onClick={e => {
-                        // «Hør» velger ogsaa stemmen — samme regel som musikkfilene
-                        // lenger inne i produktet. Ellers hoerer man én stemme mens
-                        // en annen staar valgt, og tror man har valgt den man hoerer.
-                        // «Stopp» endrer derimot ingenting.
-                        if (playingVoiceId === v.id) e.stopPropagation()
-                        void playVoiceSample(v.id, v.preview)
-                      }}
-                      className="text-xs px-2 py-0.5 rounded"
-                      style={{ color: playingVoiceId === v.id ? 'var(--gold)' : 'var(--muted)', cursor: 'pointer' }}
-                      title="Hør forhåndsvisning"
-                    >
-                      {playingVoiceId === v.id ? '■ Stopp' : '▶ Hør'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Voice cloning */}
             <div className="app-card-inner">
-              <p className="text-sm font-medium mb-1" style={{ color: 'var(--ink-2)' }}>Klon din stemme</p>
+              <p className="text-sm font-medium mb-1" style={{ color: 'var(--ink-2)' }}>
+                Bruk din egen stemme <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-deep)', marginLeft: 6 }}>ANBEFALT</span>
+              </p>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
-                Les hele teksten under — det gir rundt to minutter lyd — eller last opp en eksisterende lydfil. Jo mer lyd, desto bedre resultat.
+                Det er dette de fleste meglerne velger — boligen presenteres med stemmen kundene kjenner igjen.
+                Les hele teksten under, så har du rundt to minutter lyd, eller last opp en lydfil du har fra før.
+                Jo mer lyd, desto bedre resultat. Sett deg i et stille rom først.
               </p>
 
               <div className="app-reading-block mb-4">
@@ -883,6 +808,86 @@ export default function ProfilePage() {
               {voiceRecordState === 'error' && (
                 <p className="text-sm mt-2" style={{ color: '#e88888' }}>{voiceRecordError}</p>
               )}
+            </div>
+
+            <div>
+              <label className="app-label mb-1">… eller bruk en ferdig stemme</label>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+                Standardstemmen din, hvis du ikke kloner din egen. Velger du en ferdig AI-megler
+                til en video, snakker hun uansett med sin egen stemme — og stemmen kan byttes per
+                video på eiendomssiden.
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                {profile.cloned_voice_id && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      set('voice_id', profile.cloned_voice_id!)
+                      await fetch('/api/profile/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...profile, voice_id: profile.cloned_voice_id }),
+                      })
+                    }}
+                    className={`app-voice-row${profile.voice_id === profile.cloned_voice_id ? ' active' : ''}`}
+                  >
+                    <span>🎙 Din klonede stemme</span>
+                    <span className="flex items-center gap-2">
+                      {profile.voice_id === profile.cloned_voice_id && (
+                        <span className="text-xs" style={{ color: 'var(--gold)' }}>Aktiv</span>
+                      )}
+                      <span
+                        onClick={e => { e.stopPropagation(); void playVoiceSample(profile.cloned_voice_id!) }}
+                        className="text-xs px-2 py-0.5 rounded"
+                        style={{
+                          color: playingVoiceId === profile.cloned_voice_id || loadingPreviewId === profile.cloned_voice_id
+                            ? 'var(--gold)' : 'var(--muted)',
+                          cursor: 'pointer',
+                        }}
+                        title="Hør forhåndsvisning"
+                      >
+                        {loadingPreviewId === profile.cloned_voice_id
+                          ? '...'
+                          : playingVoiceId === profile.cloned_voice_id
+                            ? '■ Stopp'
+                            : '▶ Hør'}
+                      </span>
+                    </span>
+                  </button>
+                )}
+                {VOICES.map(v => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={async () => {
+                      set('voice_id', v.id)
+                      await fetch('/api/profile/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...profile, voice_id: v.id }),
+                      })
+                    }}
+                    className={`app-voice-row${profile.voice_id === v.id ? ' active' : ''}`}
+                  >
+                    <span>{v.name}</span>
+                    <span
+                      onClick={e => {
+                        // «Hør» velger ogsaa stemmen — samme regel som musikkfilene
+                        // lenger inne i produktet. Ellers hoerer man én stemme mens
+                        // en annen staar valgt, og tror man har valgt den man hoerer.
+                        // «Stopp» endrer derimot ingenting.
+                        if (playingVoiceId === v.id) e.stopPropagation()
+                        void playVoiceSample(v.id, v.preview)
+                      }}
+                      className="text-xs px-2 py-0.5 rounded"
+                      style={{ color: playingVoiceId === v.id ? 'var(--gold)' : 'var(--muted)', cursor: 'pointer' }}
+                      title="Hør forhåndsvisning"
+                    >
+                      {playingVoiceId === v.id ? '■ Stopp' : '▶ Hør'}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
