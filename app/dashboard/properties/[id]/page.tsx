@@ -2145,16 +2145,12 @@ export default function PropertyDetailPage() {
                       {seg.type === 'avatar' && openGalleryForSegment !== i ? (
                         /* Avatar-segment: forhåndsvis/generer selve animasjonen (Fabric-
                            klippet) her — det godkjente klippet brukes ordrett i videoen. */
-                        <div
-                          data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined}
-                          // width: fit-content — raden er turens markerte element, og
-                          // driver.js klipper hullet i overlegget etter elementets boks.
-                          // Full bredde ga et stort tomt hvitt felt ved siden av videoen.
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                                   width: 'fit-content', maxWidth: '100%' }}
-                        >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           {seg.clipUrl ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div
+                              data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined}
+                              style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
+                            >
                               <video
                                 key={seg.clipUrl}
                                 src={seg.clipUrl}
@@ -2215,7 +2211,10 @@ export default function PropertyDetailPage() {
                               Lager animasjonen… (1–3 min)
                             </span>
                           ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div
+                              data-tour={i === firstAvatarSegmentIdx && !seg.clipUrl ? 'avatar-clip' : undefined}
+                              style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+                            >
                               <button
                                 onClick={() => generateAvatarClip(i)}
                                 className="app-btn-secondary text-xs"
