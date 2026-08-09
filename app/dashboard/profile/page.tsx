@@ -689,7 +689,7 @@ export default function ProfilePage() {
         <div className="pt-2">
           <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>① Video</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-            Standard — det de fleste bruker. Her setter du stemmen din, og laster opp et portrett hvis du vil presentere boligene selv. Ferdige AI-meglere velger du per video.
+            Her setter du stemmen din, og laster opp et portrett hvis du vil presentere boligene selv. Ferdige AI-meglere velger du per video.
           </p>
         </div>
 
@@ -707,7 +707,7 @@ export default function ProfilePage() {
                 Bruk din egen stemme <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-deep)', marginLeft: 6 }}>ANBEFALT</span>
               </p>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
-                Det er dette de fleste meglerne velger — boligen presenteres med stemmen kundene kjenner igjen.
+                Boligen presenteres med stemmen kundene kjenner igjen fra visninger og telefonen.
                 Les hele teksten under, så har du rundt to minutter lyd, eller last opp en lydfil du har fra før.
                 Jo mer lyd, desto bedre resultat. Sett deg i et stille rom først.
               </p>
