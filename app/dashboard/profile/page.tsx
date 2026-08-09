@@ -151,6 +151,7 @@ export default function ProfilePage() {
   const [voiceRecordError, setVoiceRecordError] = useState('')
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [portraitVersion, setPortraitVersion] = useState(0)
+  const [profileLoaded, setProfileLoaded] = useState(false)
   const [org, setOrg] = useState({ isAdmin: false, allow_did: true, allow_liveavatar: true, allow_pvc: true })
   // Premium-tilleggene (② og ③) skal ikke dominere profilsiden — sammenlagt som standard
   // Midlertidig HELT skjult (Lars 7/8, før hjem.no-møtet) — sett true for å vise igjen.
@@ -215,6 +216,9 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(d => setProfile(d || {}))
       .catch(console.error)
+      // Sett flagget UANSETT utfall — feiler kallet, skal turen fortsatt kunne
+      // kjoere (da med stegene for en tom profil), ikke bli borte for godt.
+      .finally(() => setProfileLoaded(true))
     fetch('/api/org/settings').then(r => r.json()).then(d => { if (d && !d.error) setOrg(d) }).catch(() => {})
     loadSettingImages()
   }, [])
@@ -665,7 +669,7 @@ export default function ProfilePage() {
         {/* Førstegangs-gjennomgang. Seksjonene rendres uavhengig av data, og
             ProductTour venter selv på at ankeret finnes — å gate på at
             profil-API-et svarte ga 3–4 sekunders forsinkelse ved kaldstart. */}
-        <ProductTour storageKey={TOUR_PROFILE_KEY} steps={profileSteps} />
+        <ProductTour storageKey={TOUR_PROFILE_KEY} steps={profileSteps} when={profileLoaded} />
 
         {/* Kom-i-gang-hint: hopp rett videre når profilen er satt opp */}
 
