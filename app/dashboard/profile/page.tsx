@@ -23,7 +23,7 @@ const TOUR_PROFILE_KEY = 'rh_tour_profile'
  * Ogsaa stemme-steget tilpasses: har du en klone, er «les inn stemmen din»
  * gjort. Nummereringen bygges loepende, som i buildReviewSteps.
  */
-function buildProfileSteps(harPresentoer: boolean, harKlone: boolean): TourStep[] {
+function buildProfileSteps(harPresentoer: boolean, harKlone: boolean, stemmeAvklart: boolean): TourStep[] {
   const steps: TourStep[] = []
   const add = (selector: string, title: string, description: string) =>
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
@@ -31,7 +31,10 @@ function buildProfileSteps(harPresentoer: boolean, harKlone: boolean): TourStep[
   add('[data-tour="profile-basics"]', 'Sjekk at navnet stemmer',
     'Navn og e-post er hentet fra registreringen — avataren presenterer seg med navnet. Telefon og nettside er valgfrie, så du kan gå videre uten dem.')
 
-  if (harKlone) {
+  if (stemmeAvklart) {
+    // Ingen steg: stemmen kom med malmegleren, og seksjonen er kollapset til
+    // én linje. Aa stoppe opp her ville vaert aa spoerre om et avgjort valg.
+  } else if (harKlone) {
     add('[data-tour="profile-voice"]', 'Stemmen din er klar',
       'Klonen din brukes i videoene. Vil du heller ha en ferdig stemme, velger du en i listen under.')
   } else {
@@ -82,7 +85,7 @@ const TONE_PRESETS = [
   { label: 'Saklig og presis', value: 'Saklig og presis. Faktabasert og ryddig, lar boligens kvaliteter tale for seg selv.' },
 ]
 
-import { VOICES } from '../../../lib/voices'
+import { VOICES, voiceLabel } from '../../../lib/voices'
 import { TEMPLATE_AVATARS } from '../../../lib/template-avatars'
 
 const AVATAR_R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
@@ -159,6 +162,7 @@ export default function ProfilePage() {
   const [showDigitalVisning, setShowDigitalVisning] = useState(false)
   const [showProffStemme, setShowProffStemme] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [visStemmevalg, setVisStemmevalg] = useState(false)
   const [savingOrg, setSavingOrg] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -177,7 +181,6 @@ export default function ProfilePage() {
   // gjort, og kan ikke minne deg paa det etterpaa. En tester klikket seg gjennom
   // alle fire stegene og havnet nederst paa siden uten aa ha valgt noe.
   const profilLastet = Object.keys(profile).length > 0
-  const profileSteps = buildProfileSteps(Boolean(profile.portrait_url), Boolean(profile.cloned_voice_id))
   const oppsett = [
     { navn: 'Navn',      ok: !!profile.name?.trim(),                              mangler: 'skriv inn navnet ditt' },
     { navn: 'Stemme',    ok: !!(profile.voice_id || profile.cloned_voice_id),     mangler: 'velg en stemme' },
@@ -190,6 +193,11 @@ export default function ProfilePage() {
   const photoReady = !!profile.portrait_url
   const hasClone = !!profile.cloned_voice_id
   const activeAvatarId = STANDARD_AVATARS.find(a => `${AVATAR_R2}/${a.id}.jpg` === activePortrait)?.id
+  // Stemmen er avklart naar en malmegler presenterer OG brukeren ikke har en
+  // egen klone: da er avatarens stemme baade standarden og det som faktisk
+  // brukes i videoen.
+  const stemmeErAvklart = !!activeAvatarId && !hasClone
+  const profileSteps = buildProfileSteps(Boolean(profile.portrait_url), Boolean(profile.cloned_voice_id), stemmeErAvklart)
 
   // Pre-generated preset images for standard avatars
   const presetImages: SettingImage[] = activeAvatarId
@@ -727,6 +735,41 @@ export default function ProfilePage() {
             Stemme og tone
           </h2>
           <div className="space-y-5">
+            {/* Har du valgt en malmegler, ER stemmen valgt — onboardingen skriver
+                avatarens voiceId som standardstemme, og paa eiendomssiden vinner
+                den uansett (effectiveVoiceId tar activeAvatar.voiceId foerst).
+                Aa be om et stemmevalg her er aa spoerre om noe som er bestemt,
+                rett etter at brukeren valgte «under 1 minutt». Klonen forsvinner
+                ikke — den slutter bare aa kreve oppmerksomhet. */}
+            {stemmeErAvklart && !visStemmevalg ? (
+              <div className="app-card-inner">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span className="text-sm" style={{ color: 'var(--ink)' }}>
+                    Stemme: <strong>{voiceLabel(profile.voice_id, profile.cloned_voice_id)}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void playVoiceSample(profile.voice_id!, VOICES.find(v => v.id === profile.voice_id)?.preview)}
+                    className="app-btn-ghost text-xs"
+                    style={{ padding: '4px 10px' }}
+                  >
+                    {playingVoiceId === profile.voice_id ? '■ Stopp' : '▶ Hør'}
+                  </button>
+                </div>
+                <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
+                  Den følger AI-megleren du valgte, og kan byttes per video på eiendomssiden.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setVisStemmevalg(true)}
+                  className="app-btn-ghost text-xs"
+                  style={{ padding: '4px 0', marginTop: 6, color: 'var(--gold)' }}
+                >
+                  Vil du bruke din egen stemme i stedet? →
+                </button>
+              </div>
+            ) : (
+              <>
             {/* Voice cloning */}
             <div className="app-card-inner">
               <p className="text-sm font-medium mb-1" style={{ color: 'var(--ink-2)' }}>
@@ -924,6 +967,8 @@ export default function ProfilePage() {
                 ))}
               </div>
             </div>
+              </>
+            )}
 
             <div data-tour="profile-tone">
               <label className="app-label">Tone i manus</label>
