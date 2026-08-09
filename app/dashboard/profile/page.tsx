@@ -50,8 +50,8 @@ function buildProfileSteps(harPresentoer: boolean, harKlone: boolean): TourStep[
   add('[data-tour="profile-logo"]', 'Last opp logoen — eller hopp over',
     'Den vises på avslutningsbildet, og kan legges inn senere. Husk å lagre nederst når du er ferdig.')
 
-  add('[data-tour="profile-status"]', 'Sjekk hva som gjenstår',
-    'Denne linjen står her hele tiden og teller. Er alt haket av, er du klar til å lage din første video.')
+  add('[data-tour="profile-status"]', 'Her ser du hva som mangler',
+    'Oversikten øverst på siden viser hva som er på plass og hva som ikke er det. Er alt haket av, er du klar til å lage den første videoen.')
 
   return steps
 }
