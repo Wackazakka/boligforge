@@ -144,7 +144,13 @@ export function advanceTour() {
 /** Maaler markeringen paa nytt — kall den naar det markerte elementet endrer
  *  stoerrelse (f.eks. naar avatar-videoen dukker opp inne i blokka). */
 export function refreshTour() {
-  activeTour?.refresh?.()
+  if (!activeTour) return
+  // refresh() maaler elementet driver.js alt har lagret - den slaar IKKE opp
+  // selectoren paa nytt. Naar markeringen skal flytte seg fordi DOM-en er
+  // byttet ut (knappen erstattes av videoen), maa steget kjoeres om.
+  const idx = activeTour.getActiveIndex?.()
+  if (typeof idx === 'number') activeTour.drive(idx)
+  else activeTour.refresh?.()
 }
 
 /** Kjører touren uansett — for manuell gjenåpning (f.eks. en "?"-knapp). */

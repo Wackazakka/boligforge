@@ -2147,11 +2147,9 @@ export default function PropertyDetailPage() {
                            klippet) her — det godkjente klippet brukes ordrett i videoen. */
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           {seg.clipUrl ? (
-                            <div
-                              data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined}
-                              style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
-                            >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               <video
+                                data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined}
                                 key={seg.clipUrl}
                                 src={seg.clipUrl}
                                 controls
