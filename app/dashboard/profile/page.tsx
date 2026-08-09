@@ -12,38 +12,49 @@ import ProductTour, { type TourStep } from '@/app/components/ProductTour'
 // settings. Den var uguidet — touren startet først på Eiendommer-siden.
 const TOUR_PROFILE_KEY = 'rh_tour_profile'
 
-const PROFILE_STEPS: TourStep[] = [
-  {
-    selector: '[data-tour="profile-basics"]',
-    title: '1. Sjekk at navnet stemmer',
-    description: 'Navn og e-post er hentet fra registreringen — avataren presenterer seg med navnet. Telefon og nettside er valgfrie, så du kan gå videre uten dem.',
-  },
-  {
-    selector: '[data-tour="profile-voice"]',
-    title: '2. Les inn stemmen din',
-    description: 'Les teksten øverst i cirka to minutter, så snakker videoene med din egen stemme. Sitter du et sted der det ikke passer? Velg en ferdig stemme i listen under så lenge, og bytt til din egen senere.',
-  },
-  {
-    selector: '[data-tour="profile-tone"]',
-    title: '3. Sjekk tonen i manusene',
-    description: 'Tonen preger hvordan manusene skrives. «Varm og profesjonell» er valgt fra start — bytt hvis en annen passer deg bedre.',
-  },
-  {
-    selector: '[data-tour="profile-avatar"]',
-    title: '4. Last opp portrettet ditt — eller hopp over',
-    description: 'Vil du presentere boligene selv, laster du opp et portrett her. Ellers hopper du over — da velger du en ferdig AI-megler når du lager videoen.',
-  },
-  {
-    selector: '[data-tour="profile-logo"]',
-    title: '5. Last opp logoen — eller hopp over',
-    description: 'Den vises på avslutningsbildet, og kan legges inn senere. Husk å lagre nederst når du er ferdig.',
-  },
-  {
-    selector: '[data-tour="profile-status"]',
-    title: '6. Sjekk hva som gjenstår',
-    description: 'Denne linjen står her hele tiden og teller. Er alt haket av, er du klar til å lage din første video.',
-  },
-]
+/**
+ * Stegene bygges etter tilstand, ikke som en fast liste.
+ *
+ * Portrett-steget hoppes over naar presentoeren alt er valgt: har du valgt en
+ * malmegler for ett minutt siden i onboardingen, er «last opp portrettet ditt»
+ * aa stille et spoersmaal du nettopp har svart paa. Opplastingsboksen staar der
+ * fortsatt - turen skal bare slutte aa mase om den.
+ *
+ * Ogsaa stemme-steget tilpasses: har du en klone, er «les inn stemmen din»
+ * gjort. Nummereringen bygges loepende, som i buildReviewSteps.
+ */
+function buildProfileSteps(harPresentoer: boolean, harKlone: boolean): TourStep[] {
+  const steps: TourStep[] = []
+  const add = (selector: string, title: string, description: string) =>
+    steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
+
+  add('[data-tour="profile-basics"]', 'Sjekk at navnet stemmer',
+    'Navn og e-post er hentet fra registreringen — avataren presenterer seg med navnet. Telefon og nettside er valgfrie, så du kan gå videre uten dem.')
+
+  if (harKlone) {
+    add('[data-tour="profile-voice"]', 'Stemmen din er klar',
+      'Klonen din brukes i videoene. Vil du heller ha en ferdig stemme, velger du en i listen under.')
+  } else {
+    add('[data-tour="profile-voice"]', 'Les inn stemmen din',
+      'Les teksten øverst i cirka to minutter, så snakker videoene med din egen stemme. Sitter du et sted der det ikke passer? Velg en ferdig stemme i listen under så lenge, og bytt til din egen senere.')
+  }
+
+  add('[data-tour="profile-tone"]', 'Sjekk tonen i manusene',
+    'Tonen preger hvordan manusene skrives. «Varm og profesjonell» er valgt fra start — bytt hvis en annen passer deg bedre.')
+
+  if (!harPresentoer) {
+    add('[data-tour="profile-avatar"]', 'Velg hvem som vises i videoene',
+      'Last opp et portrett hvis du vil presentere boligene selv. Ellers hopper du over — da velger du en ferdig AI-megler når du lager videoen.')
+  }
+
+  add('[data-tour="profile-logo"]', 'Last opp logoen — eller hopp over',
+    'Den vises på avslutningsbildet, og kan legges inn senere. Husk å lagre nederst når du er ferdig.')
+
+  add('[data-tour="profile-status"]', 'Sjekk hva som gjenstår',
+    'Denne linjen står her hele tiden og teller. Er alt haket av, er du klar til å lage din første video.')
+
+  return steps
+}
 
 const SETTING_PROMPTS: Record<string, string> = {
   modern_home: 'A professional Norwegian real estate agent standing outdoors in front of a beautiful modern Norwegian home. White render walls, large black-frame windows, lush green garden, warm golden-hour sunlight. The agent looks confident and natural, wearing business casual attire. Editorial real estate photography, shallow depth of field.',
@@ -165,6 +176,7 @@ export default function ProfilePage() {
   // gjort, og kan ikke minne deg paa det etterpaa. En tester klikket seg gjennom
   // alle fire stegene og havnet nederst paa siden uten aa ha valgt noe.
   const profilLastet = Object.keys(profile).length > 0
+  const profileSteps = buildProfileSteps(Boolean(profile.portrait_url), Boolean(profile.cloned_voice_id))
   const oppsett = [
     { navn: 'Navn',      ok: !!profile.name?.trim(),                              mangler: 'skriv inn navnet ditt' },
     { navn: 'Stemme',    ok: !!(profile.voice_id || profile.cloned_voice_id),     mangler: 'velg en stemme' },
@@ -653,7 +665,7 @@ export default function ProfilePage() {
         {/* Førstegangs-gjennomgang. Seksjonene rendres uavhengig av data, og
             ProductTour venter selv på at ankeret finnes — å gate på at
             profil-API-et svarte ga 3–4 sekunders forsinkelse ved kaldstart. */}
-        <ProductTour storageKey={TOUR_PROFILE_KEY} steps={PROFILE_STEPS} />
+        <ProductTour storageKey={TOUR_PROFILE_KEY} steps={profileSteps} />
 
         {/* Kom-i-gang-hint: hopp rett videre når profilen er satt opp */}
 
