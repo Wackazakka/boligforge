@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 import { VOICES, voiceLabel } from '../../../../lib/voices'
-import ProductTour, { closeTour, type TourStep } from '@/app/components/ProductTour'
+import ProductTour, { advanceTour, type TourStep } from '@/app/components/ProductTour'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
 // etterpå. Grunnen er at segment-editoren, outroen, musikken og ambiensen
@@ -812,8 +812,9 @@ export default function PropertyDetailPage() {
   async function generateAvatarClip(idx: number) {
     // Turen peker paa denne knappen. Blir boblen staaende, legger den seg oppaa
     // videoen som dukker opp rett under - da er avspillerknappen dekket, og
-    // driver.js gjoer alt utenfor det markerte elementet uklikkbart.
-    closeTour()
+    // driver.js gjoer alt utenfor det markerte elementet uklikkbart. Men lukke
+    // HELE turen var for haardt: da mistet man de gjenstaaende stegene.
+    advanceTour()
     const avatarImg = selectedAvatarUrl || effectivePortrait
     if (!avatarImg) { setError('Velg avatarbilde først'); return }
 
@@ -1053,7 +1054,7 @@ export default function PropertyDetailPage() {
   async function handleGenerateScript() {
     // Turen peker paa denne knappen som siste steg. Trykker du den, er hjelpen
     // gjort sin jobb - da skal den ikke bli staaende og kreve et klikk til.
-    closeTour()
+    advanceTour()
     if (!property) return
     setGeneratingScript(true)
     setError('')

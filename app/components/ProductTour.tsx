@@ -129,6 +129,18 @@ export function closeTour() {
   activeTour.destroy()
 }
 
+/**
+ * Brukeren utfoerte handlingen steget peker paa: gaa VIDERE, ikke lukk.
+ * Aa lukke hele turen her tok fra folk de gjenstaaende stegene - men aa bli
+ * staaende er heller ikke greit, siden boblen legger seg oppaa resultatet
+ * (avatar-videoen dukker opp rett under knappen som ble trykket).
+ */
+export function advanceTour() {
+  if (!activeTour) return
+  if (activeTour.hasNextStep?.()) activeTour.moveNext()
+  else closeTour()
+}
+
 /** Kjører touren uansett — for manuell gjenåpning (f.eks. en "?"-knapp). */
 export async function runTour(storageKey: string, steps: TourStep[]) {
   startTour(await scopedKey(storageKey), steps)
