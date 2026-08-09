@@ -22,20 +22,23 @@ function buildSetupSteps(): TourStep[] {
       description: 'Avataren fra profilen din er valgt automatisk. Du kan bytte til en av AI-meglerne for akkurat denne videoen.',
     },
     {
+      selector: '[data-tour="setting-pick"]',
+      title: '2. Velg omgivelsene',
+      description: 'Settingen er hvor presentøren står — portrettet, et kontor, en stue eller et nabolag. Samme person, ulik bakgrunn. Den kan byttes per video.',
+    },
+    {
       selector: '[data-tour="script-style"]',
-      title: '2. Velg målgruppe',
+      title: '3. Velg målgruppe',
       description: 'Dette former hvordan manuset skrives — «Luksus» og «Nyetablert» gir ganske ulik tekst om samme bolig. Velg før du lager manuset.',
     },
     {
       selector: '[data-tour="generate-script"]',
-      title: '3. Lag manuset',
-      description: 'Trykk her, så skriver AI-en et forslag ut fra boligdataene.',
+      title: '4. Trykk «Generer manus»',
+      description: 'Så skriver AI-en et forslag ut fra boligdataene. Teksten kan du endre fritt etterpå — den styrer bilder, lengde og alt som blir sagt.',
     },
-    {
-      selector: '[data-tour="script-text"]',
-      title: '4. Les gjennom og rett',
-      description: 'Manuset styrer alt videre — bilder, lengde og hva som blir sagt. Endre fritt: skriv om, legg til eller stryk.',
-    },
+    // Ikke noe steg paa selve manusfeltet: det er TOMT naar denne turen kjoerer,
+    // saa «les gjennom og rett» var en oppgave brukeren ikke kunne gjoere - og
+    // som siste steg lot den folk staa og vente paa et manus som ikke kom.
     // Segmenteringssteget ligger i SPLIT_STEPS: setup-touren kjører før
     // manuset finnes hos nye brukere, så et betinget steg her ble aldri vist.
   ]
@@ -1717,7 +1720,7 @@ export default function PropertyDetailPage() {
 
           {/* — Bildevalg — hvilken versjon av presentatøren som brukes i videoen — */}
           {(activeAvatar || hasOwnAvatar || property.images?.length > 0) && (
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
+            <div data-tour="setting-pick" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
 
               <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Velg setting til videoen</p>
               <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px' }}>
