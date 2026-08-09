@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 import { VOICES, voiceLabel } from '../../../../lib/voices'
-import ProductTour, { advanceTour, refreshTour, type TourStep } from '@/app/components/ProductTour'
+import ProductTour, { advanceTour, refreshTour, remeasureTour, type TourStep } from '@/app/components/ProductTour'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
 // etterpå. Grunnen er at segment-editoren, outroen, musikken og ambiensen
@@ -2151,6 +2151,10 @@ export default function PropertyDetailPage() {
                                 src={seg.clipUrl}
                                 controls
                                 preload="metadata"
+                                // Hoeyden er ukjent til metadataene er lastet. Maaler
+                                // ikke turen paa nytt da, vokser videoen ut av den
+                                // hvite markeringen som ble malt foer den hadde hoeyde.
+                                onLoadedMetadata={() => remeasureTour()}
                                 style={{ width: 'min(360px, 100%)', borderRadius: '8px', background: '#000' }}
                               />
                               {(seg.clipHistory?.length ?? 0) > 0 && (

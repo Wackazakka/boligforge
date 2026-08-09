@@ -143,6 +143,13 @@ export function advanceTour() {
 
 /** Maaler markeringen paa nytt — kall den naar det markerte elementet endrer
  *  stoerrelse (f.eks. naar avatar-videoen dukker opp inne i blokka). */
+/** Maaler markeringen paa nytt naar SAMME element endrer stoerrelse - f.eks.
+ *  naar en video faar kjent hoeyde etter at metadataene er lastet. Lettere enn
+ *  refreshTour(), som loeser opp elementet paa nytt. */
+export function remeasureTour() {
+  activeTour?.refresh?.()
+}
+
 export function refreshTour() {
   if (!activeTour) return
   // refresh() maaler elementet driver.js alt har lagret - den slaar IKKE opp
