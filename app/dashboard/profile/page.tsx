@@ -642,17 +642,13 @@ export default function ProfilePage() {
         {profilLastet && (
           <div data-tour="profile-status" className="app-card" style={{ marginBottom: '1.5rem', padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+              <span className="text-sm font-semibold"
+                style={{ color: gjenstaar.length === 0 ? 'var(--green)' : 'var(--ink)' }}>
                 {gjenstaar.length === 0 ? '✓ Profilen er klar' : `Gjenstår: ${gjenstaar.length}`}
               </span>
               {saving && <span className="text-xs" style={{ color: 'var(--muted)' }}>Lagrer…</span>}
               {!saving && savedMsg && <span className="text-xs" style={{ color: '#7ec880' }}>✓ Lagret</span>}
               {saveError && <span className="text-xs" style={{ color: '#e88888' }}>{saveError}</span>}
-              {gjenstaar.length === 0 && (
-                <Link href="/dashboard/properties" className="text-xs" style={{ color: 'var(--gold)' }}>
-                  Lag din første video →
-                </Link>
-              )}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
               {oppsett.map(o => (
@@ -670,6 +666,16 @@ export default function ProfilePage() {
               <p className="text-xs" style={{ color: 'var(--muted)', marginTop: 8 }}>
                 {gjenstaar.map(o => o.mangler).join(' · ')}
               </p>
+            )}
+            {gjenstaar.length === 0 && (
+              <Link
+                href="/dashboard/properties"
+                style={{ display: 'inline-block', marginTop: 14, padding: '11px 20px', borderRadius: 10,
+                         background: 'var(--green)', color: '#fff', fontSize: 15, fontWeight: 600,
+                         textDecoration: 'none' }}
+              >
+                Lag din første video →
+              </Link>
             )}
           </div>
         )}
