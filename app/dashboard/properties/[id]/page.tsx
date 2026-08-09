@@ -813,16 +813,18 @@ export default function PropertyDetailPage() {
     const avatarImg = selectedAvatarUrl || effectivePortrait
     if (!avatarImg) { setError('Velg avatarbilde først'); return }
 
-    // Klippet bakes med lyden — sørg for godkjent innlesing først
-    let audioUrl = segments[idx].audioUrl
-    if (!audioUrl) {
-      audioUrl = (await generateSegmentAudio(idx))?.audioUrl
-      if (!audioUrl) { setError('Kunne ikke lage innlesingen for segmentet'); return }
-    }
-
+    // Spinneren MAA settes foer innlesingen lages. Sto den etter, gikk det
+    // flere sekunder med TTS uten at noe skjedde paa skjermen - knappen saa
+    // uroert ut, og man rakk aa tro at klikket ikke hadde registrert seg.
     setGeneratingClips(prev => ({ ...prev, [idx]: true }))
     setError('')
     try {
+      // Klippet bakes med lyden — sørg for godkjent innlesing først
+      let audioUrl = segments[idx].audioUrl
+      if (!audioUrl) {
+        audioUrl = (await generateSegmentAudio(idx))?.audioUrl
+        if (!audioUrl) { setError('Kunne ikke lage innlesingen for segmentet'); return }
+      }
       const res = await fetch('/api/video/avatar-clip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
