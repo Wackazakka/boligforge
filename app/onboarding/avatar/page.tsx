@@ -55,8 +55,7 @@ export default function AvatarOnboardingPage() {
             </h2>
             <p style={{ fontSize: '14px', color: '#737373', marginBottom: '24px', lineHeight: 1.6 }}>
               Velg en av våre forhåndslagde AI-meglere. Du er ferdig med én gang og kan lage
-              den første videoen nå. Valget er ikke permanent: du kan når som helst laste opp
-              ditt eget bilde og klone stemmen din under Profil — også etter at du har laget videoer.
+              den første videoen nå. Valget er ikke permanent: du kan velge en annen AI-megler for hver enkelt video, og når som helst laste opp ditt eget bilde og klone stemmen din under Profil — også etter at du har laget videoer.
             </p>
 
             {/* Avatar grid */}
