@@ -810,6 +810,10 @@ export default function PropertyDetailPage() {
 
   // ── Per-segment avatar-klipp: generer + forhåndsvis Fabric-lipsyncen FØR videoen ──
   async function generateAvatarClip(idx: number) {
+    // Turen peker paa denne knappen. Blir boblen staaende, legger den seg oppaa
+    // videoen som dukker opp rett under - da er avspillerknappen dekket, og
+    // driver.js gjoer alt utenfor det markerte elementet uklikkbart.
+    closeTour()
     const avatarImg = selectedAvatarUrl || effectivePortrait
     if (!avatarImg) { setError('Velg avatarbilde først'); return }
 
