@@ -72,30 +72,27 @@ const SPLIT_STEPS: TourStep[] = [
  * outro-bilder. (Første/siste segment er alltid avatar — derfor peker
  * bilde-steget på første BILDE-segment, ikke på segment 1.)
  */
-function buildReviewSteps(imageIdx: number, avatarIdx: number): TourStep[] {
+function buildReviewSteps(imageIdx: number): TourStep[] {
   const steps: Array<Omit<TourStep, 'title'> & { title: string }> = []
   const add = (selector: string, title: string, description: string) =>
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
 
-  add('[data-tour="segment-card"]', 'Les teksten i segment 1',
-    'Klikk i feltet og rett det du vil ha annerledes.')
+  add('[data-tour="segment-card"]', 'Gå gjennom segment 1',
+    'Alt for dette segmentet ligger her: rett teksten i feltet, hør innlesingen, og — på avatar-segmenter — lag selve animasjonen. Animasjonen tar ett til tre minutter, og du kan spille den av og lage en ny så mange ganger du vil uten at det koster en video.')
   // Ikke noe eget lyd-steg: det pekte paa SAMME kort som steget over, der
   // «Hoer innlesing» og «Ny innlesing» alt staar synlige og navngitte - og
   // uttale-hintet ligger inline rett under dem. Steget forklarte knapper
   // brukeren allerede saa.
 
-  // Segment-stegene maa foelge SIDEN, ikke koden. Bilde-steget stod foerst her,
-  // mens bildesegmentet ligger etter avatarsegmentet paa skjermen - turen hoppet
-  // dermed segment 1 -> segment 2 -> tilbake til segment 1, og man mistet stedet.
-  // Segmentnummeret staar i teksten av samme grunn.
-  const segmentSteg: Array<{ idx: number; kjoer: () => void }> = []
-  if (avatarIdx >= 0) segmentSteg.push({ idx: avatarIdx, kjoer: () =>
-    add('[data-tour="avatar-clip"]', `Se avataren i segment ${avatarIdx + 1}`,
-      'Her lager du avatar-animasjonen for dette segmentet — knappen under starter den, og det tar ett til tre minutter. Spill av klippet når det kommer; hjelpen blir stående. Ikke fornøyd? Lag en ny — det koster ingen video. Når du er ferdig her: trykk «Neste».') })
-  if (imageIdx >= 0) segmentSteg.push({ idx: imageIdx, kjoer: () =>
+  // Ikke noe eget avatar-steg: videoen ligger inne i segmentkortet som steget
+  // over alt markerer, saa det ble to bobler om samme omraade - og steg 1 kunne
+  // ikke nevne videoen uten aa foregripe steg 2. Alt om avatar-segmentet staar
+  // na i steg 1, der markeringen faktisk er. Bildesegmentet er et ANNET kort
+  // lenger ned, saa det beholder sitt eget steg.
+  if (imageIdx >= 0) {
     add('[data-tour="segment-images"]', `Sjekk bildene i segment ${imageIdx + 1}`,
-      'Passer de til det som sies? Klikk på et bilde for å bytte det ut.') })
-  segmentSteg.sort((a, b) => a.idx - b.idx).forEach(s => s.kjoer())
+      'Passer de til det som sies? Klikk på et bilde for å bytte det ut.')
+  }
 
   add('[data-tour="outro-images"]', 'Velg bilder til avslutningen',
     'Trykk «Velg alle», eller plukk ut de du vil ha. Hopp over hvis du ikke vil ha noen.')
@@ -1427,7 +1424,7 @@ export default function PropertyDetailPage() {
   const firstImageSegmentIdx = segments.findIndex(s => s.type === 'image')
   const setupSteps  = buildSetupSteps()
   const firstAvatarSegmentIdx = segments.findIndex(s => s.type === 'avatar')
-  const reviewSteps = buildReviewSteps(firstImageSegmentIdx, firstAvatarSegmentIdx)
+  const reviewSteps = buildReviewSteps(firstImageSegmentIdx)
 
   return (
     <div className="p-6">
