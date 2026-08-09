@@ -757,7 +757,14 @@ export default function ProfilePage() {
                   >
                     <span>{v.name}</span>
                     <span
-                      onClick={e => { e.stopPropagation(); void playVoiceSample(v.id, v.preview) }}
+                      onClick={e => {
+                        // «Hør» velger ogsaa stemmen — samme regel som musikkfilene
+                        // lenger inne i produktet. Ellers hoerer man én stemme mens
+                        // en annen staar valgt, og tror man har valgt den man hoerer.
+                        // «Stopp» endrer derimot ingenting.
+                        if (playingVoiceId === v.id) e.stopPropagation()
+                        void playVoiceSample(v.id, v.preview)
+                      }}
                       className="text-xs px-2 py-0.5 rounded"
                       style={{ color: playingVoiceId === v.id ? 'var(--gold)' : 'var(--muted)', cursor: 'pointer' }}
                       title="Hør forhåndsvisning"

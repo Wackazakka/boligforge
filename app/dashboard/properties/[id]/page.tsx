@@ -1701,8 +1701,9 @@ export default function PropertyDetailPage() {
                                  fontWeight: valgt ? 600 : 400, color: valgt ? 'var(--blue)' : 'var(--ink)', padding: 0 }}>
                         {v.name}
                       </button>
-                      <button type="button" onClick={() => playVoiceSample(v.id)}
-                        title="Hør stemmen"
+                      <button type="button"
+                        onClick={() => { if (playingVoiceId !== v.id) setVoiceOverride(v.id); playVoiceSample(v.id) }}
+                        title="Hør stemmen — velger den samtidig"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px',
                                  color: playingVoiceId === v.id ? 'var(--blue)' : 'var(--muted)', padding: '0 6px' }}>
                         {playingVoiceId === v.id ? '■' : '▶'}
