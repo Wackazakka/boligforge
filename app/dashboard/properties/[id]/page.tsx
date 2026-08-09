@@ -80,7 +80,7 @@ function buildReviewSteps(hasImageSegment: boolean, hasAvatarSegment: boolean): 
   add('[data-tour="segment-card"]', 'Les teksten i segment 1',
     'Klikk i feltet og rett det du vil ha annerledes.')
   add('[data-tour="segment-audio"]', 'Hør på innlesingen',
-    'Trykk «Hør innlesing». Er tonefallet greit, går du videre.')
+    'Trykk «Hør innlesing». Er du ikke fornøyd med tonefallet, gir «Ny innlesing» en ny versjon. Er det et ord som uttales feil, retter du stavemåten i teksten over først — og lager ny innlesing etterpå.')
   if (hasImageSegment) {
     add('[data-tour="segment-images"]', 'Se om bildene passer til det som sies',
       'Klikk på et bilde for å bytte det ut.')
