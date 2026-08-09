@@ -25,8 +25,8 @@ const PROFILE_STEPS: TourStep[] = [
   },
   {
     selector: '[data-tour="profile-avatar"]',
-    title: '3. Velg hvem som vises i videoene',
-    description: 'Last opp et portrett av deg selv, eller velg en av AI-meglerne.',
+    title: '3. Last opp portrettet ditt — eller hopp over',
+    description: 'Vil du presentere boligene selv, laster du opp et portrett her. Ellers hopper du over — da velger du en ferdig AI-megler når du lager videoen.',
   },
   {
     selector: '[data-tour="profile-logo"]',
@@ -685,7 +685,7 @@ export default function ProfilePage() {
         <div className="pt-2">
           <h2 className="text-base font-semibold" style={{ color: 'var(--ink)' }}>① Video</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-            Standard — det de fleste bruker. Her velger du hvem som skal presentere eiendommene dine i video: last opp ditt eget bilde, eller velg en av våre avatarer. Du setter også stemmen som brukes.
+            Standard — det de fleste bruker. Her setter du stemmen din, og laster opp et portrett hvis du vil presentere boligene selv. Ferdige AI-meglere velger du per video.
           </p>
         </div>
 
@@ -920,7 +920,7 @@ export default function ProfilePage() {
             Avatar og setting
           </h2>
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
-            Velg hvem som skal presentere boligene dine.
+            Vil du presentere boligene selv? Last opp et portrett her. Gjør du ikke det, velger du en ferdig AI-megler når du lager videoen.
           </p>
 
           {/* Fremtredende: last opp eget bilde */}
