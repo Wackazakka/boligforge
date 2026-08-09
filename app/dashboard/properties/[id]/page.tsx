@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 import { VOICES, voiceLabel } from '../../../../lib/voices'
-import ProductTour, { advanceTour, type TourStep } from '@/app/components/ProductTour'
+import ProductTour, { advanceTour, refreshTour, type TourStep } from '@/app/components/ProductTour'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
 // etterpå. Grunnen er at segment-editoren, outroen, musikken og ambiensen
@@ -810,11 +810,6 @@ export default function PropertyDetailPage() {
 
   // ── Per-segment avatar-klipp: generer + forhåndsvis Fabric-lipsyncen FØR videoen ──
   async function generateAvatarClip(idx: number) {
-    // Turen peker paa denne knappen. Blir boblen staaende, legger den seg oppaa
-    // videoen som dukker opp rett under - da er avspillerknappen dekket, og
-    // driver.js gjoer alt utenfor det markerte elementet uklikkbart. Men lukke
-    // HELE turen var for haardt: da mistet man de gjenstaaende stegene.
-    advanceTour()
     const avatarImg = selectedAvatarUrl || effectivePortrait
     if (!avatarImg) { setError('Velg avatarbilde først'); return }
 
@@ -855,6 +850,10 @@ export default function PropertyDetailPage() {
                   : s.clipHistory,
               }
             : s))
+          // Blokka blir hoeyere naar videoen kommer inn. Uten en ny maaling
+          // beholder driver.js utsnittet fra foer, og videoen havner delvis
+          // utenfor markeringen - altsaa uklikkbar bak overlayet.
+          requestAnimationFrame(() => refreshTour())
           return
         }
       }
@@ -2136,7 +2135,10 @@ export default function PropertyDetailPage() {
                       {seg.type === 'avatar' && openGalleryForSegment !== i ? (
                         /* Avatar-segment: forhåndsvis/generer selve animasjonen (Fabric-
                            klippet) her — det godkjente klippet brukes ordrett i videoen. */
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <div
+                          data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined}
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}
+                        >
                           {seg.clipUrl ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               <video
@@ -2199,7 +2201,7 @@ export default function PropertyDetailPage() {
                               Lager animasjonen… (1–3 min)
                             </span>
                           ) : (
-                            <div data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <button
                                 onClick={() => generateAvatarClip(i)}
                                 className="app-btn-secondary text-xs"

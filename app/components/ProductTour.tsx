@@ -141,6 +141,12 @@ export function advanceTour() {
   else closeTour()
 }
 
+/** Maaler markeringen paa nytt — kall den naar det markerte elementet endrer
+ *  stoerrelse (f.eks. naar avatar-videoen dukker opp inne i blokka). */
+export function refreshTour() {
+  activeTour?.refresh?.()
+}
+
 /** Kjører touren uansett — for manuell gjenåpning (f.eks. en "?"-knapp). */
 export async function runTour(storageKey: string, steps: TourStep[]) {
   startTour(await scopedKey(storageKey), steps)
