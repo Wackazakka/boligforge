@@ -1070,9 +1070,17 @@ export default function PropertyDetailPage() {
       // Rull ned til manuset. Feltet ligger under settingsvelgeren, saa etter
       // ~10 sekunders generering sto brukeren igjen med uendret utsikt og maatte
       // selv gjette at resultatet laa lenger nede.
-      requestAnimationFrame(() =>
+      //
+      // MERK 'auto', ikke 'smooth': segment-dyttet starter i samme oeyeblikk
+      // (manuset finnes na), og driver.js maaler posisjonen med én gang. Med en
+      // animert scroll maalte den mens siden fortsatt beveget seg, og boblen
+      // havnet oppaa «Del opp i segmenter»-knappen i stedet for ved siden av.
+      requestAnimationFrame(() => {
         document.querySelector('[data-tour="script-text"]')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+          ?.scrollIntoView({ behavior: 'auto', block: 'center' })
+        // Har turen alt maalt, be den maale paa nytt etter at siden staar stille.
+        setTimeout(() => refreshTour(), 150)
+      })
     }
   }
 
