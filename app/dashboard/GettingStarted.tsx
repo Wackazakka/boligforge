@@ -26,6 +26,10 @@ export default function GettingStarted({ steps }: { steps: ChecklistStep[] }) {
   const total = steps.length
   const allDone = doneCount === total
   const pct = Math.round((doneCount / total) * 100)
+  // Ferdige og uferdige steg staar om hverandre, saa uten dette maa man lese
+  // hele lista for aa finne ut hva man skal gjoere. Det foerste uferdige steget
+  // er svaret, og det skal ikke vaere noe man leter etter.
+  const nextStep = steps.find(s => !s.done)
 
   function handleDismiss() {
     try { window.localStorage.setItem(DISMISS_KEY, '1') } catch {}
@@ -42,7 +46,9 @@ export default function GettingStarted({ steps }: { steps: ChecklistStep[] }) {
           <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '4px 0 0' }}>
             {allDone
               ? 'Alt er satt opp. Lykke til med videoene!'
-              : `${doneCount} av ${total} steg fullført — gjør deg klar til din første video.`}
+              : nextStep
+                ? `Neste: ${nextStep.label.replace(' (valgfritt)', '')} · ${doneCount} av ${total} gjort`
+                : `${doneCount} av ${total} steg fullført.`}
           </p>
         </div>
         <button
@@ -68,7 +74,9 @@ export default function GettingStarted({ steps }: { steps: ChecklistStep[] }) {
 
       {/* Steg */}
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {steps.map(step => (
+        {steps.map(step => {
+          const erNeste = step.key === nextStep?.key
+          return (
           <li key={step.key}>
             <Link
               href={step.href}
@@ -81,6 +89,7 @@ export default function GettingStarted({ steps }: { steps: ChecklistStep[] }) {
                 textDecoration: 'none',
                 background: step.done ? 'transparent' : 'var(--surface-2)',
                 opacity: step.done ? 0.6 : 1,
+                border: erNeste ? '2px solid var(--blue)' : '2px solid transparent',
                 transition: 'background 0.15s',
               }}
             >
@@ -113,6 +122,11 @@ export default function GettingStarted({ steps }: { steps: ChecklistStep[] }) {
                   textDecoration: step.done ? 'line-through' : 'none',
                 }}>
                   {step.label}
+                  {erNeste && (
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--blue)', letterSpacing: '0.06em', marginLeft: 8 }}>
+                      NESTE
+                    </span>
+                  )}
                 </span>
                 {!step.done && (
                   <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
@@ -126,7 +140,8 @@ export default function GettingStarted({ steps }: { steps: ChecklistStep[] }) {
               )}
             </Link>
           </li>
-        ))}
+          )
+        })}
       </ul>
     </div>
   )

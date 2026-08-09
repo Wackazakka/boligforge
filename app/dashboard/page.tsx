@@ -120,7 +120,7 @@ export default async function DashboardPage() {
             Hei, {firstName} 👋
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--muted)' }}>
-            Klar til å lage en ny visningsvideo?
+            {hasVideo ? 'Klar til å lage en ny visningsvideo?' : 'La oss gjøre deg klar til den første videoen.'}
           </p>
         </div>
 
