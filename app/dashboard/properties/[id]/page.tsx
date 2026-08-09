@@ -2145,7 +2145,11 @@ export default function PropertyDetailPage() {
                            klippet) her — det godkjente klippet brukes ordrett i videoen. */
                         <div
                           data-tour={i === firstAvatarSegmentIdx ? 'avatar-clip' : undefined}
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}
+                          // width: fit-content — raden er turens markerte element, og
+                          // driver.js klipper hullet i overlegget etter elementets boks.
+                          // Full bredde ga et stort tomt hvitt felt ved siden av videoen.
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                                   width: 'fit-content', maxWidth: '100%' }}
                         >
                           {seg.clipUrl ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
