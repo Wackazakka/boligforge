@@ -11,7 +11,7 @@ const EMPTY_STEPS: TourStep[] = [
   {
     selector: '[data-tour="scrape-url"]',
     title: 'Lim inn boligannonsen',
-    description: 'Lim inn lenken til Finn.no- eller Hjem.no-annonsen for boligen du vil lage video for.',
+    description: 'Lim inn lenken til Hjem.no- eller Finn.no-annonsen for boligen du vil lage video for.',
   },
   {
     selector: '[data-tour="scrape-button"]',
@@ -227,7 +227,7 @@ export default function PropertiesPage() {
               Eiendommer
             </h1>
             <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-              Lim inn en Finn.no- eller Hjem.no-annonse for å hente inn boligdata — klikk deretter på eiendommen du vil lage video for
+              Lim inn en Hjem.no- eller Finn.no-annonse for å hente inn boligdata — klikk deretter på eiendommen du vil lage video for
             </p>
           </div>
           <button
@@ -249,7 +249,7 @@ export default function PropertiesPage() {
             type="url"
             value={url}
             onChange={e => setUrl(e.target.value)}
-            placeholder="https://www.finn.no/... eller https://hjem.no/property/..."
+            placeholder="https://hjem.no/property/... eller https://www.finn.no/..."
             className="app-input flex-1 min-w-0"
             style={{ width: 'auto' }}
             data-tour="scrape-url"
@@ -268,7 +268,7 @@ export default function PropertiesPage() {
         ) : properties.length === 0 ? (
           <div className="text-center py-16" style={{ color: 'var(--muted)' }}>
             <p className="text-4xl mb-3">🏠</p>
-            <p>Ingen eiendommer ennå. Lim inn en Finn.no- eller Hjem.no-lenke over.</p>
+            <p>Ingen eiendommer ennå. Lim inn en Hjem.no- eller Finn.no-lenke over.</p>
           </div>
         ) : (
           <>

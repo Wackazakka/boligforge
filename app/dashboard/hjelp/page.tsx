@@ -22,7 +22,7 @@ const SECTIONS: Section[] = [
     topics: [
       {
         q: 'Hva gjør ReelHome?',
-        a: 'Du limer inn lenken til boligannonsen på Finn eller Hjem. ReelHome henter bilder, pris, adresse og nøkkeldata, skriver et manus, leser det inn med en AI-stemme eller din egen klonede stemme, lar en avatar presentere boligen og setter alt sammen til en ferdig film med musikk og logoen din. En video tar rundt fem minutter å generere.',
+        a: 'Du limer inn lenken til boligannonsen på Hjem eller Finn. ReelHome henter bilder, pris, adresse og nøkkeldata, skriver et manus, leser det inn med en AI-stemme eller din egen klonede stemme, lar en avatar presentere boligen og setter alt sammen til en ferdig film med musikk og logoen din. En video tar rundt fem minutter å generere.',
       },
       {
         q: 'Hva bør jeg gjøre først?',
@@ -31,7 +31,7 @@ const SECTIONS: Section[] = [
           'Velg avatar — en av seks ferdige AI-meglere, eller last opp ditt eget portrett',
           'Legg til stemme — standardstemme, eller klon din egen',
           'Last opp logo (valgfritt) — den vises til slutt i videoene',
-          'Lag din første video — lim inn en Finn- eller Hjem-lenke',
+          'Lag din første video — lim inn en Hjem- eller Finn-lenke',
         ],
       },
       {
@@ -221,7 +221,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: 'Hvor lagres dataene?',
-        a: 'Person- og boligdata lagres i EU (Frankfurt). Mediefiler som bilder og video ligger hos Cloudflare R2. Boligdata hentes fra offentlig tilgjengelige annonser på Finn eller Hjem, som megleren selv limer inn.',
+        a: 'Person- og boligdata lagres i EU (Frankfurt). Mediefiler som bilder og video ligger hos Cloudflare R2. Boligdata hentes fra offentlig tilgjengelige annonser på Hjem eller Finn, som megleren selv limer inn.',
       },
     ],
   },
