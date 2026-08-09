@@ -21,7 +21,7 @@ const PROFILE_STEPS: TourStep[] = [
   {
     selector: '[data-tour="profile-voice"]',
     title: '2. Les inn stemmen din',
-    description: 'Les teksten øverst i cirka to minutter, så snakker videoene med din egen stemme. Sett deg i et stille rom først. Vil du heller ha en ferdig stemme, velger du en i listen under.',
+    description: 'Les teksten øverst i cirka to minutter, så snakker videoene med din egen stemme. Sitter du et sted der det ikke passer? Velg en ferdig stemme i listen under så lenge, og bytt til din egen senere.',
   },
   {
     selector: '[data-tour="profile-avatar"]',
@@ -707,6 +707,11 @@ export default function ProfilePage() {
                 Les hele teksten under, så har du rundt to minutter lyd, eller last opp en lydfil du har fra før.
                 Jo mer lyd, desto bedre resultat. Sett deg i et stille rom først.
               </p>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+                Passer det dårlig å lese inn akkurat nå? Velg en ferdig stemme under i mellomtiden —
+                du kan komme tilbake hit og bytte til din egen når som helst. Videoene du lager
+                etterpå bruker den nye stemmen.
+              </p>
 
               <div className="app-reading-block mb-4">
                 <p className="mb-2">Velkommen til visning av denne flotte boligen. Jeg er glad for å kunne presentere et hjem som kombinerer moderne komfort med et rolig og barnevennlig nabolag. Her har du alt du trenger innen kort rekkevidde – skoler, barnehager, dagligvarebutikker og gode kollektivforbindelser.</p>
@@ -811,7 +816,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="app-label mb-1">… eller bruk en ferdig stemme</label>
+              <label className="app-label mb-1">… eller bruk en ferdig stemme så lenge</label>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
                 Standardstemmen din, hvis du ikke kloner din egen. Velger du en ferdig AI-megler
                 til en video, snakker hun uansett med sin egen stemme — og stemmen kan byttes per
