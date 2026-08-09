@@ -1736,8 +1736,12 @@ export default function PropertyDetailPage() {
                 <div onClick={() => setSelectedAvatarUrl('')}
                   style={{
                     flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', position: 'relative',
-                    border: `2px solid ${selectedAvatarUrl === '' ? 'var(--gold)' : 'var(--line)'}`,
-                    transition: 'border-color 0.15s',
+                    // Samme uvalgt-uttrykk som settingene: portrettet stod med
+                    // synlig ramme og full styrke mens de andre var dempet, saa
+                    // det saa valgt ut selv naar det ikke var det.
+                    border: `2px solid ${selectedAvatarUrl === '' ? 'var(--gold)' : 'transparent'}`,
+                    opacity: selectedAvatarUrl === '' ? 1 : 0.6,
+                    transition: 'border-color 0.15s, opacity 0.15s',
                   }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
