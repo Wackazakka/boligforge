@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   // Avatar/stemme/logo lagres i agent_profiles (keyed by user_id), ikke i profiles.
   const { data: agentProfile } = await serviceSupabase
     .from('agent_profiles')
-    .select('portrait_url, logo_url, default_voice_id')
+    .select('portrait_url, logo_url, default_voice_id, name, phone')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -63,9 +63,14 @@ export default async function DashboardPage() {
   const hasAvatar = Boolean(agentProfile?.portrait_url)
   const hasVoice  = Boolean(agentProfile?.default_voice_id)
   const hasLogo   = Boolean(agentProfile?.logo_url)
+  // Malmegler-veien gaar rett fra onboarding til dashbordet og innom aldri
+  // profilskjemaet - i motsetning til «egen avatar»-veien, som lander midt i
+  // det. Uten dette steget ble navn og kontaktinfo aldri etterspurt.
+  const hasDetails = Boolean(agentProfile?.name && agentProfile?.phone)
 
   const checklistSteps: ChecklistStep[] = [
     { key: 'account', label: 'Konto opprettet',       hint: '',                                           href: '/dashboard',                  done: true },
+    { key: 'details', label: 'Fyll inn profilen din',  hint: 'Navn, tittel og kontaktinfo',               href: '/dashboard/profile',          done: hasDetails },
     { key: 'avatar',  label: 'Velg avatar',            hint: 'Velg en malmegler eller last opp ditt eget bilde', href: '/dashboard/profile',     done: hasAvatar },
     { key: 'voice',   label: 'Legg til en stemme',     hint: 'Velg en standardstemme eller klon din egen', href: '/dashboard/profile',          done: hasVoice },
     { key: 'logo',    label: 'Last opp logo (valgfritt)', hint: 'Vises i videoene dine',                   href: '/dashboard/profile',          done: hasLogo },

@@ -26,7 +26,12 @@ export async function chooseTemplateAvatarAction(
   await supabase.from('agent_profiles').upsert(
     {
       user_id:          user.id,
-      name:             avatarName,           // Presentatørnavn i video = avatar-navnet (Ingrid, Sofia, osv.)
+      // Meglerens EGET navn. Presentatoernavnet i videoen loeses ved rendring
+      // (effectiveAgentName = malavatarens navn naar en mal er valgt), saa vi
+      // trenger ikke lagre «Even» her - og gjorde vi det, sto det som
+      // meglerens navn i profilen og fulgte med hvis han senere byttet til
+      // sitt eget portrett.
+      name:             userFullName || avatarName,
       title:            'Eiendomsmegler',
       email:            user.email ?? '',
       default_voice_id: voiceId,
