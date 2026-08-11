@@ -442,7 +442,7 @@ export default function Home() {
             <div>
               <details className="faq-item" open>
                 <summary>Hvor lang tid tar det å lage én video? <span className="icon" /></summary>
-                <p>Selve genereringen tar normalt rundt 5 minutter. Med gjennomlesing av manus og valg av musikk er du typisk i mål på ti.</p>
+                <p>Selve genereringen tar 5–10 minutter, avhengig av hvor mange bilder du velger til avslutningen. Med gjennomlesing av manus og valg av musikk er du typisk i mål på et kvarter.</p>
               </details>
               <details className="faq-item">
                 <summary>Kan jeg bruke min egen stemme i stedet for en avatar? <span className="icon" /></summary>

@@ -22,7 +22,7 @@ const SECTIONS: Section[] = [
     topics: [
       {
         q: 'Hva gjør ReelHome?',
-        a: 'Du limer inn lenken til boligannonsen på Hjem eller Finn. ReelHome henter bilder, pris, adresse og nøkkeldata, skriver et manus, leser det inn med en AI-stemme eller din egen klonede stemme, lar en avatar presentere boligen og setter alt sammen til en ferdig film med musikk og logoen din. En video tar rundt fem minutter å generere.',
+        a: 'Du limer inn lenken til boligannonsen på Hjem eller Finn. ReelHome henter bilder, pris, adresse og nøkkeldata, skriver et manus, leser det inn med en AI-stemme eller din egen klonede stemme, lar en avatar presentere boligen og setter alt sammen til en ferdig film med musikk og logoen din. En video tar 5–10 minutter å generere. Det som styrer tiden mest er hvor mange bilder du har valgt til avslutningen — hvert bilde får bevegelse og overgang.',
       },
       {
         q: 'Hva bør jeg gjøre først?',

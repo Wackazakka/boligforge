@@ -2837,7 +2837,7 @@ export default function PropertyDetailPage() {
             {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}
           </button>
           <p style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '8px' }}>
-            Tar rundt fem minutter og bruker én videokreditt. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
+            Tar 5–10 minutter og bruker én videokreditt — jo flere bilder i avslutningen, jo lengre. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
           </p>
         </div>
 
