@@ -51,7 +51,10 @@ export function sizeToNorwegian(num: number): string {
   return String(n)
 }
 
-function yearToNorwegian(y: number): string {
+/** «2010» -> «to tusen og ti», «1987» -> «nitten sytti-sju». Eksportert fordi
+ *  manusgeneratoren maa sende ferdig utskrevne aarstall til modellen - lot vi
+ *  den stave selv, kom «tjueogtien-ti» ut (maalt i prod 9/8). */
+export function yearToNorwegian(y: number): string {
   if (y >= 1900 && y < 2000) return `nitten ${below1000(y % 100) || 'hundre'}`
   if (y >= 2000 && y < 2100) return y % 100 === 0 ? 'to tusen' : `to tusen og ${below1000(y % 100)}`
   return numberToNorwegian(y)
