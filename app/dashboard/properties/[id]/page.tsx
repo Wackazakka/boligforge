@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 import { VOICES, voiceLabel } from '../../../../lib/voices'
+import { BETALING_AAPEN } from '../../../../lib/betaling'
 import ProductTour, { advanceTour, refreshTour, remeasureTour, type TourStep } from '@/app/components/ProductTour'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
@@ -1469,13 +1470,20 @@ export default function PropertyDetailPage() {
               Du har brukt opp alle inkluderte videoer denne måneden. Kredittene nullstilles 1. i neste måned.
             </p>
             <div className="flex flex-col gap-2">
-              <a
-                href="/dashboard/billing#extra-credits"
-                className="app-btn-primary block w-full text-center"
-                style={{ textDecoration: 'none' }}
-              >
-                Kjøp enkeltvideoer
-              </a>
+              {BETALING_AAPEN ? (
+                <a
+                  href="/dashboard/billing#extra-credits"
+                  className="app-btn-primary block w-full text-center"
+                  style={{ textDecoration: 'none' }}
+                >
+                  Kjøp enkeltvideoer
+                </a>
+              ) : (
+                <p className="text-sm" style={{ color: 'var(--muted)', textAlign: 'center' }}>
+                  Trenger du flere før det? Ta kontakt på{' '}
+                  <a href="mailto:hei@reelhome.ai" style={{ color: 'var(--gold)' }}>hei@reelhome.ai</a>.
+                </p>
+              )}
               <a
                 href="/dashboard/billing"
                 className="app-btn-secondary block w-full text-center"

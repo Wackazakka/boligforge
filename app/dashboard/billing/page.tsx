@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { BETALING_AAPEN } from '@/lib/betaling'
 import AccountTabs from '../profile/AccountTabs'
 
 interface Credits {
@@ -55,6 +56,7 @@ const TOPUP_PACKAGES: Record<string, { qty: number; pricePerUnit: number; total:
   trial:   { qty: 1, pricePerUnit: 989, total: 989 },
   free:    { qty: 1, pricePerUnit: 989, total: 989 },
 }
+
 
 export default function BillingPage() {
   const [credits,        setCredits]        = useState<Credits | null>(null)
@@ -135,7 +137,9 @@ export default function BillingPage() {
           Velg plan
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '28px' }}>
-          Første betaling trekkes når prøveperioden utløper. Kanseller når som helst.
+          {BETALING_AAPEN
+            ? 'Første betaling trekkes når prøveperioden utløper. Kanseller når som helst.'
+            : 'Vi har ikke åpnet for betaling ennå — prøveperioden løper videre så lenge. Vil du sikre en plan, ta kontakt på hei@reelhome.ai.'}
         </p>
 
         <div className="billing-plans-grid">
@@ -192,14 +196,20 @@ export default function BillingPage() {
                 </div>
               )}
 
-              <button
-                onClick={() => handleSelectPlan(plan.id)}
-                disabled={checkoutPlan !== null}
-                className={plan.featured ? 'app-btn-primary w-full' : 'app-btn-secondary w-full'}
-                style={{ marginTop: 'auto' }}
-              >
-                {checkoutPlan === plan.id ? 'Venter…' : 'Velg'}
-              </button>
+              {BETALING_AAPEN ? (
+                <button
+                  onClick={() => handleSelectPlan(plan.id)}
+                  disabled={checkoutPlan !== null}
+                  className={plan.featured ? 'app-btn-primary w-full' : 'app-btn-secondary w-full'}
+                  style={{ marginTop: 'auto' }}
+                >
+                  {checkoutPlan === plan.id ? 'Venter…' : 'Velg'}
+                </button>
+              ) : (
+                <p style={{ marginTop: 'auto', fontSize: '12px', color: 'var(--muted)', textAlign: 'center', paddingTop: '10px' }}>
+                  Ikke åpent for betaling ennå
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -254,7 +264,7 @@ export default function BillingPage() {
             </div>
 
             {/* ── Kjøp ekstra videoer ── */}
-            {(() => {
+            {BETALING_AAPEN && (() => {
               const plan = credits?.plan ?? 'starter'
               const pkg  = TOPUP_PACKAGES[plan] ?? TOPUP_PACKAGES.starter
               return (

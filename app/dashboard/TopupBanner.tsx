@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { BETALING_AAPEN } from '@/lib/betaling'
 
 export default function TopupBanner({ remaining }: { remaining: number }) {
   const [loading, setLoading] = useState(false)
@@ -35,24 +36,26 @@ export default function TopupBanner({ remaining }: { remaining: number }) {
           : `🎬 Du har bare ${remaining} video igjen denne måneden.`}
         {' '}Trenger du mer?
       </p>
+      {BETALING_AAPEN && (
       <button
-        onClick={handleTopup}
-        disabled={loading}
-        style={{
-          fontSize: '13px',
-          fontWeight: 600,
-          color: '#fff',
-          background: remaining === 0 ? '#dc2626' : '#d97706',
-          border: 'none',
-          borderRadius: '8px',
-          padding: '8px 16px',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          opacity: loading ? 0.7 : 1,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {loading ? 'Venter…' : 'Kjøp enkeltvideo (989 kr)'}
-      </button>
+          onClick={handleTopup}
+          disabled={loading}
+          style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#fff',
+            background: remaining === 0 ? '#dc2626' : '#d97706',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {loading ? 'Venter…' : 'Kjøp enkeltvideo (989 kr)'}
+        </button>
+      )}
     </div>
   )
 }
