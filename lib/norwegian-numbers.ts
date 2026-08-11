@@ -21,13 +21,17 @@ export function below1000(n: number): string {
   if (n < 100) {
     const t = TENS[Math.floor(n / 10)]
     const o = n % 10
-    // «én» er trykksterk og staar alene; i sammensetning heter det «tjueen».
-    return o === 0 ? t : `${t}${o === 1 ? 'en' : ONES[o]}`
+    // Moderne rekkefoelge, men BINDESTREK mellom tier og ener: «foerti-fire».
+    // Bindestrekene sto her fra foer med begrunnelsen «hjelper TTS-rytmen», og
+    // da de ble borte i overgangen til moderne bokmaal begynte ElevenLabs aa
+    // snuble paa sammensatte tall (maalt 11/8: 144 ble lest feil som «ett
+    // hundre og foertifire», riktig som «ett hundre-og-foerti-fire»).
+    return o === 0 ? t : `${t}-${o === 1 ? 'en' : ONES[o]}`
   }
   const h = Math.floor(n / 100)
   const rest = n % 100
   const hStr = h === 1 ? 'ett hundre' : `${ONES[h]} hundre`
-  return rest === 0 ? hStr : `${hStr} og ${below1000(rest)}`
+  return rest === 0 ? hStr : `${hStr}-og-${below1000(rest)}`
 }
 
 export function numberToNorwegian(num: number): string {
