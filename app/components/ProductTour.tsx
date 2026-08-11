@@ -29,6 +29,19 @@ async function currentUserId(): Promise<string | null> {
 /** Alle tour-noekler starter med dette — hjelpesiden nullstiller paa prefikset. */
 export const TOUR_KEY_PREFIX = 'rh_tour_'
 
+/** Skrudd helt av: gjennomgangene starter ikke av seg selv i det hele tatt.
+ *  Brukerbundet, som «sett»-flagget - en delt kontor-PC skal ikke arve valget. */
+const AV_KEY = 'rh_tours_av'
+
+export async function turerErAv(): Promise<boolean> {
+  try { return window.localStorage.getItem(await scopedKey(AV_KEY)) === '1' } catch { return false }
+}
+
+export async function settTurerAv(av: boolean) {
+  const k = await scopedKey(AV_KEY)
+  try { av ? window.localStorage.setItem(k, '1') : window.localStorage.removeItem(k) } catch { /* ignore */ }
+}
+
 async function scopedKey(base: string): Promise<string> {
   const uid = await currentUserId()
   return uid ? `${base}:${uid}` : base
@@ -81,6 +94,16 @@ function startTour(storageKey: string, steps: TourStep[]) {
     // målt i prod 8/8: etter fire steg hadde ALLE fire elementene klassen.
     // Klassen styrer pointer-events under touren, så da forblir seksjoner man
     // har forlatt klikkbare. Rydd selv ved hvert bytte.
+    // Av-bryteren hoerer hjemme DER irritasjonen er. Aa gjemme den paa
+    // hjelpesiden hjelper ikke den som staar midt i en boble han ikke vil ha.
+    onPopoverRender: (popover: { footerButtons: HTMLElement }) => {
+      const a = document.createElement('button')
+      a.type = 'button'
+      a.textContent = 'Ikke vis flere'
+      a.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.55);font-size:12px;cursor:pointer;padding:0;margin-right:auto;text-decoration:underline'
+      a.onclick = () => { void settTurerAv(true); activeTour?.destroy() }
+      popover.footerButtons.parentElement?.insertBefore(a, popover.footerButtons)
+    },
     onHighlightStarted: (el?: Element) => {
       document.querySelectorAll('.driver-active-element').forEach(e => {
         if (e !== el) e.classList.remove('driver-active-element')
@@ -110,6 +133,7 @@ function startTour(storageKey: string, steps: TourStep[]) {
 
 /** Viser touren kun første gang — `storageKey` styrer om den alt er sett. */
 export async function runTourOnce(storageKey: string, steps: TourStep[]) {
+  if (await turerErAv()) return
   const key = await scopedKey(storageKey)
   try {
     // Rydd bort den gamle, ikke-brukerbundne noekkelen. Den skal IKKE arves som

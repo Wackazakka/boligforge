@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { settTurerAv, turerErAv } from '@/app/components/ProductTour'
 
 /**
  * Hjelpesenteret. Produktturene er rene handlingslister («gjør dette nå») —
@@ -235,6 +236,8 @@ export default function HelpPage() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const [toursReset, setToursReset] = useState(false)
+  const [turerAv, setTurerAv] = useState(false)
+  useEffect(() => { void turerErAv().then(setTurerAv) }, [])
 
   const needle = q.trim().toLowerCase()
   const sections = useMemo(() => {
@@ -253,6 +256,9 @@ export default function HelpPage() {
         .filter(k => k.startsWith(TOUR_KEY_PREFIX))
         .forEach(k => window.localStorage.removeItem(k))
     } catch { /* ignore */ }
+    // Aa «vise paa nytt» mens de er skrudd av ville ikke gjort noe synlig.
+    void settTurerAv(false)
+    setTurerAv(false)
     setToursReset(true)
   }
 
@@ -320,9 +326,20 @@ export default function HelpPage() {
           Første gang du er innom en side, viser ReelHome en kort gjennomgang som peker på hva du skal gjøre.
           Vil du se dem igjen, nullstiller du dem her — så dukker de opp neste gang du besøker hver side.
         </p>
-        <button type="button" onClick={resetTours} className="app-btn-secondary text-xs" style={{ padding: '8px 14px' }}>
-          {toursReset ? '✓ Nullstilt — gå til en side for å se den' : 'Vis gjennomgangene på nytt'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <button type="button" onClick={resetTours} className="app-btn-secondary text-xs" style={{ padding: '8px 14px' }}>
+            {toursReset ? '✓ Nullstilt — gå til en side for å se den' : 'Vis gjennomgangene på nytt'}
+          </button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={turerAv}
+              onChange={e => { setTurerAv(e.target.checked); void settTurerAv(e.target.checked); if (e.target.checked) setToursReset(false) }}
+              style={{ width: 16, height: 16, accentColor: 'var(--gold)' }}
+            />
+            Ikke vis gjennomganger
+          </label>
+        </div>
       </section>
     </div>
   )
