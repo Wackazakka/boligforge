@@ -94,15 +94,34 @@ function startTour(storageKey: string, steps: TourStep[]) {
     // målt i prod 8/8: etter fire steg hadde ALLE fire elementene klassen.
     // Klassen styrer pointer-events under touren, så da forblir seksjoner man
     // har forlatt klikkbare. Rydd selv ved hvert bytte.
-    // Av-bryteren hoerer hjemme DER irritasjonen er. Aa gjemme den paa
-    // hjelpesiden hjelper ikke den som staar midt i en boble han ikke vil ha.
-    onPopoverRender: (popover: { footerButtons: HTMLElement }) => {
-      const a = document.createElement('button')
-      a.type = 'button'
-      a.textContent = 'Ikke vis flere'
-      a.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.55);font-size:12px;cursor:pointer;padding:0;margin-right:auto;text-decoration:underline'
-      a.onclick = () => { void settTurerAv(true); activeTour?.destroy() }
-      popover.footerButtons.parentElement?.insertBefore(a, popover.footerButtons)
+    // Av-bryteren hoerer hjemme DER irritasjonen er - men som TEKST i bunnen
+    // gled den inn i resten av avsnittet og kunne legge seg over knappene.
+    // Et kryss oeverst til hoeyre er den vante plasseringen for «bort med
+    // dette», og ligger absolutt posisjonert utenfor tekstflyten.
+    //
+    // Krysset LUKKER denne gjennomgangen - det er hva et kryss betyr overalt
+    // ellers. Det er nok: turene vises bare én gang per bruker, saa lukking
+    // betyr i praksis at den ikke kommer tilbake. Aa la krysset skru av ALT
+    // ville vaert en felle - den som bommer merker det foerst naar hjelpen
+    // mangler et sted han trengte den, og skjoenner ikke hvorfor. Den globale
+    // av-bryteren ligger paa Hjelp-siden, der den er et bevisst valg.
+    onPopoverRender: (popover: { wrapper: HTMLElement }) => {
+      const k = document.createElement('button')
+      k.type = 'button'
+      k.textContent = '×'
+      k.title = 'Lukk gjennomgangen'
+      k.setAttribute('aria-label', 'Lukk gjennomgangen')
+      k.style.cssText = [
+        'position:absolute', 'top:6px', 'right:8px',
+        'background:none', 'border:none', 'padding:2px 6px',
+        'color:rgba(255,255,255,0.45)', 'font-size:18px', 'line-height:1',
+        'cursor:pointer',
+      ].join(';')
+      k.onmouseenter = () => { k.style.color = 'rgba(255,255,255,0.9)' }
+      k.onmouseleave = () => { k.style.color = 'rgba(255,255,255,0.45)' }
+      k.onclick = () => closeTour()   // markerer som sett, som «Lukk»-knappen
+      popover.wrapper.style.position = 'relative'
+      popover.wrapper.appendChild(k)
     },
     onHighlightStarted: (el?: Element) => {
       document.querySelectorAll('.driver-active-element').forEach(e => {
