@@ -2400,6 +2400,37 @@ export default function PropertyDetailPage() {
                                 {pos >= 0 && (
                                   <span style={{ position: 'absolute', top: '4px', right: '4px', background: 'var(--gold)', borderRadius: '99px', minWidth: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#fff', fontWeight: 700 }}>{pos + 1}</span>
                                 )}
+                                {/* Rekkefoelge. Uten disse legger et nytt bilde seg alltid
+                                    BAKERST, saa «bytt ut bilde 1» var umulig - man maatte
+                                    fjerne alle og velge paa nytt i riktig rekkefoelge. */}
+                                {pos >= 0 && selected.length > 1 && (
+                                  <div style={{ position: 'absolute', bottom: '4px', right: '4px', display: 'flex', gap: '2px' }}>
+                                    {([['◀', -1], ['▶', 1]] as const).map(([tegn, retning]) => {
+                                      const nyPos = pos + retning
+                                      const avSlaatt = nyPos < 0 || nyPos >= selected.length
+                                      return (
+                                        <button
+                                          key={tegn}
+                                          type="button"
+                                          disabled={avSlaatt}
+                                          title={retning < 0 ? 'Flytt tidligere' : 'Flytt senere'}
+                                          onClick={e => {
+                                            e.stopPropagation()
+                                            const next = [...selected]
+                                            ;[next[pos], next[nyPos]] = [next[nyPos], next[pos]]
+                                            updateSegment(i, { imageUrls: next, imageUrl: next[0], imageSource: 'manual' as const })
+                                          }}
+                                          style={{
+                                            width: 20, height: 20, borderRadius: 4, border: 'none', padding: 0,
+                                            background: avSlaatt ? 'rgba(13,11,8,0.25)' : 'rgba(13,11,8,0.75)',
+                                            color: '#fff', fontSize: 10, lineHeight: 1,
+                                            cursor: avSlaatt ? 'default' : 'pointer',
+                                          }}
+                                        >{tegn}</button>
+                                      )
+                                    })}
+                                  </div>
+                                )}
                                 {usedElsewhere && (
                                   <span style={{ position: 'absolute', top: '4px', left: '4px', background: 'rgba(13,11,8,0.7)', borderRadius: '4px', padding: '1px 6px', fontSize: '10px', color: '#fff' }}>Brukt</span>
                                 )}
