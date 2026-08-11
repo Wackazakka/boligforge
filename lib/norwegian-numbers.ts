@@ -1,3 +1,5 @@
+import { fiksUttale } from './tts-uttale'
+
 // Norsk tall-til-ord for TTS — delt mellom video-manus (generate-script) og
 // avatar-tale (avatar/ask). ElevenLabs leser sifre upålitelig på norsk;
 // ord uttales alltid riktig.
@@ -121,17 +123,12 @@ export function speakifyForTTS(text: string): string {
   // gjenværende heltall
   s = s.replace(/\b\d+\b/g, m => (m.length <= 9 ? numberToNorwegian(Number(m)) : m))
 
-  // Fonetisk omskriving: ord ElevenLabs uttaler feil på norsk staves om til en
-  // stavemåte som uttales riktig. Påvirker KUN TTS-en — transkripsjonen viser
-  // fortsatt original tekst. Utvides etter hvert som vi hører flere feil.
-  for (const [word, phonetic] of Object.entries(RESPELL)) {
-    s = s.replace(new RegExp(`\\b${word}\\b`, 'gi'), phonetic)
-  }
+  // Fonetisk omskriving — samme liste som tts-preview bruker (lib/tts-uttale).
+  // Laa foer som en egen RESPELL her, med \bord\b: den sluttet aa treffe da
+  // tallene gikk over til moderne bokmaal og «foerti» ble limt inn i
+  // «foertiseks». Én liste, ett moenster.
+  s = fiksUttale(s)
 
   return s
 }
 
-const RESPELL: Record<string, string> = {
-  seksten: 'seisten', // 16 — uttales ellers «seks-ten» med feil trykk
-  førti: 'førtti',    // 40 — trenger hard dobbel-T («hoppe», ikke «hope»)
-}
