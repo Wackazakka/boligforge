@@ -120,7 +120,12 @@ function startTour(storageKey: string, steps: TourStep[]) {
       k.onmouseenter = () => { k.style.color = 'rgba(255,255,255,0.9)' }
       k.onmouseleave = () => { k.style.color = 'rgba(255,255,255,0.45)' }
       k.onclick = () => closeTour()   // markerer som sett, som «Lukk»-knappen
-      popover.wrapper.style.position = 'relative'
+      // IKKE sett position her. driver.js posisjonerer boblen med fixed, og en
+      // inline 'relative' slaar ut hele plasseringen - boblen faller tilbake til
+      // aa flyte i dokumentet og havner oeverst paa siden, langt fra elementet
+      // den peker paa. Maalt 11/8: elementet laa 1737 px over synsfeltet mens
+      // boblen sto paa top 9,9. En fixed boks er allerede posisjoneringskontekst
+      // for absolutte barn, saa krysset trenger ingenting.
       popover.wrapper.appendChild(k)
     },
     onHighlightStarted: (el?: Element) => {
