@@ -7,21 +7,25 @@ const ONES = ['', 'én', 'to', 'tre', 'fire', 'fem', 'seks', 'sju', 'åtte', 'ni
                'sytten', 'atten', 'nitten']
 const TENS = ['', '', 'tjue', 'tretti', 'førti', 'femti', 'seksti', 'sytti', 'åtti', 'nitti']
 
-// below1000 med konfigurerbar separator (bindestreker hjelper TTS-rytmen)
-export function below1000(n: number, tensSep = '-', hundredSep = '-og-'): string {
+// Moderne bokmaal: «foertiseks», ikke «seks-og-foerti». Den gamle,
+// omvendte formen ble innfoert fordi «foerti-tre» med bindestrek ble lest
+// sammenhengende av ElevenLabs - men loesningen paa det er aa skrive tallet som
+// ETT ord, slik norsk faktisk skrives, ikke aa snu rekkefoelgen. Workeren
+// (scraper.js) har brukt moderne form i videostien hele tiden, saa formen er
+// allerede provd i produksjon; na er de to endelig enige.
+export function below1000(n: number): string {
   if (n === 0) return ''
   if (n < 20) return ONES[n]
   if (n < 100) {
     const t = TENS[Math.floor(n / 10)]
     const o = n % 10
-    // Gammeltelling (ener-og-tier): «tre-og-førti». Det eksplisitte «og» gir
-    // tydeligere TTS-rytme enn «førti-tre», som ElevenLabs leste sammenhengende.
-    return o === 0 ? t : `${ONES[o]}-og-${t}`
+    // «én» er trykksterk og staar alene; i sammensetning heter det «tjueen».
+    return o === 0 ? t : `${t}${o === 1 ? 'en' : ONES[o]}`
   }
   const h = Math.floor(n / 100)
   const rest = n % 100
-  const hStr = h === 1 ? 'ett-hundre' : `${ONES[h]}-hundre`
-  return rest === 0 ? hStr : `${hStr}${hundredSep}${below1000(rest, tensSep, hundredSep)}`
+  const hStr = h === 1 ? 'ett hundre' : `${ONES[h]} hundre`
+  return rest === 0 ? hStr : `${hStr} og ${below1000(rest)}`
 }
 
 export function numberToNorwegian(num: number): string {
@@ -43,11 +47,11 @@ export function priceToNorwegian(num: number): string {
   return `${numberToNorwegian(num)} kroner`
 }
 
-// "to-hundre-og-åtti-fem" — helt bindestreket for TTS
+// «to hundre og åttifem»
 export function sizeToNorwegian(num: number): string {
   if (!num || isNaN(num)) return String(num)
   const n = Math.round(num)
-  if (n < 1000) return below1000(n, '', '-og-')
+  if (n < 1000) return below1000(n)
   return String(n)
 }
 
@@ -95,6 +99,10 @@ export function speakifyForTTS(text: string): string {
   // enheter
   s = s.replace(/\bm²|\bm2\b|\bkvm\b/g, 'kvadratmeter')
   s = s.replace(/(\d)\s*%/g, '$1 prosent')
+  // «kr.» foran stor forbokstav er slutten paa en setning - behold punktumet,
+  // ellers leses to setninger i ett strekk. Ellers er punktumet en forkortelse
+  // («5 000 kr. per maaned») og skal bort, saa TTS ikke pauser midt i.
+  s = s.replace(/\bkr\.(?=\s+[A-ZÆØÅ])/g, 'kroner.')
   s = s.replace(/\bkr\.?(?=\s|$)/g, 'kroner')
 
   // tallintervaller «250 000 – 500 000» -> «… til …»
