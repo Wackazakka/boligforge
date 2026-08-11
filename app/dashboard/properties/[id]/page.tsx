@@ -25,6 +25,15 @@ const TOUR_REVIEW_KEY = 'rh_tour_property_review'
  */
 const VIS_KOMPOSITT_BAKGRUNN = false
 
+/**
+ * AI-megler for kjoepere (digital visning) - egen fane paa boligsiden.
+ *
+ * SKJULT 2026-08-09: skal ikke vaere synlig for meglere ennaa; introduseres paa
+ * et senere tidspunkt. Koden staar urort - sett true for aa faa fanen tilbake.
+ * Naar den er false vises ingen fanerad i det hele tatt (én fane er ikke et valg).
+ */
+const VIS_AI_MEGLER = false
+
 function buildSetupSteps(): TourStep[] {
   return [
     {
@@ -78,7 +87,7 @@ function buildReviewSteps(imageIdx: number, flereSegmenter: boolean): TourStep[]
     steps.push({ selector, title: `${steps.length + 1}. ${title}`, description })
 
   add('[data-tour="segment-card"]', 'Gå gjennom segment 1',
-    'Alt for dette segmentet ligger her: rett teksten i feltet, hør innlesingen, og — på avatar-segmenter — se eller lag animasjonen. Er den ikke laget ennå, tar den ett til tre minutter. Du kan spille den av og lage en ny så mange ganger du vil uten at det koster en video.')
+    'Alt for dette segmentet ligger her: rett teksten i feltet, hør innlesingen, og — på avatar-segmenter — se eller lag animasjonen. Er den ikke laget ennå, tar den ett til tre minutter. Du kan spille den av og lage en ny så mange ganger du vil uten at det koster en videokreditt.')
   // Ikke noe eget lyd-steg: det pekte paa SAMME kort som steget over, der
   // «Hoer innlesing» og «Ny innlesing» alt staar synlige og navngitte - og
   // uttale-hintet ligger inline rett under dem. Steget forklarte knapper
@@ -1593,7 +1602,8 @@ export default function PropertyDetailPage() {
           </div>
         ) : null}
 
-        {/* ── Tab-bar ── */}
+        {/* ── Tab-bar ── vises bare naar det finnes noe aa velge mellom */}
+        {VIS_AI_MEGLER && (
         <div style={{ display: 'flex', borderBottom: '2px solid var(--line)' }}>
           {(['video', 'ai-megler'] as const).map(tab => (
             <button
@@ -1611,6 +1621,7 @@ export default function PropertyDetailPage() {
             </button>
           ))}
         </div>
+        )}
 
         {activeTab === 'video' && (<>
 
@@ -2291,7 +2302,7 @@ export default function PropertyDetailPage() {
                               </button>
                               <span style={{ fontSize: '11px', color: 'var(--muted)', maxWidth: '340px' }}>
                                 {seg.clipUrl
-                                  ? '✓ Denne animasjonen brukes i videoen. Ikke fornøyd? Lag en ny — det koster ingen video.'
+                                  ? '✓ Denne animasjonen brukes i videoen. Ikke fornøyd? Lag en ny — det koster ingen videokreditt.'
                                   : `Avataren presenterer dette segmentet${seg.imageUrl ? ' — bytt til «Boligbilde» for å vise boligbildet i stedet' : ''}. Videoen får uansett en animasjon — her kan du se og godkjenne den på forhånd.`}
                               </span>
                             </div>
@@ -2779,7 +2790,7 @@ export default function PropertyDetailPage() {
             {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}
           </button>
           <p style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '8px' }}>
-            Tar rundt fem minutter og bruker én av videoene dine. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
+            Tar rundt fem minutter og bruker én videokreditt. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
           </p>
         </div>
 
