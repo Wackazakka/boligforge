@@ -153,21 +153,6 @@ function startTour(storageKey: string, steps: TourStep[]) {
   })
 
   activeTour.drive()
-
-  // Maal paa nytt etter at siden har satt seg. driver.js maaler ÉN gang naar
-  // steget aapnes, men profilsiden vokser etterpaa: avatarbilder, settingene og
-  // skrifter lastes asynkront og skyver innholdet nedover. Da ble boblen
-  // staaende der elementet VAR - maalt i prod 11/8: steg 1 snakket om
-  // navnefeltet mens boblen laa nede ved stemme-seksjonen.
-  //
-  // drive(index), ikke refresh(): den ruller ogsaa elementet inn i bildet paa
-  // nytt, som er halve problemet.
-  for (const ms of [400, 1200]) {
-    setTimeout(() => {
-      const i = activeTour?.getActiveIndex?.()
-      if (activeTour && typeof i === 'number') activeTour.drive(i)
-    }, ms)
-  }
 }
 
 /** Viser touren kun første gang — `storageKey` styrer om den alt er sett. */
