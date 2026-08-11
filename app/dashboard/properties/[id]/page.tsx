@@ -1244,7 +1244,16 @@ export default function PropertyDetailPage() {
     // ellers har musikken ingenting å fade ut over og videoen slutter brått.
     const DEFAULT_OUTRO_LOGO = 'https://reelhome.ai/outro-logo.png'
     const logoUrl = freshLogoUrl || DEFAULT_OUTRO_LOGO
-    const outroPayload = { ...outro, tickerText, logoUrl }
+    // Sikkerhetsnett: et bilde som er tatt i bruk i et segment ETTER at outroen
+    // ble valgt, skal ikke ogsaa rulle paa slutten. Filtrer ved generering, ikke
+    // bare i velgeren - lagrede valg kan vaere eldre enn segmentene.
+    const iSegmenter = new Set(
+      segments
+        .filter(s => s.type === 'image')
+        .flatMap(s => (s.imageUrls?.length ? s.imageUrls : s.imageUrl ? [s.imageUrl] : [])),
+    )
+    const outroBilder = (outro.images || []).filter(u => !iSegmenter.has(u))
+    const outroPayload = { ...outro, images: outroBilder, tickerText, logoUrl }
 
     // Ensure all non-still segments have audioUrl — generate TTS now for any that are missing,
     // so the worker always uses the approved voice rather than re-generating on its end.
@@ -2443,7 +2452,14 @@ export default function PropertyDetailPage() {
 
         {/* Outro editor */}
         {segments.length > 0 && (() => {
-          const usedUrls = new Set(segments.filter(s => s.type === 'image' && s.imageUrl).map(s => s.imageUrl!))
+          // Maa lese imageUrls[], ikke bare imageUrl: etter at flere bilder per
+          // segment kom til, ble bilde 2 og 3 aldri regnet som brukt - og dukket
+          // opp igjen i slideshowet naar man trykket «Velg alle».
+          const usedUrls = new Set(
+            segments
+              .filter(s => s.type === 'image')
+              .flatMap(s => (s.imageUrls?.length ? s.imageUrls : s.imageUrl ? [s.imageUrl] : [])),
+          )
           const unused = (property?.images || []).filter(img => !usedUrls.has(img))
           return (
             <div className="app-card space-y-4" data-tour="outro-images">
