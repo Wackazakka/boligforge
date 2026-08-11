@@ -18,17 +18,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data, error } = await getServiceClient()
     .from('collection_videos')
-    .select('video_id, added_at, property_videos(id, video_url, created_at, property_id, recipe)')
+    .select('video_id, added_at, property_videos(id, video_url, created_at, property_id, recipe, properties(address))')
     .eq('collection_id', collectionId)
     .order('added_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const videos = (data ?? []).map(row => {
-    const v = row.property_videos as unknown as { id: string; video_url: string; created_at: string; property_id: string; recipe?: unknown } | null
+    const v = row.property_videos as unknown as { id: string; video_url: string; created_at: string; property_id: string; recipe?: unknown; properties?: { address?: string } | null } | null
     // has_recipe (ikke hele oppskriften): mappesiden trenger bare å vite om
     // «Rediger» skal vises — selve innlastingen skjer på bolig-siden.
-    return v ? { id: v.id, video_url: v.video_url, created_at: v.created_at, property_id: v.property_id, has_recipe: !!v.recipe, added_at: row.added_at } : null
+    // adresse: mappesiden bygger filnavnet ved nedlasting av den
+    return v ? { id: v.id, video_url: v.video_url, created_at: v.created_at, property_id: v.property_id, address: v.properties?.address ?? null, has_recipe: !!v.recipe, added_at: row.added_at } : null
   }).filter(Boolean)
 
   return NextResponse.json(videos)

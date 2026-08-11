@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { TEMPLATE_AVATARS, type TemplateAvatar } from '../../../../lib/template-avatars'
 import { VOICES, voiceLabel } from '../../../../lib/voices'
 import { BETALING_AAPEN } from '../../../../lib/betaling'
+import { videoFilnavn as lagFilnavn, lastNedVideo } from '../../../../lib/video-download'
 import ProductTour, { advanceTour, refreshTour, remeasureTour, type TourStep } from '@/app/components/ProductTour'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
@@ -1037,7 +1038,7 @@ export default function PropertyDetailPage() {
         const st = await fetch(`/api/video/status/${d.jobId}`).then(r => r.json()).catch(() => null)
         if (st?.status === 'done' && st.videoUrl) {
           setConvState(prev => { const c = { ...prev }; delete c[key]; return c })
-          void downloadVideo(st.videoUrl, format === 'square' ? 'presentasjon-1x1.mp4' : 'presentasjon-9x16.mp4')
+          void downloadVideo(st.videoUrl, filnavnFor(format === 'square' ? '1x1' : '9x16'))
           return
         }
         if (st?.status === 'failed') throw new Error(st.error || 'Konverteringen feilet')
@@ -1049,26 +1050,10 @@ export default function PropertyDetailPage() {
     }
   }
 
-  async function downloadVideo(url: string, filename = 'presentasjon.mp4') {
-    try {
-      // R2-filer hentes via same-origin-proxyen /r2/* (netlify.toml) — pub-
-      // domenet sender ingen CORS-headere, så direkte fetch feiler og falt
-      // tidligere tilbake til «åpne i ny fane» i stedet for ekte nedlasting.
-      const proxied = url.replace(/^https:\/\/pub-[a-z0-9]+\.r2\.dev\//, '/r2/')
-      const res = await fetch(proxied)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const blob = await res.blob()
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(a.href)
-    } catch {
-      window.open(url, '_blank')
-    }
-  }
+  const filnavnFor = (format: '16x9' | '9x16' | '1x1') =>
+    lagFilnavn(property?.address || property?.title, format)
+
+  const downloadVideo = (url: string, filename = 'presentasjon.mp4') => lastNedVideo(url, filename)
 
   async function handleGenerateScript() {
     // Turen peker paa denne knappen som siste steg. Trykker du den, er hjelpen
@@ -2863,7 +2848,7 @@ export default function PropertyDetailPage() {
             <video src={videoUrl} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
-                onClick={() => downloadVideo(videoUrl)}
+                onClick={() => downloadVideo(videoUrl, filnavnFor('16x9'))}
                 className="app-btn-primary"
                 style={{ fontSize: '13px', padding: '8px 18px' }}
               >
@@ -3084,7 +3069,7 @@ export default function PropertyDetailPage() {
                   </div>
                   <video src={v.video_url} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button onClick={() => downloadVideo(v.video_url)} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => downloadVideo(v.video_url, filnavnFor('16x9'))} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       ⬇ Last ned
                     </button>
                     {(['portrait', 'square'] as const).map(fmt => {

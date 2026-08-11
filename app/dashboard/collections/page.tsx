@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { lastNedVideo, videoFilnavn } from '@/lib/video-download'
 
 interface Collection {
   id: string
@@ -15,6 +16,7 @@ interface Video {
   video_url: string
   created_at: string
   property_id: string
+  address?: string | null
   has_recipe?: boolean   // oppskrift lagret → «Rediger» kan gjenåpne redigeringen
 }
 
@@ -325,9 +327,12 @@ export default function CollectionsPage() {
                               🖊 Rediger
                             </a>
                           )}
-                          <a href={v.video_url} download style={{ fontSize: '12px', color: 'var(--blue)', textDecoration: 'none' }}>
+                          <button
+                            onClick={() => void lastNedVideo(v.video_url, videoFilnavn(v.address, '16x9'))}
+                            style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
                             Last ned
-                          </a>
+                          </button>
                           <button
                             onClick={() => openPublishModal(v.video_url, v.property_id)}
                             style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
