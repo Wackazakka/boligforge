@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '../../../../lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { siteOrigin } from '../../../../lib/site-origin'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
+  const origin = siteOrigin(request)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard/profile'
 
