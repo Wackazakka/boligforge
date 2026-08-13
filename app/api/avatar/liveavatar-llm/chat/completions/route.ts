@@ -41,10 +41,29 @@ const LEAD_TOOL: Anthropic.Tool = {
 
 type OAMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
-function unauthorized() {
-  return new Response(JSON.stringify({ error: { message: 'Unauthorized', type: 'invalid_request_error' } }), {
-    status: 401, headers: { 'Content-Type': 'application/json' },
-  })
+/** Svar i OpenAI-format - strømmende eller ikke. Én bygger, saa avvisning og
+ *  vanlig svar aldri kan drive fra hverandre i format. */
+function oaSvar(reply: string, model: string, stream: boolean): Response {
+  const id = 'chatcmpl-' + Math.round(Date.now() / 1000)
+  if (stream) {
+    const enc = new TextEncoder()
+    const body = new ReadableStream({
+      start(controller) {
+        const chunk = (delta: object, finish: string | null = null) =>
+          `data: ${JSON.stringify({ id, object: 'chat.completion.chunk', model, choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`
+        controller.enqueue(enc.encode(chunk({ role: 'assistant', content: reply })))
+        controller.enqueue(enc.encode(chunk({}, 'stop')))
+        controller.enqueue(enc.encode('data: [DONE]\n\n'))
+        controller.close()
+      },
+    })
+    return new Response(body, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' } })
+  }
+  return new Response(JSON.stringify({
+    id, object: 'chat.completion', model,
+    choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+  }), { headers: { 'Content-Type': 'application/json' } })
 }
 
 // Bygg det endelige svaret (RAG + Claude + lead-loop + speakify) for én bruker-tur.
@@ -143,11 +162,29 @@ async function answer(propertyId: string, question: string, history: OAMessage[]
 export async function POST(request: Request) {
   const secret = process.env.LIVEAVATAR_LLM_SECRET
   const auth = request.headers.get('authorization') || ''
-  if (!secret || auth !== `Bearer ${secret}`) return unauthorized()
+  const authOk = Boolean(secret) && auth === `Bearer ${secret}`
 
   let body: { messages?: OAMessage[]; model?: string; stream?: boolean } = {}
   try { body = await request.json() } catch {}
   const msgs = Array.isArray(body.messages) ? body.messages : []
+
+  // Feil delt hemmelighet ga foer en naken 401 - og LiveAvatar har ingen
+  // reserveløsning: avataren stod bare TAUS. Kjoeperen tror den er oedelagt, og
+  // vi hadde ingenting aa maale paa (maalt 13/8: tre sesjoner der transkripsjonen
+  // bare inneholdt kjoeperens egne sporsmaal).
+  //
+  // Derfor svarer vi nu med en setning i stedet. Ingen boligdata roeres uten
+  // gyldig hemmelighet - dette er kun en beskjed - men feilen blir hoerbar,
+  // og en fremmed som finner endepunktet faar ingenting av verdi.
+  if (!authOk) {
+    console.error('[liveavatar-llm] AVVIST: feil eller manglende delt hemmelighet',
+      { harSecret: Boolean(secret), harAuthHeader: Boolean(auth) })
+    return oaSvar(
+      'Beklager, jeg får ikke kontakt med boligopplysningene akkurat nå. Prøv igjen om et lite øyeblikk.',
+      body.model || 'reelhome-claude',
+      body.stream === true,
+    )
+  }
 
   // property_id fra system-meldingen (LiveAvatar fyller ${property_id} fra dynamic_variables)
   const systemText = msgs.filter(m => m.role === 'system').map(m => m.content).join('\n')
@@ -168,26 +205,5 @@ export async function POST(request: Request) {
     catch (e) { console.error('[liveavatar-llm] feil:', e); reply = 'Beklager, noe gikk galt. Kan du prøve igjen?' }
   }
 
-  const model = body.model || 'reelhome-claude'
-  if (body.stream === true) {
-    const enc = new TextEncoder()
-    const id = 'chatcmpl-' + Math.round(Date.now() / 1000)
-    const stream = new ReadableStream({
-      start(controller) {
-        const chunk = (delta: object, finish: string | null = null) =>
-          `data: ${JSON.stringify({ id, object: 'chat.completion.chunk', model, choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`
-        controller.enqueue(enc.encode(chunk({ role: 'assistant', content: reply })))
-        controller.enqueue(enc.encode(chunk({}, 'stop')))
-        controller.enqueue(enc.encode('data: [DONE]\n\n'))
-        controller.close()
-      },
-    })
-    return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' } })
-  }
-
-  return new Response(JSON.stringify({
-    id: 'chatcmpl-' + Math.round(Date.now() / 1000), object: 'chat.completion', model,
-    choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
-    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-  }), { headers: { 'Content-Type': 'application/json' } })
+  return oaSvar(reply, body.model || 'reelhome-claude', body.stream === true)
 }
