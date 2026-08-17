@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
-import sharp from 'sharp'
 import { getUser } from '../../../../lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -72,8 +71,15 @@ export async function POST(request: Request) {
     // Sluttplakat-bakgrunn etter logoens lysstyrke: mørk logo (f.eks. svart skrift
     // på gjennomsiktig) -> hvit plakat; lys logo -> svart. Alpha-vektet snitt så
     // gjennomsiktige piksler ikke teller. Feiler målingen: behold svart (default).
+    // sharp lastes HER, ikke paa modulnivaa. Et binaerfil bygget for feil
+    // plattform (skjer naar noen deployer med lokal bygging fra Mac) kaster ved
+    // import - og en modul-scope import river da HELE ruta med seg: 500 paa
+    // /api/video/generate, ingen jobb opprettet, og brukeren blir staaende i
+    // «produksjon» uten feilmelding (maalt i prod 17/8). Inne i try-blokka
+    // faller vi i stedet tilbake til svart plakat, og videoen blir laget.
     if (outro?.logoUrl) {
       try {
+        const sharp = (await import('sharp')).default
         const r = await fetch(outro.logoUrl)
         if (r.ok) {
           const buf = Buffer.from(await r.arrayBuffer())
