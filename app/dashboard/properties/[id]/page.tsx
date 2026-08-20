@@ -1177,7 +1177,11 @@ export default function PropertyDetailPage() {
     }, 3000)
   }
 
-  async function handleGenerateVideo() {
+  // fmt === 'portrait' gir ekte 9:16-rendering fra bunnen (Nina 20/8:
+  // letterbox-konvertering holder ikke naar 99,9 % ser paa mobil).
+  // Godkjent lyd i editor-state gjenbrukes, saa stemmen er identisk.
+  async function handleGenerateVideo(fmt?: unknown) {
+    const portrait = fmt === 'portrait'
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -1322,7 +1326,7 @@ export default function PropertyDetailPage() {
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}) }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -2859,15 +2863,17 @@ export default function PropertyDetailPage() {
                 return (
                   <button
                     key={fmt}
-                    onClick={() => convertAndDownload(videoUrl, fmt)}
-                    disabled={convState[key] === 'jobber'}
+                    onClick={() => fmt === 'portrait' ? handleGenerateVideo('portrait') : convertAndDownload(videoUrl, fmt)}
+                    disabled={fmt === 'portrait' ? generatingVideo : convState[key] === 'jobber'}
                     className="app-btn-secondary"
                     style={{ fontSize: '13px', padding: '8px 18px' }}
-                    title="Nedskalert med sorte felter — ingen beskjæring"
+                    title={fmt === 'portrait' ? 'Rendrer videoen på nytt i ekte 9:16 — bildene fyller hele mobilskjermen' : 'Nedskalert med sorte felter — ingen beskjæring'}
                   >
-                    {convState[key] === 'jobber' ? '⏳ Konverterer…'
-                      : convState[key] === 'feil' ? `↻ Prøv ${fmt === 'square' ? '1:1' : '9:16'} igjen`
-                      : `⬇ ${fmt === 'square' ? '1:1' : '9:16 (Reels)'}`}
+                    {fmt === 'portrait'
+                      ? '🎬 Lag 9:16-versjon (Reels)'
+                      : convState[key] === 'jobber' ? '⏳ Konverterer…'
+                      : convState[key] === 'feil' ? '↻ Prøv 1:1 igjen'
+                      : '⬇ 1:1'}
                   </button>
                 )
               })}
@@ -3077,15 +3083,17 @@ export default function PropertyDetailPage() {
                       return (
                         <button
                           key={fmt}
-                          onClick={() => convertAndDownload(v.video_url, fmt)}
-                          disabled={convState[key] === 'jobber'}
+                          onClick={() => fmt === 'portrait' ? handleGenerateVideo('portrait') : convertAndDownload(v.video_url, fmt)}
+                          disabled={fmt === 'portrait' ? generatingVideo : convState[key] === 'jobber'}
                           className="text-sm"
-                          style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: convState[key] === 'jobber' ? 0.6 : 1 }}
-                          title="Nedskalert med sorte felter — ingen beskjæring"
+                          style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: (fmt === 'portrait' ? generatingVideo : convState[key] === 'jobber') ? 0.6 : 1 }}
+                          title={fmt === 'portrait' ? 'Rendrer på nytt i ekte 9:16 fra gjeldende redigering' : 'Nedskalert med sorte felter — ingen beskjæring'}
                         >
-                          {convState[key] === 'jobber' ? '⏳ Konverterer…'
-                            : convState[key] === 'feil' ? `↻ ${fmt === 'square' ? '1:1' : '9:16'} igjen`
-                            : `⬇ ${fmt === 'square' ? '1:1' : '9:16'}`}
+                          {fmt === 'portrait'
+                            ? '🎬 9:16-versjon'
+                            : convState[key] === 'jobber' ? '⏳ Konverterer…'
+                            : convState[key] === 'feil' ? '↻ 1:1 igjen'
+                            : '⬇ 1:1'}
                         </button>
                       )
                     })}
