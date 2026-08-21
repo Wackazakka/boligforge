@@ -2854,6 +2854,15 @@ export default function PropertyDetailPage() {
           >
             {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}
           </button>
+          {/* En grå/deaktivert knapp ble lest som «jobber» i stedet for «mangler
+              noe» (Lars 21/8). Si tydelig HVA som må til for å slå den på. */}
+          {!generatingVideo && (!script || (segments.length === 0 && selectedVideoImages.length === 0)) && (
+            <p style={{ fontSize: '12px', color: 'var(--gold)', textAlign: 'center', marginTop: '8px' }}>
+              {!script
+                ? '↑ Lag et manus først (knappen over) — så kan du generere videoen.'
+                : 'Velg minst ett bilde til videoen — så kan du generere.'}
+            </p>
+          )}
           <p style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '8px' }}>
             Tar 5–10 minutter og bruker én videokreditt — jo flere bilder i avslutningen, jo lengre. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
           </p>
