@@ -2118,16 +2118,19 @@ export default function PropertyDetailPage() {
                 generer-knappen — over 600 linjer unna bildene den styrer, mens
                 outro-seksjonens tilsvarende valg staar rett under sine bilder.
                 Her staar den rett over segmentlisten, som er det den gjelder. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '4px 2px' }}>
+            {/* Egen kort-bakgrunn: sto foer som en naken avkrysningsboks + graa tekst
+                rett under den fargede blaa QA-boksen, og ble oversett (Lars 21/8).
+                Et lett kort gir kontrollen tyngde og skiller den fra teksten over. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={motion}
                   onChange={e => setMotion(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--gold)' }}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--gold)' }}
                 />
-                <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
-                  🎥 Bevegelse i bildene <span style={{ color: 'var(--muted)' }}>— alle bildene under får langsom zoom eller panorering i stedet for å stå stille</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>
+                  🎥 Bevegelse i bildene <span style={{ fontWeight: 400, color: 'var(--muted)' }}>— alle bildene under får langsom zoom eller panorering i stedet for å stå stille</span>
                 </span>
               </label>
               {motion && (
