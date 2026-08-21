@@ -2135,7 +2135,7 @@ export default function PropertyDetailPage() {
             {/* Egen kort-bakgrunn: sto foer som en naken avkrysningsboks + graa tekst
                 rett under den fargede blaa QA-boksen, og ble oversett (Lars 21/8).
                 Et lett kort gir kontrollen tyngde og skiller den fra teksten over. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '12px 14px', background: '#eef4fb', border: '1px solid #c7dbf0', borderRadius: '10px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
