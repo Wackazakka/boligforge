@@ -375,9 +375,23 @@ export default function PropertyDetailPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   // Kun én lyd om gangen: ny avspilling stopper forrige (innlesing, stemmeprøve, musikk)
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
+  // Stopp ALL annen media på siden (video + lyd) unntatt den som nettopp startet.
+  // To ferdige videoer kunne spille samtidig og snakke i munnen på hverandre
+  // (Lars 21/8) — videoene var utenfor lyd-eksklusiviteten. Dekker <video>/<audio>
+  // i DOM-en pluss våre ref-sporede Audio-objekter (som ikke ligger i DOM-en).
+  function stopOtherMedia(except?: HTMLMediaElement | null) {
+    try {
+      document.querySelectorAll('video, audio').forEach(el => {
+        const m = el as HTMLMediaElement
+        if (m !== except && !m.paused) { try { m.pause() } catch { /* ignore */ } }
+      })
+    } catch { /* ignore */ }
+    if (currentAudioRef.current && currentAudioRef.current !== except) { try { currentAudioRef.current.pause() } catch {} }
+    if (audioRef.current && audioRef.current !== except) { try { audioRef.current.pause() } catch {}; if (playingMusicUrl) setPlayingMusicUrl(null) }
+  }
+
   function playExclusive(audio: HTMLAudioElement) {
-    try { currentAudioRef.current?.pause() } catch { /* allerede stoppet */ }
-    if (playingMusicUrl) { try { audioRef.current?.pause() } catch {} setPlayingMusicUrl(null) }
+    stopOtherMedia(audio)
     currentAudioRef.current = audio
     return audio.play()
   }
@@ -2278,6 +2292,7 @@ export default function PropertyDetailPage() {
                                 // ikke turen paa nytt da, vokser videoen ut av den
                                 // hvite markeringen som ble malt foer den hadde hoeyde.
                                 onLoadedMetadata={() => remeasureTour()}
+                                onPlay={e => stopOtherMedia(e.currentTarget)}
                                 style={{ width: 'min(360px, 100%)', borderRadius: '8px', background: '#000' }}
                               />
                               {(seg.clipHistory?.length ?? 0) > 0 && (
@@ -2289,6 +2304,7 @@ export default function PropertyDetailPage() {
                                         src={histUrl}
                                         controls
                                         preload="metadata"
+                                        onPlay={e => stopOtherMedia(e.currentTarget)}
                                         style={{ height: '64px', borderRadius: '6px', background: '#000' }}
                                       />
                                       <button
@@ -2916,7 +2932,7 @@ export default function PropertyDetailPage() {
                 title="Lukk preview"
               >×</button>
             </div>
-            <video src={videoUrl} controls className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
+            <video src={videoUrl} controls onPlay={e => stopOtherMedia(e.currentTarget)} className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
                 onClick={() => downloadVideo(videoUrl, filnavnFor('16x9'))}
@@ -3140,7 +3156,7 @@ export default function PropertyDetailPage() {
                       </button>
                     </div>
                   </div>
-                  <video src={v.video_url} controls className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
+                  <video src={v.video_url} controls onPlay={e => stopOtherMedia(e.currentTarget)} className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => downloadVideo(v.video_url, filnavnFor('16x9'))} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       ⬇ Last ned
