@@ -354,6 +354,9 @@ export default function PropertyDetailPage() {
   const [motionStrength, setMotionStrength] = useState<'subtle' | 'medium' | 'strong'>('medium')
   const [segmentTransition, setSegmentTransition] = useState<'cut' | 'fade'>('fade')
   const [noMotionImages, setNoMotionImages] = useState<string[]>([])
+  // Format for hovedknappen: 16:9 (vanlig) eller 9:16 (mobil/Reels). 9:16 kan nå
+  // lages direkte — ingen teknisk grunn til å måtte lage 16:9 først (Lars 21/8).
+  const [outputFormat, setOutputFormat] = useState<'landscape' | 'portrait'>('landscape')
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -1208,7 +1211,9 @@ export default function PropertyDetailPage() {
   // letterbox-konvertering holder ikke naar 99,9 % ser paa mobil).
   // Godkjent lyd i editor-state gjenbrukes, saa stemmen er identisk.
   async function handleGenerateVideo(fmt?: unknown) {
-    const portrait = fmt === 'portrait'
+    // 9:16-knappen ved ferdige videoer sender fmt='portrait' eksplisitt.
+    // Hovedknappen sender ingenting → følg formatvelgeren (outputFormat).
+    const portrait = fmt === 'portrait' || (fmt === undefined && outputFormat === 'portrait')
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -2855,14 +2860,33 @@ export default function PropertyDetailPage() {
           {!generatingVideo && statusMsg && (
             <div className="app-info">{statusMsg}</div>
           )}
+          {/* Formatvalg: 9:16 kan lages direkte, ikke bare som konvertering av en
+              ferdig 16:9 (Lars 21/8). Hovedknappen genererer i valgt format. */}
+          {!generatingVideo && (
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+              {([['landscape', '16:9 (vanlig)'], ['portrait', '9:16 (mobil/Reels)']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setOutputFormat(val)}
+                  className={outputFormat === val ? 'app-btn-primary' : 'app-btn-secondary'}
+                  style={{ flex: 1, padding: '9px', fontSize: '13px', borderRadius: '10px' }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <button
-            onClick={handleGenerateVideo}
+            onClick={() => handleGenerateVideo()}
             disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
             data-tour="generate-video"
             className="app-btn-primary w-full"
             style={{ padding: '14px', fontSize: '15px', borderRadius: '12px' }}
           >
-            {generatingVideo ? 'Genererer video...' : 'Generer presentasjonsvideo'}
+            {generatingVideo
+              ? 'Genererer video...'
+              : `Generer ${outputFormat === 'portrait' ? '9:16-video (mobil)' : 'presentasjonsvideo'}`}
           </button>
           {/* En grå/deaktivert knapp ble lest som «jobber» i stedet for «mangler
               noe» (Lars 21/8). Si tydelig HVA som må til for å slå den på. */}
