@@ -2913,7 +2913,7 @@ export default function PropertyDetailPage() {
                 title="Lukk preview"
               >×</button>
             </div>
-            <video src={videoUrl} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
+            <video src={videoUrl} controls className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
                 onClick={() => downloadVideo(videoUrl, filnavnFor('16x9'))}
@@ -3137,7 +3137,7 @@ export default function PropertyDetailPage() {
                       </button>
                     </div>
                   </div>
-                  <video src={v.video_url} controls className="w-full rounded-lg" style={{ aspectRatio: 'auto' }} />
+                  <video src={v.video_url} controls className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => downloadVideo(v.video_url, filnavnFor('16x9'))} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       ⬇ Last ned
