@@ -1312,7 +1312,11 @@ export default function PropertyDetailPage() {
     const recipe: VideoRecipe = {
       script,
       scriptStyle,
-      segments: segments.map(({ previewingAudio: _pa, previewAudioUrl: _pu, ...keep }) => keep),
+      // resolvedSegments (IKKE segments): her ligger audioUrl-ene som nettopp ble
+      // generert, og evt. godkjente clipUrl. Uten dette lagret måtte en re-render
+      // (hodefiks, formatbytte) syntetisere lyden på nytt — og uttalejobben, den
+      // dyreste menneskejobben, gikk tapt. Nå gjenbrukes eksakte takes.
+      segments: resolvedSegments.map(({ previewingAudio: _pa, previewAudioUrl: _pu, ...keep }) => keep),
       outro,
       ambienceType,
       selectedAvatarUrl,
