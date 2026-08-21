@@ -1166,7 +1166,7 @@ export default function PropertyDetailPage() {
         if (data.status === 'unknown') {
           unknownCount++
           // Behold spinneren; si tydelig at det fortsatt bygges (workeren er bare opptatt).
-          setStatusMsg('Bygger videoen … (dette kan ta noen minutter)')
+          setStatusMsg('Bygger videoen …')
           if (unknownCount >= 60) {   // ~mange minutter med tot: workeren er nok nede
             clearInterval(pollRef.current!)
             pollRef.current = null
