@@ -1148,19 +1148,29 @@ export default function PropertyDetailPage() {
     // svarer den «unknown» — og da hang spinneren i det uendelige (Lars 21/8).
     // Tell påfølgende «unknown»: en kort start-race tåles, men vedvarende ukjent
     // betyr at produksjonen er borte → stopp med en ærlig beskjed.
+    // Workeren er ENKELT-TRÅDET og kjører ffmpeg synkront: mens den bygger
+    // videoen er event-loopen blokkert, og statusforespørsler timer ut →
+    // proxyen svarer «unknown» (Lars 21/8). Det er NORMAL stillhet under
+    // rendering, ikke en tapt jobb. Derfor: hold spinneren gående og tell tålmodig
+    // — først etter mange minutter uten livstegn OG uten at videoen dukket opp i
+    // basen gir vi opp. Proxyen slår uansett opp i basen og svarer «done» når
+    // videoen er ferdig, så et fullført bygg løser seg selv.
     let unknownCount = 0
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/video/status/${jobId}`)
         const data = await res.json()
         if (data.status === 'unknown') {
-          if (++unknownCount >= 5) {   // ~15 s
+          unknownCount++
+          // Behold spinneren; si tydelig at det fortsatt bygges (workeren er bare opptatt).
+          setStatusMsg('Bygger videoen … (dette kan ta noen minutter)')
+          if (unknownCount >= 60) {   // ~mange minutter med tot: workeren er nok nede
             clearInterval(pollRef.current!)
             pollRef.current = null
             setGeneratingVideo(false)
             setActiveJobId(null)
             setStatusMsg('')
-            setError('Mistet kontakt med produksjonen. Last siden på nytt for å se om videoen ble ferdig — eller prøv å generere på nytt.')
+            setError('Videoen tar uvanlig lang tid. Last siden på nytt om litt — er den ferdig, dukker den opp i listen under.')
           }
           return
         }
