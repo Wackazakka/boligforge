@@ -1144,10 +1144,27 @@ export default function PropertyDetailPage() {
 
   function startPolling(jobId: string) {
     if (pollRef.current) clearInterval(pollRef.current)
+    // Workeren holder jobbstatus i minnet. Mister den jobben (restart/krasj),
+    // svarer den «unknown» — og da hang spinneren i det uendelige (Lars 21/8).
+    // Tell påfølgende «unknown»: en kort start-race tåles, men vedvarende ukjent
+    // betyr at produksjonen er borte → stopp med en ærlig beskjed.
+    let unknownCount = 0
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/video/status/${jobId}`)
         const data = await res.json()
+        if (data.status === 'unknown') {
+          if (++unknownCount >= 5) {   // ~15 s
+            clearInterval(pollRef.current!)
+            pollRef.current = null
+            setGeneratingVideo(false)
+            setActiveJobId(null)
+            setStatusMsg('')
+            setError('Mistet kontakt med produksjonen. Last siden på nytt for å se om videoen ble ferdig — eller prøv å generere på nytt.')
+          }
+          return
+        }
+        unknownCount = 0
         const label = STATUS_LABELS[data.status] || `Status: ${data.status}`
         setStatusMsg(label)
         if (data.status === 'done') {
