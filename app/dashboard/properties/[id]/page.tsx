@@ -2853,7 +2853,7 @@ export default function PropertyDetailPage() {
                 <span>{statusMsg || 'Jobber...'}</span>
               </div>
               <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                Videoen bygges nå — dette tar vanligvis rundt 5 minutter. La fanen stå åpen; statusen over oppdateres underveis.
+                Videoen bygges nå — dette tar vanligvis 5–10 minutter. La fanen stå åpen; statusen over oppdateres underveis.
               </p>
             </div>
           )}
