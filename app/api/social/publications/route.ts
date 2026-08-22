@@ -21,7 +21,7 @@ export async function GET() {
   // reelhome_publications). page_name/platform/status/error ligger direkte på raden.
   const { data, error } = await supabase
     .from('reelhome_publications')
-    .select('id, property_id, platform, page_name, caption, status, error, created_at')
+    .select('id, property_id, connection_id, platform, page_name, post_id, caption, status, error, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(200)
