@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
+import { hentbarMediaUrl } from '../../../../lib/r2-presign'
 
 function getServiceClient() {
   return createClient(
@@ -56,14 +57,24 @@ export async function publishVideoToConnections(opts: {
     ? `${caption ? caption + '\n\n' : ''}Se hele annonsen: ${listingUrl}`
     : caption
 
+  // URL-en Facebook og Instagram henter fila fra. Ligger videoen på det
+  // ratebegrensede R2-dev-domenet, byttes den mot en presignert URL — ellers
+  // uendret. Loggingen under beholder den varige `videoUrl`.
+  //
+  // ⚠️ Gjelder BARE Facebook/Instagram: de laster fila ned én gang og lagrer
+  // den selv. LinkedIn-grenen deler en ARTICLE der `originalUrl` blir stående
+  // som en permanent lenke i posten — en presignert URL ville vært død etter
+  // en time, så den må ha original-URL-en.
+  const hentbarUrl = await hentbarMediaUrl(videoUrl)
+
   const results: PublishResult[] = await Promise.all(
     connections.map(async conn => {
       let result: { success: boolean; postId?: string; error?: string }
 
       if (conn.platform === 'facebook') {
-        result = await publishToFacebook(conn.page_id, conn.access_token, videoUrl, fullCaption)
+        result = await publishToFacebook(conn.page_id, conn.access_token, hentbarUrl, fullCaption)
       } else if (conn.platform === 'instagram') {
-        result = await publishToInstagram(conn.page_id, conn.access_token, videoUrl, fullCaption)
+        result = await publishToInstagram(conn.page_id, conn.access_token, hentbarUrl, fullCaption)
       } else if (conn.platform === 'linkedin') {
         result = await publishToLinkedIn(conn.page_id, conn.access_token, videoUrl, fullCaption)
       } else {
