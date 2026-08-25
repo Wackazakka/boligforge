@@ -363,7 +363,10 @@ export default function PropertyDetailPage() {
   // i en SoMe-film må gå rett på action). Urørt følger valget formatet: 9:16
   // hopper over kortet, 16:9 beholder det. Rører brukeren boksen, vinner valget.
   const [skipIntro, setSkipIntro] = useState(false)
-  const introTouchedRef = useRef(false)
+  // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
+  // utløser ikke ny opptegning, så et klikk som satte skipIntro til samme verdi
+  // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
+  const [introTouched, setIntroTouched] = useState(false)
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -925,7 +928,7 @@ export default function PropertyDetailPage() {
     // Eldre oppskrifter (før bevegelse fantes) skal re-generere uendret → av;
     // oppskrifter fra før styrkevalget fantes var subtile
     setMotion(recipe.motion ?? false)
-    if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); introTouchedRef.current = true }
+    if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); setIntroTouched(true) } else { setIntroTouched(false) }
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
     setNoMotionImages(recipe.noMotionImages ?? [])
@@ -1237,7 +1240,7 @@ export default function PropertyDetailPage() {
     // Hovedknappen sender ingenting → følg formatvelgeren (outputFormat).
     const portrait = fmt === 'portrait' || (fmt === undefined && outputFormat === 'portrait')
     // Tittelkort: eksplisitt valg vinner; ellers følger det formatet (9:16 = uten)
-    const utenIntro = introTouchedRef.current ? skipIntro : portrait
+    const utenIntro = introTouched ? skipIntro : portrait
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -2912,8 +2915,8 @@ export default function PropertyDetailPage() {
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
                 <input
                   type="checkbox"
-                  checked={introTouchedRef.current ? skipIntro : outputFormat === 'portrait'}
-                  onChange={e => { introTouchedRef.current = true; setSkipIntro(e.target.checked) }}
+                  checked={introTouched ? skipIntro : outputFormat === 'portrait'}
+                  onChange={e => { setIntroTouched(true); setSkipIntro(e.target.checked) }}
                   style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
                 />
                 <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
