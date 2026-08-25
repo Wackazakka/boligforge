@@ -188,6 +188,8 @@ type VideoRecipe = {
   motionStrength?: 'subtle' | 'medium' | 'strong'
   segmentTransition?: 'cut' | 'fade'   // overgang mellom bilder INNE i et segment
   noMotionImages?: string[]            // bilder som aldri skal ha bevegelse (per video)
+  /** Hopp over tittelkortet — videoen starter rett paa foerste segment (SoMe) */
+  skipIntro?: boolean
 }
 
 type Outro = {
@@ -357,6 +359,11 @@ export default function PropertyDetailPage() {
   // Format for hovedknappen: 16:9 (vanlig) eller 9:16 (mobil/Reels). 9:16 kan nå
   // lages direkte — ingen teknisk grunn til å måtte lage 16:9 først (Lars 21/8).
   const [outputFormat, setOutputFormat] = useState<'landscape' | 'portrait'>('landscape')
+  // «Start rett på innholdet»: dropp tittelkortet (Nina 25/8 — de første sekundene
+  // i en SoMe-film må gå rett på action). Urørt følger valget formatet: 9:16
+  // hopper over kortet, 16:9 beholder det. Rører brukeren boksen, vinner valget.
+  const [skipIntro, setSkipIntro] = useState(false)
+  const introTouchedRef = useRef(false)
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
@@ -918,6 +925,7 @@ export default function PropertyDetailPage() {
     // Eldre oppskrifter (før bevegelse fantes) skal re-generere uendret → av;
     // oppskrifter fra før styrkevalget fantes var subtile
     setMotion(recipe.motion ?? false)
+    if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); introTouchedRef.current = true }
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
     setNoMotionImages(recipe.noMotionImages ?? [])
@@ -1228,6 +1236,8 @@ export default function PropertyDetailPage() {
     // 9:16-knappen ved ferdige videoer sender fmt='portrait' eksplisitt.
     // Hovedknappen sender ingenting → følg formatvelgeren (outputFormat).
     const portrait = fmt === 'portrait' || (fmt === undefined && outputFormat === 'portrait')
+    // Tittelkort: eksplisitt valg vinner; ellers følger det formatet (9:16 = uten)
+    const utenIntro = introTouchedRef.current ? skipIntro : portrait
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -1326,7 +1336,7 @@ export default function PropertyDetailPage() {
     let introImageUrl: string | undefined = property?.images?.[0]
     let introDuration = 2.5
     let introBaseImageUrl: string | undefined
-    if (resolvedSegments.length > 0 && introImageUrl && property?.title) {
+    if (!utenIntro && resolvedSegments.length > 0 && introImageUrl && property?.title) {
       try {
         setStatusMsg('Lager tittelkort…')
         const cardRes = await fetch('/api/video/intro-card', {
@@ -1345,7 +1355,7 @@ export default function PropertyDetailPage() {
         }
       } catch { /* stille fallback til rent bilde */ }
     }
-    const introSegment = (resolvedSegments.length > 0 && introImageUrl)
+    const introSegment = (!utenIntro && resolvedSegments.length > 0 && introImageUrl)
       ? [{ type: 'still' as const, imageUrl: introImageUrl, duration: introDuration, ...(introBaseImageUrl ? { baseImageUrl: introBaseImageUrl } : {}) }]
       : []
     const segmentsWithIntro = [...introSegment, ...resolvedSegments]
@@ -1373,6 +1383,7 @@ export default function PropertyDetailPage() {
       motionStrength,
       segmentTransition,
       noMotionImages,
+      skipIntro: utenIntro,
     }
 
     const body = segments.length > 0
@@ -2882,18 +2893,33 @@ export default function PropertyDetailPage() {
           {/* Formatvalg: 9:16 kan lages direkte, ikke bare som konvertering av en
               ferdig 16:9 (Lars 21/8). Hovedknappen genererer i valgt format. */}
           {!generatingVideo && (
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-              {([['landscape', '16:9 (vanlig)'], ['portrait', '9:16 (mobil/Reels)']] as const).map(([val, label]) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setOutputFormat(val)}
-                  className={outputFormat === val ? 'app-btn-primary' : 'app-btn-secondary'}
-                  style={{ flex: 1, padding: '9px', fontSize: '13px', borderRadius: '10px' }}
-                >
-                  {label}
-                </button>
-              ))}
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {([['landscape', '16:9 (vanlig)'], ['portrait', '9:16 (mobil/Reels)']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setOutputFormat(val)}
+                    className={outputFormat === val ? 'app-btn-primary' : 'app-btn-secondary'}
+                    style={{ flex: 1, padding: '9px', fontSize: '13px', borderRadius: '10px' }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* SoMe-aapning (Nina 25/8): de foerste sekundene maa gaa rett paa
+                  action. Uroert foelger valget formatet: 9:16 uten kort, 16:9 med. */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={introTouchedRef.current ? skipIntro : outputFormat === 'portrait'}
+                  onChange={e => { introTouchedRef.current = true; setSkipIntro(e.target.checked) }}
+                  style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
+                />
+                <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                  Start rett på innholdet <span style={{ color: 'var(--muted)' }}>— uten tittelkort i åpningen (anbefalt for 9:16)</span>
+                </span>
+              </label>
             </div>
           )}
           <button
