@@ -23,15 +23,17 @@ export type Voice = {
   avatarId?: string
 }
 
-/** Ferdige lydklipp vi allerede har — gratis avspilling, slipper TTS-kall. */
+/** Ferdige lydklipp — normalisert til -16 LUFS og lagt paa VAAR R2 (25/8), samme
+ *  nivaa som «Hoer innlesing» og ferdig video, saa stemmer kan sammenlignes
+ *  rettferdig. De raa ElevenLabs-CDN-klippene laa paa ~-27 LUFS. */
 const PREVIEW: Record<string, string> = {
-  nhvaqgRyAq6BmFs3WcdX: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3',
-  s2xtA7B2CTXPPlJzch1v: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3',
-  '2dhHLsmg0MVma2t041qT': 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3',
-  BGEU6wFi2uNm6Kje1Yhk: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/ed9b05e6324c457685490352e9a1ec90/voices/BGEU6wFi2uNm6Kje1Yhk/gCIHS9pPkrtwiAjN4VgG.mp3',
-  CMbvLbbccSd611KtwxV3: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/2461cf568dc042a3bbfbf75522203b35/voices/CMbvLbbccSd611KtwxV3/fabf86a6-90db-42c2-9993-47fff3f73a80.mp3',
-  vUmLiNBm6MDcy1NUHaVr: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/3690d7df74c84d8880e0e0d0641de7f2/voices/vUmLiNBm6MDcy1NUHaVr/6JBvRVvXcssLtXlaqLg1.mp3',
-  uNsWM1StCcpydKYOjKyu: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/a2175a4ce5a74c88868dd9d4a000c9a6/voices/uNsWM1StCcpydKYOjKyu/868f87d5-7724-4786-a7fa-a48e01b2ba54.mp3',
+  nhvaqgRyAq6BmFs3WcdX: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/voice-previews/nhvaqgRyAq6BmFs3WcdX.mp3',
+  s2xtA7B2CTXPPlJzch1v: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/voice-previews/s2xtA7B2CTXPPlJzch1v.mp3',
+  '2dhHLsmg0MVma2t041qT': 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/voice-previews/2dhHLsmg0MVma2t041qT.mp3',
+  BGEU6wFi2uNm6Kje1Yhk: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/voice-previews/BGEU6wFi2uNm6Kje1Yhk.mp3',
+  CMbvLbbccSd611KtwxV3: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/voice-previews/CMbvLbbccSd611KtwxV3.mp3',
+  vUmLiNBm6MDcy1NUHaVr: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/voice-previews/vUmLiNBm6MDcy1NUHaVr.mp3',
+  uNsWM1StCcpydKYOjKyu: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/voice-previews/uNsWM1StCcpydKYOjKyu.mp3',
 }
 
 /** Stemmene som hører til en malavatar — utledet, så de aldri kan drive fra hverandre. */
