@@ -59,7 +59,25 @@ export async function POST(request: Request) {
     return new Response(`ElevenLabs error: ${err}`, { status: 500 })
   }
 
-  const audioBuf = await res.arrayBuffer()
+  let audioBuf = await res.arrayBuffer()
+
+  // Loudness-normaliser via workeren (-16 LUFS, samme som i ferdig video) —
+  // saa «Hoer innlesing» har SAMME nivaa som videoen, og stemmer kan
+  // sammenlignes rettferdig i editoren (Lars 25/8). Netlify har ikke ffmpeg,
+  // derfor workeren. Feiler den: behold raa lyd — forhaandsvisning skal aldri
+  // knekke av at dropleten er opptatt.
+  try {
+    const norm = await fetch('http://139.59.212.218:3003/audio/normalize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'audio/mpeg' },
+      body: audioBuf,
+      signal: AbortSignal.timeout(12000),
+    })
+    if (norm.ok) audioBuf = await norm.arrayBuffer()
+    else console.warn('[tts-preview] normalisering svarte', norm.status, '- bruker raa lyd')
+  } catch (e) {
+    console.warn('[tts-preview] normalisering utilgjengelig - bruker raa lyd:', e instanceof Error ? e.message : e)
+  }
 
   // Upload to R2 so the worker can reuse this exact audio later
   const key = `boligforge/tts-preview/${randomUUID()}.mp3`
