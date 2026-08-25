@@ -1289,10 +1289,10 @@ export default function PropertyDetailPage() {
     const tickerText = outro.images.length > 0
       ? (tickerParts.length > 0 ? tickerParts.join('  ·  ') : property?.title || property?.address || 'Se mer om denne boligen')
       : undefined
-    // ReelHome-logo som standard sluttbilde når megleren ikke har lastet opp egen logo —
-    // ellers har musikken ingenting å fade ut over og videoen slutter brått.
-    const DEFAULT_OUTRO_LOGO = 'https://reelhome.ai/outro-logo.png'
-    const logoUrl = freshLogoUrl || DEFAULT_OUTRO_LOGO
+    // Ingen fallback-logo (Lars 25/8, etter Ninas sporsmaal): uten opplastet
+    // byraa-logo faar videoen INGEN logo. Workeren fader da musikken ut inne i
+    // slideshowet i stedet for over logoplakaten, saa slutten ikke blir braa.
+    const logoUrl = freshLogoUrl || undefined
     // Sikkerhetsnett: et bilde som er tatt i bruk i et segment ETTER at outroen
     // ble valgt, skal ikke ogsaa rulle paa slutten. Filtrer ved generering, ikke
     // bare i velgeren - lagrede valg kan vaere eldre enn segmentene.
