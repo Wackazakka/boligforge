@@ -48,7 +48,7 @@ export const TEMPLATE_AVATARS: TemplateAvatar[] = [
     ],
   },
   {
-    id: 'hanna', name: 'Hanna', desc: 'Engasjert og moderne', voiceId: 'jsCqWAovK2LkecY7zXl4', portraitUrl: `${R2}/hanna.jpg`,
+    id: 'hanna', name: 'Hanna', desc: 'Engasjert og moderne — snakker bergensk', voiceId: 'b3jcIbyC3BSnaRu8avEk', portraitUrl: `${R2}/hanna.jpg`,
     presets: [
       { key: 'modern_home',  label: 'Moderne hjem', url: `${P}/hanna_modern_home.png`  },
       { key: 'office',       label: 'Kontor',       url: `${P}/hanna_office.png`       },

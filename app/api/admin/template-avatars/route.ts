@@ -3,17 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
 
 const SUPERADMIN_EMAIL = process.env.LARS_EMAIL ?? ''
-const R2 = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/boligforge/template-avatars'
-
-// Default template avatar config (fallback if not in DB)
-const DEFAULTS = [
-  { id: 'sofia',  name: 'Sofia',  desc: 'Varm og profesjonell', voiceId: 'uNsWM1StCcpydKYOjKyu', portraitUrl: `${R2}/sofia.jpg`  },
-  { id: 'marius', name: 'Marius', desc: 'Klar og selvsikker',   voiceId: 's2xtA7B2CTXPPlJzch1v', portraitUrl: `${R2}/marius.jpg` },
-  { id: 'ingrid', name: 'Ingrid', desc: 'Nordisk og elegant',   voiceId: 'BGEU6wFi2uNm6Kje1Yhk', portraitUrl: `${R2}/ingrid.jpg` },
-  { id: 'even',   name: 'Even',   desc: 'Rolig og trygg',       voiceId: 'vUmLiNBm6MDcy1NUHaVr', portraitUrl: `${R2}/even.jpg`   },
-  { id: 'hanna',  name: 'Hanna',  desc: 'Engasjert og moderne', voiceId: 'jsCqWAovK2LkecY7zXl4', portraitUrl: `${R2}/hanna.jpg`  },
-  { id: 'erik',   name: 'Erik',   desc: 'Erfaren og grundig',   voiceId: 'nhvaqgRyAq6BmFs3WcdX', portraitUrl: `${R2}/erik.jpg`   },
-]
+// Fallback hvis ikke i DB — UTLEDET fra katalogen, aldri en egen kopi.
+// En haandkopiert liste her hang igjen med Hannas gamle stemme da katalogen
+// ble byttet til bergensk (25/8) — duplikatet er naa fjernet for godt.
+import { TEMPLATE_AVATARS } from '../../../../lib/template-avatars'
+const DEFAULTS = TEMPLATE_AVATARS.map(({ id, name, desc, voiceId, portraitUrl }) => ({ id, name, desc, voiceId, portraitUrl }))
 
 function getServiceClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
