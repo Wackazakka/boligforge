@@ -2077,17 +2077,35 @@ export default function PropertyDetailPage() {
             <div className="flex gap-2">
               {/* Når manuset finnes er segmentering det anbefalte neste steget —
                   da får den primær-vekt og Regenerer blir sekundær. */}
-              {script && (
-                <button
-                  onClick={handleSplitSegments}
-                  disabled={classifyingImages}
-                  data-tour="split-segments"
-                  className="app-btn-primary text-sm"
-                  style={{ padding: '8px 16px' }}
-                >
-                  {classifyingImages ? 'Analyserer bilder…' : 'Del opp i segmenter'}
-                </button>
-              )}
+              {script && (() => {
+                // «Del opp i segmenter» er det avgjørende neste steget, men saa
+                // hvit/svart at nye brukere overser den (Lars 28/8). Til den er
+                // gjort (ingen segmenter enda) faar den burgunder + myk pulserende
+                // gloed som trekker blikket uten aa skrike. Segmentert -> rolig svart.
+                const trengerOppmerksomhet = segments.length === 0 && !classifyingImages
+                return (
+                  <>
+                    <style>{`@keyframes rh-split-pulse {
+                      0%,100% { box-shadow: 0 0 0 0 rgba(124,26,58,0.55); }
+                      50%     { box-shadow: 0 0 0 7px rgba(124,26,58,0); }
+                    }`}</style>
+                    <button
+                      onClick={handleSplitSegments}
+                      disabled={classifyingImages}
+                      data-tour="split-segments"
+                      className="app-btn-primary text-sm"
+                      style={{
+                        padding: '8px 16px',
+                        ...(trengerOppmerksomhet
+                          ? { background: '#7c1a3a', borderColor: '#7c1a3a', animation: 'rh-split-pulse 1.6s ease-in-out infinite' }
+                          : {}),
+                      }}
+                    >
+                      {classifyingImages ? 'Analyserer bilder…' : 'Del opp i segmenter'}
+                    </button>
+                  </>
+                )
+              })()}
               <button
                 onClick={handleGenerateScript}
                 disabled={generatingScript}
