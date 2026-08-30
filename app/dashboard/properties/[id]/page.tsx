@@ -192,6 +192,8 @@ type VideoRecipe = {
   skipIntro?: boolean
   /** Teksting brent inn i videoen */
   captions?: boolean
+  /** Stemmen dempet — bilder + musikk + teksting */
+  voiceOff?: boolean
 }
 
 type Outro = {
@@ -370,6 +372,9 @@ export default function PropertyDetailPage() {
   // (lærdommen fra intro-bryteren: ref tegner ikke om).
   const [captions, setCaptions] = useState(false)
   const [captionsTouched, setCaptionsTouched] = useState(false)
+  // Uten stemme (Nina 30/8): noen meglere vil ha bilder + musikk + tekst, uten
+  // innlesing. Talen brukes fortsatt som klokke for timing, men dempes i miksen.
+  const [voiceOff, setVoiceOff] = useState(false)
   // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
   // utløser ikke ny opptegning, så et klikk som satte skipIntro til samme verdi
   // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
@@ -937,6 +942,7 @@ export default function PropertyDetailPage() {
     setMotion(recipe.motion ?? false)
     if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); setIntroTouched(true) } else { setIntroTouched(false) }
     if (typeof recipe.captions === 'boolean') { setCaptions(recipe.captions); setCaptionsTouched(true) } else { setCaptionsTouched(false) }
+    setVoiceOff(recipe.voiceOff === true)
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
     setNoMotionImages(recipe.noMotionImages ?? [])
@@ -1250,7 +1256,8 @@ export default function PropertyDetailPage() {
     // Tittelkort: eksplisitt valg vinner; ellers følger det formatet (9:16 = uten)
     const utenIntro = introTouched ? skipIntro : portrait
     // Teksting: eksplisitt valg vinner; ellers på når videoen mangler presentør
-    const medTeksting = captionsTouched ? captions : !segments.some(s => s.type === 'avatar')
+    // — og ALLTID på når stemmen er av (teksten bærer da hele budskapet)
+    const medTeksting = captionsTouched ? captions : (voiceOff || !segments.some(s => s.type === 'avatar'))
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -1398,10 +1405,11 @@ export default function PropertyDetailPage() {
       noMotionImages,
       skipIntro: utenIntro,
       captions: medTeksting,
+      voiceOff,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true } : {}) }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true } : {}), ...(voiceOff ? { voiceOff: true } : {}) }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -2961,6 +2969,17 @@ export default function PropertyDetailPage() {
                 />
                 <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
                   💬 Teksting på videoen <span style={{ color: 'var(--muted)' }}>— manuset vises mens det leses (anbefalt uten presentør; de fleste ser uten lyd)</span>
+                </span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '6px' }}>
+                <input
+                  type="checkbox"
+                  checked={voiceOff}
+                  onChange={e => setVoiceOff(e.target.checked)}
+                  style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
+                />
+                <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                  🔇 Uten innlesing <span style={{ color: 'var(--muted)' }}>— bare bilder, musikk og teksting (teksten bærer budskapet)</span>
                 </span>
               </label>
             </div>
