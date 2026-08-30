@@ -5,7 +5,15 @@ import { MODELS } from '../../../../lib/models'
 
 export async function POST(request: Request) {
   try {
-    const { property, agentProfile, scriptStyle, noPresenter } = await request.json()
+    const { property, agentProfile, scriptStyle, noPresenter, voiceOff } = await request.json()
+    // Stumt spor (Lars 30/8): manuset ER visningsteksten — tall skrives som
+    // sifre («1982», «380 kvadratmeter»), ikke som uttale-staving for stemmen
+    // («nitten åtti-to»). TTS leser fortsatt manuset som klokke, men er dempet.
+    const sifre = voiceOff === true
+    const kr  = (n: number) => sifre ? `${n.toLocaleString('nb-NO')} kroner` : priceToNorwegian(n)
+    const kvm = (n: number) => sifre ? String(n) : sizeToNorwegian(n)
+    const aar = (n: number) => sifre ? String(n) : yearToNorwegian(n)
+    const tall = (n: number) => sifre ? String(n) : below1000(n)
 
     // To akser som KOMBINERES: meglerens tone (profilvalg — hvem du er) og
     // videoens stil (per bolig — hvem kjøperen er). Tidligere overstyrte
@@ -24,25 +32,28 @@ export async function POST(request: Request) {
     const propertyDetails = [
       property.title && `Tittel: ${property.title}`,
       property.address && `Adresse: ${property.address}`,
-      property.price && `Prisantydning: ${priceToNorwegian(Number(property.price))}`,
-      property.price_total && `Totalpris inkl. omk.: ${priceToNorwegian(Number(property.price_total))}`,
-      property.shared_debt && `Fellesgjeld: ${priceToNorwegian(Number(property.shared_debt))}`,
+      property.price && `Prisantydning: ${kr(Number(property.price))}`,
+      property.price_total && `Totalpris inkl. omk.: ${kr(Number(property.price_total))}`,
+      property.shared_debt && `Fellesgjeld: ${kr(Number(property.shared_debt))}`,
       property.shared_costs && `Felleskostnader: ja (beskriv som lave/moderate/rimelige basert på skjønn)`,
-      property.size_bra && `Størrelse: ${sizeToNorwegian(Number(property.size_bra))} kvadratmeter`,
-      property.rooms && `Rom: ${below1000(Number(property.rooms))}`,
-      property.bedrooms && `Soverom: ${below1000(Number(property.bedrooms))}`,
+      property.size_bra && `Størrelse: ${kvm(Number(property.size_bra))} kvadratmeter`,
+      property.rooms && `Rom: ${tall(Number(property.rooms))}`,
+      property.bedrooms && `Soverom: ${tall(Number(property.bedrooms))}`,
       property.floor && `Etasje: ${property.floor}`,
-      property.build_year && `Byggeår: ${yearToNorwegian(Number(property.build_year))}`,
+      property.build_year && `Byggeår: ${aar(Number(property.build_year))}`,
       property.property_type && `Boligtype: ${property.property_type}`,
       property.ownership_type && `Eierform: ${property.ownership_type}`,
       property.energy_label && `Energimerke: ${property.energy_label}`,
-      property.plot_area && `Tomt: ${sizeToNorwegian(Number(property.plot_area))} kvadratmeter (${property.plot_owned ? 'eiet' : 'festet'})`,
+      property.plot_area && `Tomt: ${kvm(Number(property.plot_area))} kvadratmeter (${property.plot_owned ? 'eiet' : 'festet'})`,
       property.facilities?.length && `Fasiliteter: ${property.facilities.join(', ')}`,
       property.summary && `\nSammendrag:\n${property.summary}`,
       property.property_info_text && `\nOm boligen:\n${property.property_info_text}`,
     ].filter(Boolean).join('\n')
 
     const agentName = agentProfile?.name || 'megler'
+    const tallRegel = sifre
+      ? `- VIKTIG: Skriv alle tall som sifre, nøyaktig slik de står i dataene (f.eks. "120 kvadratmeter", "4 500 000 kroner", "1982"). Skriv ALDRI tall med bokstaver.`
+      : `- VIKTIG: Alle tall (priser, størrelser, byggeår, rom) er allerede skrevet ut som tekst i dataene — bruk dem ORDRETT slik de er oppgitt, uten å endre til sifre. Eksempel: hvis dataene sier "to-hundre-og-åtti-fem kvadratmeter", skal du skrive nøyaktig "to-hundre-og-åtti-fem kvadratmeter" i manuset.`
 
     // Uten avatar-sporet (30/8): fortellerstemme — ingen megler presenteres,
     // og manuset skal aldri si «jeg»/«meg» om en person som ikke vises.
@@ -67,7 +78,7 @@ ${aapning}
 - Nevne pris og nøkkelinformasjon naturlig
 - Avslutte med en invitasjon til visning eller kontakt
 - Være naturlig og muntlig, ikke en punktliste
-- VIKTIG: Alle tall (priser, størrelser, byggeår, rom) er allerede skrevet ut som tekst i dataene — bruk dem ORDRETT slik de er oppgitt, uten å endre til sifre. Eksempel: hvis dataene sier "to-hundre-og-åtti-fem kvadratmeter", skal du skrive nøyaktig "to-hundre-og-åtti-fem kvadratmeter" i manuset.
+${tallRegel}
 - VIKTIG: Ikke bruk forkortelser som BRA, kvm, m², osv. Si aldri "bruksareal".
 - VIKTIG: Boligtypen skal alltid samsvare nøyaktig med "Boligtype"-feltet i dataene. Aldri gjett eller endre boligtype — kall f.eks. aldri en leilighet for enebolig eller omvendt. Hvis "Boligtype" ikke er oppgitt, unngå å nevne en spesifikk boligtype og omtal det heller som "boligen" eller "hjemmet".
 - VIKTIG: Når du omtaler beliggenhet og gatenavnet slutter på "-veien", "-vegen", "-gata" eller "-gaten", bruk preposisjonen "i" — ikke "på". Skriv f.eks. "en leilighet i Storgata 15", aldri "en leilighet på Storgata 15".
@@ -83,7 +94,9 @@ Svar KUN med manusteksten, ingen overskrift eller forklaring.`,
 
     // Post-process: replace any "NNN kvadratmeter" with hyphenated Norwegian words
     const rawScript = (message.content[0] as { type: string; text: string }).text
-    const script = rawScript.replace(/(\d+)\s+kvadratmeter/g, (_, n) =>
+    const script = sifre ? rawScript.replace(/\b(på|På)(\s+(?:[0-9a-zA-ZæøåÆØÅ.]+\s+)?etasje)/g,
+      (_m, pp, rest) => (pp === 'På' ? 'I' : 'i') + rest)
+    : rawScript.replace(/(\d+)\s+kvadratmeter/g, (_, n) =>
       sizeToNorwegian(Number(n)) + ' kvadratmeter'
     ).replace(/(\d[\d\s]*\d|\d)\s+kroner/g, (match, n) => {
       const num = Number(String(n).replace(/\s/g, ''))

@@ -1138,7 +1138,7 @@ export default function PropertyDetailPage() {
     const res = await fetch('/api/properties/generate-script', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ property, agentProfile: { ...profile, name: effectiveAgentName }, scriptStyle, noPresenter: noAvatar }),
+      body: JSON.stringify({ property, agentProfile: { ...profile, name: effectiveAgentName }, scriptStyle, noPresenter: noAvatar, voiceOff }),
     })
     const data = await res.json()
     setGeneratingScript(false)
