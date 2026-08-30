@@ -194,6 +194,8 @@ type VideoRecipe = {
   captions?: boolean
   /** Stemmen dempet — bilder + musikk + teksting */
   voiceOff?: boolean
+  /** Tekststil: ren | elegant | dynamisk */
+  captionStyle?: 'ren' | 'elegant' | 'dynamisk'
 }
 
 type Outro = {
@@ -375,6 +377,9 @@ export default function PropertyDetailPage() {
   // Uten stemme (Nina 30/8): noen meglere vil ha bilder + musikk + tekst, uten
   // innlesing. Talen brukes fortsatt som klokke for timing, men dempes i miksen.
   const [voiceOff, setVoiceOff] = useState(false)
+  // Tekststil (Lars 30/8): fritt meglervalg, IKKE koblet til manusstil.
+  // dynamisk krever innlesing — grås ut ved voiceOff.
+  const [captionStyle, setCaptionStyle] = useState<'ren' | 'elegant' | 'dynamisk'>('ren')
   // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
   // utløser ikke ny opptegning, så et klikk som satte skipIntro til samme verdi
   // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
@@ -943,6 +948,7 @@ export default function PropertyDetailPage() {
     if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); setIntroTouched(true) } else { setIntroTouched(false) }
     if (typeof recipe.captions === 'boolean') { setCaptions(recipe.captions); setCaptionsTouched(true) } else { setCaptionsTouched(false) }
     setVoiceOff(recipe.voiceOff === true)
+    setCaptionStyle(recipe.captionStyle === 'elegant' || recipe.captionStyle === 'dynamisk' ? recipe.captionStyle : 'ren')
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
     setNoMotionImages(recipe.noMotionImages ?? [])
@@ -1258,6 +1264,8 @@ export default function PropertyDetailPage() {
     // Teksting: eksplisitt valg vinner; ellers på når videoen mangler presentør
     // — og ALLTID på når stemmen er av (teksten bærer da hele budskapet)
     const medTeksting = captionsTouched ? captions : (voiceOff || !segments.some(s => s.type === 'avatar'))
+    // dynamisk uten innlesing gir ikke mening — fall til ren
+    const tekstStil = voiceOff && captionStyle === 'dynamisk' ? 'ren' : captionStyle
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -1405,11 +1413,12 @@ export default function PropertyDetailPage() {
       noMotionImages,
       skipIntro: utenIntro,
       captions: medTeksting,
+      captionStyle: tekstStil,
       voiceOff,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true } : {}), ...(voiceOff ? { voiceOff: true } : {}) }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true, subtitleStyle: tekstStil } : {}), ...(voiceOff ? { voiceOff: true } : {}) }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -2982,6 +2991,30 @@ export default function PropertyDetailPage() {
                   🔇 Uten innlesing <span style={{ color: 'var(--muted)' }}>— bare bilder, musikk og teksting (teksten bærer budskapet)</span>
                 </span>
               </label>
+              {(captionsTouched ? captions : (voiceOff || !segments.some(s => s.type === 'avatar'))) && (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', marginLeft: '23px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Tekststil:</span>
+                  {([['ren', 'Ren'], ['elegant', 'Elegant'], ['dynamisk', 'Dynamisk']] as const).map(([val, label]) => {
+                    const sperret = val === 'dynamisk' && voiceOff
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        disabled={sperret}
+                        onClick={() => setCaptionStyle(val)}
+                        title={sperret ? 'Dynamisk følger talerytmen og krever innlesing' : undefined}
+                        className="px-3 py-1 rounded-lg text-xs font-medium"
+                        style={{
+                          background: captionStyle === val && !sperret ? 'var(--gold)' : 'var(--surface)',
+                          color: sperret ? 'var(--line)' : captionStyle === val ? '#fff' : 'var(--muted)',
+                          border: `1px solid ${captionStyle === val && !sperret ? 'var(--gold)' : 'var(--line)'}`,
+                          cursor: sperret ? 'not-allowed' : 'pointer',
+                        }}
+                      >{label}</button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
           <button
