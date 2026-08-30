@@ -3056,7 +3056,7 @@ export default function PropertyDetailPage() {
                   style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
                 />
                 <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
-                  💬 Teksting på videoen <span style={{ color: 'var(--muted)' }}>— manuset vises mens det leses (anbefalt uten presentør; de fleste ser uten lyd)</span>
+                  💬 Teksting på videoen <span style={{ color: 'var(--muted)' }}>{voiceOff ? '— manuset vises som tekst i videoen (stemmen er av, så teksten bærer budskapet)' : '— manuset vises mens det leses (anbefalt uten presentør; de fleste ser uten lyd)'}</span>
                 </span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '6px' }}>
