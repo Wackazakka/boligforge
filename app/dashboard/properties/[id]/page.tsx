@@ -190,6 +190,8 @@ type VideoRecipe = {
   noMotionImages?: string[]            // bilder som aldri skal ha bevegelse (per video)
   /** Hopp over tittelkortet — videoen starter rett paa foerste segment (SoMe) */
   skipIntro?: boolean
+  /** Teksting brent inn i videoen */
+  captions?: boolean
 }
 
 type Outro = {
@@ -363,6 +365,11 @@ export default function PropertyDetailPage() {
   // i en SoMe-film må gå rett på action). Urørt følger valget formatet: 9:16
   // hopper over kortet, 16:9 beholder det. Rører brukeren boksen, vinner valget.
   const [skipIntro, setSkipIntro] = useState(false)
+  // Teksting brent inn i videoen (Nina 30/8). Urørt: PÅ når videoen ikke har
+  // presentør (ingenting signaliserer lyd da), AV med avatar. State, ikke ref
+  // (lærdommen fra intro-bryteren: ref tegner ikke om).
+  const [captions, setCaptions] = useState(false)
+  const [captionsTouched, setCaptionsTouched] = useState(false)
   // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
   // utløser ikke ny opptegning, så et klikk som satte skipIntro til samme verdi
   // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
@@ -929,6 +936,7 @@ export default function PropertyDetailPage() {
     // oppskrifter fra før styrkevalget fantes var subtile
     setMotion(recipe.motion ?? false)
     if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); setIntroTouched(true) } else { setIntroTouched(false) }
+    if (typeof recipe.captions === 'boolean') { setCaptions(recipe.captions); setCaptionsTouched(true) } else { setCaptionsTouched(false) }
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
     setNoMotionImages(recipe.noMotionImages ?? [])
@@ -1241,6 +1249,8 @@ export default function PropertyDetailPage() {
     const portrait = fmt === 'portrait' || (fmt === undefined && outputFormat === 'portrait')
     // Tittelkort: eksplisitt valg vinner; ellers følger det formatet (9:16 = uten)
     const utenIntro = introTouched ? skipIntro : portrait
+    // Teksting: eksplisitt valg vinner; ellers på når videoen mangler presentør
+    const medTeksting = captionsTouched ? captions : !segments.some(s => s.type === 'avatar')
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -1387,10 +1397,11 @@ export default function PropertyDetailPage() {
       segmentTransition,
       noMotionImages,
       skipIntro: utenIntro,
+      captions: medTeksting,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}) }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true } : {}) }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -2939,6 +2950,17 @@ export default function PropertyDetailPage() {
                 />
                 <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
                   Start rett på innholdet <span style={{ color: 'var(--muted)' }}>— uten tittelkort i åpningen (anbefalt for 9:16)</span>
+                </span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '6px' }}>
+                <input
+                  type="checkbox"
+                  checked={captionsTouched ? captions : !segments.some(s => s.type === 'avatar')}
+                  onChange={e => { setCaptionsTouched(true); setCaptions(e.target.checked) }}
+                  style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
+                />
+                <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                  💬 Teksting på videoen <span style={{ color: 'var(--muted)' }}>— manuset vises mens det leses (anbefalt uten presentør; de fleste ser uten lyd)</span>
                 </span>
               </label>
             </div>
