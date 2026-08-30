@@ -5,7 +5,7 @@ import { MODELS } from '../../../../lib/models'
 
 export async function POST(request: Request) {
   try {
-    const { property, agentProfile, scriptStyle } = await request.json()
+    const { property, agentProfile, scriptStyle, noPresenter } = await request.json()
 
     // To akser som KOMBINERES: meglerens tone (profilvalg — hvem du er) og
     // videoens stil (per bolig — hvem kjøperen er). Tidligere overstyrte
@@ -44,16 +44,25 @@ export async function POST(request: Request) {
 
     const agentName = agentProfile?.name || 'megler'
 
+    // Uten avatar-sporet (30/8): fortellerstemme — ingen megler presenteres,
+    // og manuset skal aldri si «jeg»/«meg» om en person som ikke vises.
+    const rolle = noPresenter
+      ? `Skriv et muntlig presentasjonsmanus på norsk for denne boligen — en fortellerstemme uten synlig presentør.`
+      : `Du er eiendomsmegler ${agentName}. Skriv et muntlig presentasjonsmanus på norsk for denne boligen.`
+    const aapning = noPresenter
+      ? `- Starte rett på boligen med en kort, inviterende åpning — presenter ALDRI noen megler ved navn, og bruk aldri "jeg", "meg" eller "vi" om en megler. F.eks. "Velkommen til ...". Avslutningen inviterer til visning eller kontakt uten å love at noen bestemt person tar imot.`
+      : `- Starte med en kort, vennlig hilsen og presentere deg med navn, og deretter en enkel, inviterende åpning. F.eks. "Hei! Jeg heter ${agentName}, og jeg vil gjerne vise dere ...". Unngå overdrevent følelsesladde åpninger som "Jeg er svært glad for å vise dere ..." eller "Det er en stor glede å ..."`
+
     const message = await createMessage({
       model: MODELS.haiku,
       max_tokens: 600,
       messages: [{
         role: 'user',
-        content: `Du er eiendomsmegler ${agentName}. Skriv et muntlig presentasjonsmanus på norsk for denne boligen. Tonen skal være: ${tone}.
+        content: `${rolle} Tonen skal være: ${tone}.
 
 Manuset skal:
 - Vare ca. 45–60 sekunder når det leses opp (ca. 120–150 ord)
-- Starte med en kort, vennlig hilsen og presentere deg med navn, og deretter en enkel, inviterende åpning. F.eks. "Hei! Jeg heter ${agentName}, og jeg vil gjerne vise dere ...". Unngå overdrevent følelsesladde åpninger som "Jeg er svært glad for å vise dere ..." eller "Det er en stor glede å ..."
+${aapning}
 - Fremheve de mest attraktive egenskapene ved boligen
 - Nevne pris og nøkkelinformasjon naturlig
 - Avslutte med en invitasjon til visning eller kontakt

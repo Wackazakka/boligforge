@@ -27,7 +27,11 @@ export async function POST(request: Request) {
     if (!useSegments && (!script || !voiceId || !avatarImageUrl)) {
       return NextResponse.json({ error: 'Mangler script, voiceId eller avatarImageUrl' }, { status: 400 })
     }
-    if (useSegments && (!voiceId || !avatarImageUrl)) {
+    // Uten avatar-sporet (30/8): avatarbilde kreves bare når minst ett segment
+    // faktisk er et avatar-segment. voiceId kreves alltid — talen er klokka
+    // for timing/teksting selv når den dempes (voiceOff).
+    const harAvatarSegment = useSegments && segments.some((s: { type?: string }) => s.type === 'avatar')
+    if (useSegments && (!voiceId || (harAvatarSegment && !avatarImageUrl))) {
       return NextResponse.json({ error: 'Mangler voiceId eller avatarImageUrl' }, { status: 400 })
     }
 

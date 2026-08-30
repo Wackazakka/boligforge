@@ -196,6 +196,8 @@ type VideoRecipe = {
   voiceOff?: boolean
   /** Tekststil: ren | elegant | dynamisk */
   captionStyle?: 'ren' | 'elegant' | 'dynamisk'
+  /** Ingen presentør — bare boligbilder (+ evt. stemme) */
+  noAvatar?: boolean
 }
 
 type Outro = {
@@ -380,6 +382,10 @@ export default function PropertyDetailPage() {
   // Tekststil (Lars 30/8): fritt meglervalg, IKKE koblet til manusstil.
   // dynamisk krever innlesing — grås ut ved voiceOff.
   const [captionStyle, setCaptionStyle] = useState<'ren' | 'elegant' | 'dynamisk'>('ren')
+  // Uten avatar (Lars 30/8): to likestilte spor uten presentør — «bilder + stemme»
+  // og «bilder + teksting, uten stemme». Stumt spor gjenbruker voiceOff-bryteren,
+  // så 🔇-boksen og presentørkortene alltid er enige.
+  const [noAvatar, setNoAvatar] = useState(false)
   // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
   // utløser ikke ny opptegning, så et klikk som satte skipIntro til samme verdi
   // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
@@ -651,7 +657,9 @@ export default function PropertyDetailPage() {
   })
 
   // Effective values — template avatar overrides own profile when selected
-  const effectiveVoiceId   = voiceOverride || activeAvatar?.voiceId || profile.voice_id || ''
+  // Uten avatar trengs fortsatt en stemme (også i stumt spor: talen er klokka
+  // for timing/teksting) — fall tilbake til første katalogstemme uten profilvalg.
+  const effectiveVoiceId   = voiceOverride || activeAvatar?.voiceId || profile.voice_id || (noAvatar ? VOICES[0].id : '')
   const effectivePortrait  = activeAvatar?.portraitUrl  ?? profile.portrait_url ?? ''
   const effectiveAgentName = activeAvatar?.name         ?? profile.name         ?? 'megler'
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -740,7 +748,7 @@ export default function PropertyDetailPage() {
     }
     // First and last = avatar, middle = image (overridden after image classification if available)
     return result.map((seg, idx) =>
-      idx === 0 || idx === result.length - 1
+      !noAvatar && (idx === 0 || idx === result.length - 1)
         ? seg
         : { ...seg, type: 'image' as const }
     )
@@ -787,8 +795,8 @@ export default function PropertyDetailPage() {
         const usedImages = new Set<string>()
         const last = newSegments.length - 1
         const matched = newSegments.map((seg, idx) => {
-          const isFirst = idx === 0
-          const isLast = idx === last
+          const isFirst = idx === 0 && !noAvatar
+          const isLast = idx === last && !noAvatar
           // Avatar-segmenter (første/siste) trenger bare ett bakgrunnsbilde;
           // bildesegmenter får antall etter anslått taletid (~2,5 s per bilde).
           const count = (isFirst || isLast) ? 1 : suggestedImageCount(seg.text)
@@ -948,6 +956,7 @@ export default function PropertyDetailPage() {
     if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); setIntroTouched(true) } else { setIntroTouched(false) }
     if (typeof recipe.captions === 'boolean') { setCaptions(recipe.captions); setCaptionsTouched(true) } else { setCaptionsTouched(false) }
     setVoiceOff(recipe.voiceOff === true)
+    setNoAvatar(recipe.noAvatar === true)
     setCaptionStyle(recipe.captionStyle === 'elegant' || recipe.captionStyle === 'dynamisk' ? recipe.captionStyle : 'ren')
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
@@ -1113,7 +1122,7 @@ export default function PropertyDetailPage() {
     const res = await fetch('/api/properties/generate-script', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ property, agentProfile: { ...profile, name: effectiveAgentName }, scriptStyle }),
+      body: JSON.stringify({ property, agentProfile: { ...profile, name: effectiveAgentName }, scriptStyle, noPresenter: noAvatar }),
     })
     const data = await res.json()
     setGeneratingScript(false)
@@ -1270,7 +1279,7 @@ export default function PropertyDetailPage() {
       setError('Mangler manus eller stemme-ID i profilen')
       return
     }
-    if (!selectedAvatarUrl && !effectivePortrait) {
+    if (!noAvatar && !selectedAvatarUrl && !effectivePortrait) {
       setError('Last opp et portrettbilde i profilen din for å generere video')
       return
     }
@@ -1415,10 +1424,11 @@ export default function PropertyDetailPage() {
       captions: medTeksting,
       captionStyle: tekstStil,
       voiceOff,
+      noAvatar,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl || effectivePortrait, portraitUrl: effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true, subtitleStyle: tekstStil } : {}), ...(voiceOff ? { voiceOff: true } : {}) }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: noAvatar ? undefined : (selectedAvatarUrl || effectivePortrait), portraitUrl: noAvatar ? undefined : effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true, subtitleStyle: tekstStil } : {}), ...(voiceOff ? { voiceOff: true } : {}) }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -1731,18 +1741,18 @@ export default function PropertyDetailPage() {
           <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px' }}>
             {hasOwnAvatar
               ? 'Avataren din fra profilen er valgt. Du kan bytte til en av våre AI-meglere for akkurat denne videoen.'
-              : 'Velg en av våre AI-meglere — eller lag din egen avatar på profilsiden.'}
+              : 'Velg en av våre AI-meglere, lag din egen på profilsiden — eller dropp avataren helt.'}
           </p>
 
           {/* — Presenter row — */}
           <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', overscrollBehaviorX: 'contain' }}>
             {hasOwnAvatar ? (
               <button
-                onClick={() => { setActiveAvatar(null); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
+                onClick={() => { setNoAvatar(false); setActiveAvatar(null); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
                 style={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                  background: activeAvatar === null ? 'var(--blue-soft)' : 'var(--surface-2)',
-                  border: `2px solid ${activeAvatar === null ? 'var(--blue)' : 'var(--line)'}`,
+                  background: activeAvatar === null && !noAvatar ? 'var(--blue-soft)' : 'var(--surface-2)',
+                  border: `2px solid ${activeAvatar === null && !noAvatar ? 'var(--blue)' : 'var(--line)'}`,
                   borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
                 }}
               >
@@ -1753,7 +1763,7 @@ export default function PropertyDetailPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={profile.portrait_url} alt="Din avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar === null ? 'var(--blue)' : 'var(--ink)' }}>Din avatar</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar === null && !noAvatar ? 'var(--blue)' : 'var(--ink)' }}>Din avatar</span>
                 {profile.name && <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{profile.name.split(' ')[0]}</span>}
                 {profile.voice_id && (
                   <button onClick={e => { e.stopPropagation(); playVoiceSample(profile.voice_id!) }}
@@ -1795,11 +1805,11 @@ export default function PropertyDetailPage() {
 
             {TEMPLATE_AVATARS.map(av => (
               <button key={av.id}
-                onClick={() => { setActiveAvatar(av); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
+                onClick={() => { setNoAvatar(false); setActiveAvatar(av); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
                 style={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                  background: activeAvatar?.id === av.id ? 'var(--blue-soft)' : 'var(--surface-2)',
-                  border: `2px solid ${activeAvatar?.id === av.id ? 'var(--blue)' : 'var(--line)'}`,
+                  background: activeAvatar?.id === av.id && !noAvatar ? 'var(--blue-soft)' : 'var(--surface-2)',
+                  border: `2px solid ${activeAvatar?.id === av.id && !noAvatar ? 'var(--blue)' : 'var(--line)'}`,
                   borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '80px',
                 }}>
                 <div
@@ -1809,7 +1819,7 @@ export default function PropertyDetailPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={av.portraitUrl} alt={av.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar?.id === av.id ? 'var(--blue)' : 'var(--ink)' }}>{av.name}</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: activeAvatar?.id === av.id && !noAvatar ? 'var(--blue)' : 'var(--ink)' }}>{av.name}</span>
                 <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{av.desc}</span>
                 <button onClick={e => { e.stopPropagation(); playVoiceSample(av.voiceId) }}
                   style={{ fontSize: '10px', color: playingVoiceId === av.voiceId ? 'var(--blue)' : 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0', marginTop: '2px' }}>
@@ -1818,6 +1828,41 @@ export default function PropertyDetailPage() {
               </button>
             ))}
             </>)}
+
+            {/* — Uten presentør (Lars 30/8): to likestilte spor — bilder + stemme,
+                eller helt stumt der tekstingen bærer budskapet. Alltid synlige,
+                også når malavatarene ligger bak toggle-knappen. — */}
+            <div style={{ width: '1px', background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
+            {([
+              { stum: false, ikon: '📷', under: 'Bilder + stemme' },
+              { stum: true,  ikon: '🔇', under: 'Helt uten stemme' },
+            ] as const).map(valg => {
+              const valgt = noAvatar && voiceOff === valg.stum
+              return (
+                <button key={valg.ikon}
+                  onClick={() => {
+                    setNoAvatar(true); setVoiceOff(valg.stum)
+                    setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null)
+                    // Alt segmentert? Avatar-segmentene blir bildesegmenter —
+                    // klipp bakt med avatar er ubrukelige i dette sporet.
+                    setSegments(prev => prev.some(x => x.type === 'avatar')
+                      ? prev.map(x => x.type === 'avatar' ? { ...x, type: 'image' as const, clipUrl: undefined, clipHistory: undefined } : x)
+                      : prev)
+                  }}
+                  style={{
+                    flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    background: valgt ? 'var(--blue-soft)' : 'var(--surface-2)',
+                    border: `2px solid ${valgt ? 'var(--blue)' : 'var(--line)'}`,
+                    borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '96px',
+                  }}>
+                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '22px' }}>{valg.ikon}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: valgt ? 'var(--blue)' : 'var(--ink)' }}>Uten avatar</span>
+                  <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{valg.under}</span>
+                </button>
+              )
+            })}
           </div>
 
           {/* — Stemme — følger avataren, men kan overstyres for denne videoen — */}
@@ -1880,7 +1925,7 @@ export default function PropertyDetailPage() {
           </div>
 
           {/* — Bildevalg — hvilken versjon av presentatøren som brukes i videoen — */}
-          {(activeAvatar || hasOwnAvatar || (VIS_KOMPOSITT_BAKGRUNN && property.images?.length > 0)) && (
+          {!noAvatar && (activeAvatar || hasOwnAvatar || (VIS_KOMPOSITT_BAKGRUNN && property.images?.length > 0)) && (
             <div data-tour="setting-pick" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
 
               <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Velg setting til videoen</p>
