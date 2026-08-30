@@ -386,6 +386,21 @@ export default function PropertyDetailPage() {
   // og «bilder + teksting, uten stemme». Stumt spor gjenbruker voiceOff-bryteren,
   // så 🔇-boksen og presentørkortene alltid er enige.
   const [noAvatar, setNoAvatar] = useState(false)
+  // Presentørraden scroller horisontalt uten at noe sa fra (Lars 30/8) —
+  // pil + gradient vises så lenge det finnes kort utenfor høyre kant.
+  const presenterRowRef = useRef<HTMLDivElement | null>(null)
+  const [radKanScrolle, setRadKanScrolle] = useState(false)
+  const oppdaterRadPil = () => {
+    const el = presenterRowRef.current
+    if (el) setRadKanScrolle(el.scrollWidth - el.clientWidth - el.scrollLeft > 8)
+  }
+  // Uten deps med vilje: radens bredde endres når profil/avatarer laster inn,
+  // uten noe enkelt dep-uttrykk — re-måling per render er billig og alltid rett.
+  useEffect(() => {
+    oppdaterRadPil()
+    window.addEventListener('resize', oppdaterRadPil)
+    return () => window.removeEventListener('resize', oppdaterRadPil)
+  })
   // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
   // utløser ikke ny opptegning, så et klikk som satte skipIntro til samme verdi
   // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
@@ -1745,7 +1760,43 @@ export default function PropertyDetailPage() {
           </p>
 
           {/* — Presenter row — */}
-          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', overscrollBehaviorX: 'contain' }}>
+          <div style={{ position: 'relative' }}>
+          <div ref={presenterRowRef} onScroll={oppdaterRadPil} style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', overscrollBehaviorX: 'contain' }}>
+
+            {/* — Uten presentør (Lars 30/8): to likestilte spor — bilder + stemme,
+                eller helt stumt der tekstingen bærer budskapet. Helt til venstre
+                så de aldri må scrolles fram. — */}
+            {([
+              { stum: false, ikon: '📷', under: 'Bilder + stemme' },
+              { stum: true,  ikon: '🔇', under: 'Helt uten stemme' },
+            ] as const).map(valg => {
+              const valgt = noAvatar && voiceOff === valg.stum
+              return (
+                <button key={valg.ikon}
+                  onClick={() => {
+                    setNoAvatar(true); setVoiceOff(valg.stum)
+                    setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null)
+                    // Alt segmentert? Avatar-segmentene blir bildesegmenter —
+                    // klipp bakt med avatar er ubrukelige i dette sporet.
+                    setSegments(prev => prev.some(x => x.type === 'avatar')
+                      ? prev.map(x => x.type === 'avatar' ? { ...x, type: 'image' as const, clipUrl: undefined, clipHistory: undefined } : x)
+                      : prev)
+                  }}
+                  style={{
+                    flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    background: valgt ? 'var(--blue-soft)' : 'var(--surface-2)',
+                    border: `2px solid ${valgt ? 'var(--blue)' : 'var(--line)'}`,
+                    borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '96px',
+                  }}>
+                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '22px' }}>{valg.ikon}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: valgt ? 'var(--blue)' : 'var(--ink)' }}>Uten avatar</span>
+                  <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{valg.under}</span>
+                </button>
+              )
+            })}
+            <div style={{ width: '1px', background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
             {hasOwnAvatar ? (
               <button
                 onClick={() => { setNoAvatar(false); setActiveAvatar(null); setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null) }}
@@ -1828,41 +1879,24 @@ export default function PropertyDetailPage() {
               </button>
             ))}
             </>)}
-
-            {/* — Uten presentør (Lars 30/8): to likestilte spor — bilder + stemme,
-                eller helt stumt der tekstingen bærer budskapet. Alltid synlige,
-                også når malavatarene ligger bak toggle-knappen. — */}
-            <div style={{ width: '1px', background: 'var(--line)', margin: '4px 0', flexShrink: 0 }} />
-            {([
-              { stum: false, ikon: '📷', under: 'Bilder + stemme' },
-              { stum: true,  ikon: '🔇', under: 'Helt uten stemme' },
-            ] as const).map(valg => {
-              const valgt = noAvatar && voiceOff === valg.stum
-              return (
-                <button key={valg.ikon}
-                  onClick={() => {
-                    setNoAvatar(true); setVoiceOff(valg.stum)
-                    setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null)
-                    // Alt segmentert? Avatar-segmentene blir bildesegmenter —
-                    // klipp bakt med avatar er ubrukelige i dette sporet.
-                    setSegments(prev => prev.some(x => x.type === 'avatar')
-                      ? prev.map(x => x.type === 'avatar' ? { ...x, type: 'image' as const, clipUrl: undefined, clipHistory: undefined } : x)
-                      : prev)
-                  }}
-                  style={{
-                    flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                    background: valgt ? 'var(--blue-soft)' : 'var(--surface-2)',
-                    border: `2px solid ${valgt ? 'var(--blue)' : 'var(--line)'}`,
-                    borderRadius: '12px', padding: '10px 14px', cursor: 'pointer', minWidth: '96px',
-                  }}>
-                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '22px' }}>{valg.ikon}</span>
-                  </div>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: valgt ? 'var(--blue)' : 'var(--ink)' }}>Uten avatar</span>
-                  <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{valg.under}</span>
-                </button>
-              )
-            })}
+          </div>
+          {radKanScrolle && (
+            <button type="button" aria-label="Vis flere presentører"
+              onClick={() => presenterRowRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+              style={{
+                position: 'absolute', top: 0, right: 0, bottom: '4px', width: '56px',
+                border: 'none', cursor: 'pointer', padding: 0,
+                background: 'linear-gradient(to right, rgba(255,255,255,0), var(--surface) 75%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+              }}>
+              <span style={{
+                width: '28px', height: '28px', borderRadius: '50%', background: 'var(--surface)',
+                border: '1px solid var(--line)', boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '15px', color: 'var(--ink)', marginRight: '2px',
+              }}>›</span>
+            </button>
+          )}
           </div>
 
           {/* — Stemme — følger avataren, men kan overstyres for denne videoen — */}
