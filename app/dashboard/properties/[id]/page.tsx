@@ -971,7 +971,8 @@ export default function PropertyDetailPage() {
     if (typeof recipe.skipIntro === 'boolean') { setSkipIntro(recipe.skipIntro); setIntroTouched(true) } else { setIntroTouched(false) }
     if (typeof recipe.captions === 'boolean') { setCaptions(recipe.captions); setCaptionsTouched(true) } else { setCaptionsTouched(false) }
     setVoiceOff(recipe.voiceOff === true)
-    setNoAvatar(recipe.noAvatar === true)
+    setNoAvatar(recipe.noAvatar === true ||
+      (recipe.voiceOff === true && !(recipe.segments ?? []).some(x => x.type === 'avatar')))
     setCaptionStyle(recipe.captionStyle === 'elegant' || recipe.captionStyle === 'dynamisk' ? recipe.captionStyle : 'ren')
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
@@ -1287,7 +1288,8 @@ export default function PropertyDetailPage() {
     const utenIntro = introTouched ? skipIntro : portrait
     // Teksting: eksplisitt valg vinner; ellers på når videoen mangler presentør
     // — og ALLTID på når stemmen er av (teksten bærer da hele budskapet)
-    const medTeksting = captionsTouched ? captions : (voiceOff || !segments.some(s => s.type === 'avatar'))
+    // voiceOff tvinger teksting — også om brukeren tidligere har slaatt den av
+    const medTeksting = voiceOff ? true : (captionsTouched ? captions : !segments.some(s => s.type === 'avatar'))
     // dynamisk uten innlesing gir ikke mening — fall til ren
     const tekstStil = voiceOff && captionStyle === 'dynamisk' ? 'ren' : captionStyle
     if (!script || !effectiveVoiceId) {
@@ -3051,23 +3053,13 @@ export default function PropertyDetailPage() {
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '6px' }}>
                 <input
                   type="checkbox"
-                  checked={captionsTouched ? captions : !segments.some(s => s.type === 'avatar')}
+                  checked={voiceOff ? true : (captionsTouched ? captions : !segments.some(s => s.type === 'avatar'))}
+                  disabled={voiceOff}
                   onChange={e => { setCaptionsTouched(true); setCaptions(e.target.checked) }}
                   style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
                 />
                 <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
                   💬 Teksting på videoen <span style={{ color: 'var(--muted)' }}>{voiceOff ? '— manuset vises som tekst i videoen (stemmen er av, så teksten bærer budskapet)' : '— manuset vises mens det leses (anbefalt uten presentør; de fleste ser uten lyd)'}</span>
-                </span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '6px' }}>
-                <input
-                  type="checkbox"
-                  checked={voiceOff}
-                  onChange={e => setVoiceOff(e.target.checked)}
-                  style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
-                />
-                <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
-                  🔇 Uten innlesing <span style={{ color: 'var(--muted)' }}>— bare bilder, musikk og teksting (teksten bærer budskapet)</span>
                 </span>
               </label>
               {(captionsTouched ? captions : (voiceOff || !segments.some(s => s.type === 'avatar'))) && (
