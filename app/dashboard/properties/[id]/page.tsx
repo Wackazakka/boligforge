@@ -1413,10 +1413,12 @@ export default function PropertyDetailPage() {
         if (cardRes.ok) {
           const card = await cardRes.json()
           if (card.url) {
-            // baseImageUrl = det rene bildet — worker fader tittelen inn over det
+            // baseImageUrl = det rene bildet — worker fader tittelen inn over det.
+            // Varigheten foelger tittellengden (~14 tegn/s lesetempo) — fast 3,5 s
+            // ga ~2 s lesetid paa lange Finn-titler (Lars 31/8).
             introBaseImageUrl = introImageUrl
             introImageUrl = card.url
-            introDuration = 3.5
+            introDuration = Math.min(8, Math.max(3.5, 1.1 + property.title.length / 14))
           }
         }
       } catch { /* stille fallback til rent bilde */ }
