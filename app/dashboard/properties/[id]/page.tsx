@@ -360,6 +360,11 @@ export default function PropertyDetailPage() {
   // (SoMe-rytme), 16:9 beholder kryssfade + 2,2 s — men bare saa lenge brukeren
   // ikke selv har roert stil/varighet. Da vinner valget, ogsaa ved formatbytte.
   const [outroTuned, setOutroTuned] = useState(false)
+  // Formatbyttet justerer outroen automatisk, men outro-panelet ligger hoeyt
+  // oppe paa siden — et lite hint ved formatknappene sier fra (Lars 31/8).
+  const [formatHint, setFormatHint] = useState<string | null>(null)
+  const formatHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevFormatRef = useRef<'landscape' | 'portrait' | null>(null)
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string; own?: boolean }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [ambienceType, setAmbienceType] = useState<string>('none')
@@ -406,10 +411,19 @@ export default function PropertyDetailPage() {
     return () => window.removeEventListener('resize', oppdaterRadPil)
   })
   useEffect(() => {
+    const endret = prevFormatRef.current !== null && prevFormatRef.current !== outputFormat
+    prevFormatRef.current = outputFormat
     if (outroTuned) return
     setOutro(o => outputFormat === 'portrait'
       ? { ...o, durationPerImage: 4, style: 'motion' }
       : { ...o, durationPerImage: 2.2, style: 'fade' })
+    if (endret) {
+      setFormatHint(outputFormat === 'portrait'
+        ? 'Bildeserien til slutt byttet automatisk til Bevegelse (4 sek per bilde) — vanlig for høydeformat. Vil du heller ha noe annet, endrer du det under «Stil på bildeserien» lenger opp.'
+        : 'Bildeserien til slutt er tilbake på Kryssfade (2,2 sek per bilde).')
+      if (formatHintTimer.current) clearTimeout(formatHintTimer.current)
+      formatHintTimer.current = setTimeout(() => setFormatHint(null), 10000)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outputFormat])
   // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
@@ -3066,6 +3080,18 @@ export default function PropertyDetailPage() {
                   </button>
                 ))}
               </div>
+              {formatHint && (
+                <div style={{
+                  marginTop: '8px', padding: '8px 12px', borderRadius: '8px',
+                  background: 'var(--blue-soft)', border: '1px solid var(--blue)',
+                  fontSize: '12px', color: 'var(--ink)', display: 'flex', gap: '8px', alignItems: 'flex-start',
+                }}>
+                  <span>ℹ️</span>
+                  <span style={{ flex: 1 }}>{formatHint}</span>
+                  <button type="button" onClick={() => setFormatHint(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '13px', padding: 0, lineHeight: 1 }}>✕</button>
+                </div>
+              )}
               {/* SoMe-aapning (Nina 25/8): de foerste sekundene maa gaa rett paa
                   action. Uroert foelger valget formatet: 9:16 uten kort, 16:9 med. */}
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
