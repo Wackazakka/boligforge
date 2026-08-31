@@ -198,6 +198,8 @@ type VideoRecipe = {
   captionStyle?: 'ren' | 'elegant' | 'dynamisk'
   /** Ingen presentør — bare boligbilder (+ evt. stemme) */
   noAvatar?: boolean
+  /** Formatet videoen ble rendret i — styrer «lag motsatt format»-knappen */
+  format?: 'landscape' | 'portrait'
 }
 
 type Outro = {
@@ -376,6 +378,9 @@ export default function PropertyDetailPage() {
   // Format for hovedknappen: 16:9 (vanlig) eller 9:16 (mobil/Reels). 9:16 kan nå
   // lages direkte — ingen teknisk grunn til å måtte lage 16:9 først (Lars 21/8).
   const [outputFormat, setOutputFormat] = useState<'landscape' | 'portrait'>('landscape')
+  // Formatet paa videoen som NETTOPP ble laget — ferdigkortet skal tilby det
+  // MOTSATTE formatet, ikke det man allerede har (Lars 31/8).
+  const [lastVideoFormat, setLastVideoFormat] = useState<'landscape' | 'portrait'>('landscape')
   // «Start rett på innholdet»: dropp tittelkortet (Nina 25/8 — de første sekundene
   // i en SoMe-film må gå rett på action). Urørt følger valget formatet: 9:16
   // hopper over kortet, 16:9 beholder det. Rører brukeren boksen, vinner valget.
@@ -1355,6 +1360,7 @@ export default function PropertyDetailPage() {
     }
 
     setGeneratingVideo(true)
+    setLastVideoFormat(portrait ? 'portrait' : 'landscape')
     setError('')
     setVideoUrl(null)
     setStatusMsg('Sender til worker...')
@@ -1485,6 +1491,7 @@ export default function PropertyDetailPage() {
       captionStyle: tekstStil,
       voiceOff,
       noAvatar,
+      format: portrait ? 'portrait' as const : 'landscape' as const,
     }
 
     const body = segments.length > 0
@@ -3182,25 +3189,27 @@ export default function PropertyDetailPage() {
             <video src={videoUrl} controls onPlay={e => stopOtherMedia(e.currentTarget)} className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
-                onClick={() => downloadVideo(videoUrl, filnavnFor('16x9'))}
+                onClick={() => downloadVideo(videoUrl, filnavnFor(lastVideoFormat === 'portrait' ? '9x16' : '16x9'))}
                 className="app-btn-primary"
                 style={{ fontSize: '13px', padding: '8px 18px' }}
               >
                 ⬇ Last ned video
               </button>
-              {(['portrait', 'square'] as const).map(fmt => {
+              {(['motsatt', 'square'] as const).map(fmt => {
                 const key = `${videoUrl}|${fmt}`
+                // Tilby det MOTSATTE formatet av det som nettopp ble laget
+                const nyErPortrett = lastVideoFormat === 'portrait'
                 return (
                   <button
                     key={fmt}
-                    onClick={() => fmt === 'portrait' ? handleGenerateVideo('portrait') : convertAndDownload(videoUrl, fmt)}
-                    disabled={fmt === 'portrait' ? generatingVideo : convState[key] === 'jobber'}
+                    onClick={() => fmt === 'motsatt' ? handleGenerateVideo(nyErPortrett ? 'landscape' : 'portrait') : convertAndDownload(videoUrl, fmt)}
+                    disabled={fmt === 'motsatt' ? generatingVideo : convState[key] === 'jobber'}
                     className="app-btn-secondary"
                     style={{ fontSize: '13px', padding: '8px 18px' }}
-                    title={fmt === 'portrait' ? 'Rendrer videoen på nytt i ekte 9:16 — bildene fyller hele mobilskjermen' : 'Nedskalert med sorte felter — ingen beskjæring'}
+                    title={fmt === 'motsatt' ? (nyErPortrett ? 'Rendrer videoen på nytt i 16:9 — vanlig bredformat' : 'Rendrer videoen på nytt i ekte 9:16 — bildene fyller hele mobilskjermen') : 'Nedskalert med sorte felter — ingen beskjæring'}
                   >
-                    {fmt === 'portrait'
-                      ? '🎬 Lag 9:16-versjon (Reels)'
+                    {fmt === 'motsatt'
+                      ? (nyErPortrett ? '🎬 Lag 16:9-versjon' : '🎬 Lag 9:16-versjon (Reels)')
                       : convState[key] === 'jobber' ? '⏳ Konverterer…'
                       : convState[key] === 'feil' ? '↻ Prøv 1:1 igjen'
                       : '⬇ 1:1'}
@@ -3405,22 +3414,23 @@ export default function PropertyDetailPage() {
                   </div>
                   <video src={v.video_url} controls onPlay={e => stopOtherMedia(e.currentTarget)} className="rounded-lg" style={{ maxHeight: '70vh', maxWidth: '100%', width: 'auto', margin: '0 auto', display: 'block', background: '#000' }} />
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button onClick={() => downloadVideo(v.video_url, filnavnFor('16x9'))} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => downloadVideo(v.video_url, filnavnFor(v.recipe?.format === 'portrait' ? '9x16' : '16x9'))} className="text-sm" style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       ⬇ Last ned
                     </button>
-                    {(['portrait', 'square'] as const).map(fmt => {
+                    {(['motsatt', 'square'] as const).map(fmt => {
                       const key = `${v.video_url}|${fmt}`
+                      const vErPortrett = v.recipe?.format === 'portrait'
                       return (
                         <button
                           key={fmt}
-                          onClick={() => fmt === 'portrait' ? handleGenerateVideo('portrait') : convertAndDownload(v.video_url, fmt)}
-                          disabled={fmt === 'portrait' ? generatingVideo : convState[key] === 'jobber'}
+                          onClick={() => fmt === 'motsatt' ? handleGenerateVideo(vErPortrett ? 'landscape' : 'portrait') : convertAndDownload(v.video_url, fmt)}
+                          disabled={fmt === 'motsatt' ? generatingVideo : convState[key] === 'jobber'}
                           className="text-sm"
-                          style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: (fmt === 'portrait' ? generatingVideo : convState[key] === 'jobber') ? 0.6 : 1 }}
-                          title={fmt === 'portrait' ? 'Rendrer på nytt i ekte 9:16 fra gjeldende redigering' : 'Nedskalert med sorte felter — ingen beskjæring'}
+                          style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: (fmt === 'motsatt' ? generatingVideo : convState[key] === 'jobber') ? 0.6 : 1 }}
+                          title={fmt === 'motsatt' ? (vErPortrett ? 'Rendrer på nytt i 16:9 fra gjeldende redigering' : 'Rendrer på nytt i ekte 9:16 fra gjeldende redigering') : 'Nedskalert med sorte felter — ingen beskjæring'}
                         >
-                          {fmt === 'portrait'
-                            ? '🎬 9:16-versjon'
+                          {fmt === 'motsatt'
+                            ? (vErPortrett ? '🎬 16:9-versjon' : '🎬 9:16-versjon')
                             : convState[key] === 'jobber' ? '⏳ Konverterer…'
                             : convState[key] === 'feil' ? '↻ 1:1 igjen'
                             : '⬇ 1:1'}
