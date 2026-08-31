@@ -356,6 +356,10 @@ export default function PropertyDetailPage() {
   // 4-sekundere føltes stillestående). Eldre videoer beholder sitt eget valg
   // via recipe-hydreringen.
   const [outro, setOutro] = useState<Outro>({ images: [], musicUrl: '', durationPerImage: 2.2, style: 'fade' })
+  // Outro-standarder foelger formatet (Lars 31/8): 9:16 faar bevegelse + 4 s
+  // (SoMe-rytme), 16:9 beholder kryssfade + 2,2 s — men bare saa lenge brukeren
+  // ikke selv har roert stil/varighet. Da vinner valget, ogsaa ved formatbytte.
+  const [outroTuned, setOutroTuned] = useState(false)
   const [musicFiles, setMusicFiles] = useState<{ id: string; name: string; url: string; own?: boolean }[]>([])
   const [uploadingMusic, setUploadingMusic] = useState(false)
   const [ambienceType, setAmbienceType] = useState<string>('none')
@@ -401,6 +405,13 @@ export default function PropertyDetailPage() {
     window.addEventListener('resize', oppdaterRadPil)
     return () => window.removeEventListener('resize', oppdaterRadPil)
   })
+  useEffect(() => {
+    if (outroTuned) return
+    setOutro(o => outputFormat === 'portrait'
+      ? { ...o, durationPerImage: 4, style: 'motion' }
+      : { ...o, durationPerImage: 2.2, style: 'fade' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputFormat])
   // «Har brukeren selv rørt intro-valget?» MÅ være state, ikke ref: en ref-endring
   // utløser ikke ny opptegning, så et klikk som satte skipIntro til samme verdi
   // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
@@ -773,7 +784,10 @@ export default function PropertyDetailPage() {
     if (!script) return
     const newSegments = splitIntoSegments(script)
     setSegments(newSegments)
-    setOutro({ images: [], musicUrl: '', durationPerImage: 2.2, style: 'fade' })
+    setOutro(outputFormat === 'portrait'
+      ? { images: [], musicUrl: '', durationPerImage: 4, style: 'motion' }
+      : { images: [], musicUrl: '', durationPerImage: 2.2, style: 'fade' })
+    setOutroTuned(false)
     setOpenGalleryForSegment(null)
 
     const images = property?.images
@@ -959,7 +973,7 @@ export default function PropertyDetailPage() {
     setScript(recipe.script ?? '')
     if (recipe.scriptStyle) setScriptStyle(recipe.scriptStyle)
     setSegments((recipe.segments ?? []).map(s => ({ ...s, previewingAudio: false, previewAudioUrl: undefined })))
-    if (recipe.outro) setOutro(recipe.outro)
+    if (recipe.outro) { setOutro(recipe.outro); setOutroTuned(true) }
     if (recipe.ambienceType) setAmbienceType(recipe.ambienceType as typeof ambienceType)
     setSelectedAvatarUrl(recipe.selectedAvatarUrl ?? '')
     setVoiceOverride(recipe.voiceOverride ?? '')
@@ -2774,7 +2788,7 @@ export default function PropertyDetailPage() {
                     <input
                       type="range" min={0.2} max={10} step={0.1}
                       value={outro.durationPerImage}
-                      onChange={e => setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) }))}
+                      onChange={e => { setOutroTuned(true); setOutro(o => ({ ...o, durationPerImage: Number(e.target.value) })) }}
                       className="flex-1"
                     />
                     <span className="text-xs w-14 text-right" style={{ color: 'var(--ink-2)' }}>
@@ -2811,7 +2825,7 @@ export default function PropertyDetailPage() {
                         return (
                         <button
                           key={val}
-                          onClick={() => setOutro(o => ({ ...o, style: val }))}
+                          onClick={() => { setOutroTuned(true); setOutro(o => ({ ...o, style: val })) }}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium"
                           style={{
                             background: active ? 'var(--gold)' : 'var(--surface)',
@@ -2827,7 +2841,7 @@ export default function PropertyDetailPage() {
                         {([['subtle', 'Subtil'], ['medium', 'Middels'], ['strong', 'Sterk']] as const).map(([val, label]) => (
                           <button
                             key={val}
-                            onClick={() => setOutro(o => ({ ...o, motionStrength: val }))}
+                            onClick={() => { setOutroTuned(true); setOutro(o => ({ ...o, motionStrength: val })) }}
                             className="px-2.5 py-1 rounded-lg text-xs font-medium"
                             style={{
                               background: (outro.motionStrength ?? 'medium') === val ? 'var(--gold)' : 'var(--surface)',
