@@ -3135,7 +3135,11 @@ export default function PropertyDetailPage() {
                         type="button"
                         disabled={sperret}
                         onClick={() => setCaptionStyle(val)}
-                        title={sperret ? 'Dynamisk følger talerytmen og krever innlesing' : undefined}
+                        title={sperret ? 'Dynamisk følger talerytmen og krever innlesing' : {
+                          ren: 'Tydelig hvit tekst på diskré mørk plate — nøytral og lettlest',
+                          elegant: 'Serif-typografi som toner mykt inn og ut — eksklusivt uttrykk',
+                          dynamisk: 'Korte ordgrupper i takt med innlesingen, tall og pris i gull — energisk SoMe-stil',
+                        }[val]}
                         className="px-3 py-1 rounded-lg text-xs font-medium"
                         style={{
                           background: captionStyle === val && !sperret ? 'var(--gold)' : 'var(--surface)',
