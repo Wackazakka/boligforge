@@ -1236,13 +1236,25 @@ export default function PropertyDetailPage() {
         if (data.status === 'unknown') {
           unknownCount++
           // Behold spinneren; si tydelig at det fortsatt bygges (workeren er bare opptatt).
-          setStatusMsg('Bygger videoen …')
-          if (unknownCount >= 60) {   // ~mange minutter med tot: workeren er nok nede
+          // Store jobber (mange segmenter + bevegelse + outro) kan blokkere workeren
+          // i 5–10 min sammenhengende — 3 min-terskelen ropte ulv midt i normal
+          // rendering (Lars 31/8). Nå: berolige underveis, og først etter ~15 min
+          // UTEN livstegn gir vi opp — etter å ha sjekket lista en siste gang
+          // (var jobben ferdig i stillheten, dukker videoen opp av seg selv).
+          setStatusMsg(unknownCount > 20
+            ? 'Bygger videoen … Store jobber kan ta flere minutter — helt trygt å vente.'
+            : 'Bygger videoen …')
+          if (unknownCount >= 300) {   // ~15 min sammenhengende taushet: workeren er nok nede
             clearInterval(pollRef.current!)
             pollRef.current = null
             setGeneratingVideo(false)
             setActiveJobId(null)
             setStatusMsg('')
+            const d = await fetch(`/api/properties/videos?propertyId=${id}`).then(r => r.json()).catch(() => null)
+            if (Array.isArray(d)) {
+              setPastVideos(d)
+              if (d.some((v: { id: string; video_url: string }) => v.id === jobId && v.video_url)) return  // den BLE ferdig — ligger i lista
+            }
             setError('Videoen tar uvanlig lang tid. Last siden på nytt om litt — er den ferdig, dukker den opp i listen under.')
           }
           return
