@@ -3154,6 +3154,19 @@ export default function PropertyDetailPage() {
               )}
             </div>
           )}
+          {/* Talemanus i stumt spor: tall staar som uttale-ord («tre hundre-og-åtti»)
+              — i stumt spor ER teksten visningen. Bindestreks-sammensetningene
+              er signaturen til tallformattereren vaar (Lars 31/8). */}
+          {voiceOff && /\S-og-\S/.test(script) && (
+            <div style={{
+              marginBottom: '10px', padding: '8px 12px', borderRadius: '8px',
+              background: 'rgba(212,175,55,0.12)', border: '1px solid var(--gold)',
+              fontSize: '12px', color: 'var(--ink)',
+            }}>
+              ⚠️ Manuset har tall skrevet som ord («tre hundre-og-åtti») — det er laget for opplesing.
+              Uten stemme vises teksten i videoen: trykk <strong>«Generer manus»</strong> på nytt, så skrives tallene som sifre (380, 1982).
+            </div>
+          )}
           <button
             onClick={() => handleGenerateVideo()}
             disabled={generatingVideo || !script || (segments.length === 0 && selectedVideoImages.length === 0)}
