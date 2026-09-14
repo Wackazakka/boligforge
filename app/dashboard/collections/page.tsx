@@ -20,6 +20,17 @@ interface Video {
   has_recipe?: boolean   // oppskrift lagret → «Rediger» kan gjenåpne redigeringen
 }
 
+// Ett innslag per kanal i resultatvisningen etter «Publiser naa».
+// pending = Instagram-container opprettet, videoen prosesseres hos Meta;
+// publicationId peker paa raden i reelhome_publications som klienten poller.
+type PublishResultRow = {
+  pageName: string
+  success: boolean
+  error?: string
+  pending?: boolean
+  publicationId?: string
+}
+
 type SocialConnection = {
   id: string
   platform: string
@@ -48,7 +59,7 @@ export default function CollectionsPage() {
   const [publishSelected,    setPublishSelected]    = useState<Set<string>>(new Set())
   const [publishCaption,     setPublishCaption]     = useState('')
   const [publishLoading,     setPublishLoading]     = useState(false)
-  const [publishResults,     setPublishResults]     = useState<{ pageName: string; success: boolean; error?: string }[] | null>(null)
+  const [publishResults,     setPublishResults]     = useState<PublishResultRow[] | null>(null)
   const [publishMode,        setPublishMode]        = useState<'now' | 'schedule'>('now')
   const [scheduledAt,        setScheduledAt]        = useState('')
   const [scheduleDone,       setScheduleDone]       = useState<string | null>(null)
@@ -125,7 +136,11 @@ export default function CollectionsPage() {
         const conns: SocialConnection[] = await res.json()
         setPublishConnections(conns)
         const valid = conns.filter(c => !c.token_expires_at || new Date(c.token_expires_at) > new Date())
-        setPublishSelected(new Set(valid.map(c => c.id)))
+        // Forhaandsvelg bare naar valget er opplagt (en side, ev. med sin
+        // Instagram-konto). Med mange sider var ALT huket av, og megleren
+        // maatte fjerne tolv haker for aa ikke sende boligvideoen til alle
+        // sidene sine paa en gang (screencast 14/9).
+        setPublishSelected(new Set(valid.length <= 2 ? valid.map(c => c.id) : []))
       }
     } finally {
       setPublishLoading(false)
@@ -148,10 +163,47 @@ export default function CollectionsPage() {
         }),
       })
       const data = await res.json()
-      if (data.results) setPublishResults(data.results)
+      if (data.results) {
+        setPublishResults(data.results)
+        // Instagram svarer «pending»: containeren er opprettet, men videoen
+        // prosesseres fortsatt hos Meta (30-60 s). Vi spoer serveren til alt
+        // er avgjort, saa megleren faar en ekte bekreftelse -- foer ventet
+        // API-et selv, Netlify kuttet svaret etter 26 s, og knappen bare
+        // nullstilte seg mens innlegget likevel gikk ut.
+        const ventende = (data.results as PublishResultRow[])
+          .filter(r => r.pending && r.publicationId)
+          .map(r => r.publicationId as string)
+        if (ventende.length) void pollPending(ventende)
+      }
     } finally {
       setPublishLoading(false)
     }
+  }
+
+  async function pollPending(ids: string[]) {
+    for (let i = 0; i < 48; i++) {
+      await new Promise(r => setTimeout(r, 5000))
+      let statuser: { id: string; status: string; error?: string | null }[]
+      try {
+        const res = await fetch(`/api/social/publish/status?ids=${ids.join(',')}`)
+        if (!res.ok) continue
+        statuser = (await res.json()).results ?? []
+      } catch {
+        continue
+      }
+      setPublishResults(prev => prev?.map(r => {
+        const s = statuser.find(x => x.id === r.publicationId)
+        if (!s || s.status === 'processing') return r
+        return { ...r, pending: false, success: s.status === 'published', error: s.error ?? undefined }
+      }) ?? prev)
+      if (statuser.length && statuser.every(s => s.status !== 'processing')) return
+    }
+    // Fire minutter uten avgjoerelse. Cronen fullfoerer raden i bakgrunnen,
+    // men her og naa kan vi ikke love noe.
+    setPublishResults(prev => prev?.map(r => r.pending
+      ? { ...r, pending: false, success: false, error: 'Instagram svarte ikke innen fire minutter. Sjekk kontoen — innlegget kan likevel ha gått ut.' }
+      : r
+    ) ?? prev)
   }
 
   async function handleSchedule() {
@@ -417,24 +469,35 @@ export default function CollectionsPage() {
             publishResults ? (
               <div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-                  {publishResults.map((r, i) => (
+                  {publishResults.map((r, i) => {
+                    // Tre tilstander: gronn = publisert, gul = Instagram
+                    // prosesserer fortsatt (klienten poller), rod = feilet.
+                    const bg     = r.pending ? '#fef3c7' : r.success ? '#dcfce7' : '#fee2e2'
+                    const kant   = r.pending ? '#fcd34d' : r.success ? '#86efac' : '#fca5a5'
+                    const tekst  = r.pending ? '#92400e' : r.success ? '#166534' : '#991b1b'
+                    const ikon   = r.pending ? '⏳' : r.success ? '✓' : '✗'
+                    return (
                     <div key={i} style={{
                       display: 'flex', alignItems: 'center', gap: '10px',
                       padding: '10px 14px', borderRadius: '8px',
-                      background: r.success ? '#dcfce7' : '#fee2e2',
-                      border: `1px solid ${r.success ? '#86efac' : '#fca5a5'}`,
+                      background: bg,
+                      border: `1px solid ${kant}`,
                     }}>
-                      <span style={{ fontSize: '16px' }}>{r.success ? '✓' : '✗'}</span>
+                      <span style={{ fontSize: '16px' }}>{ikon}</span>
                       <div>
-                        <p style={{ fontSize: '14px', fontWeight: 500, color: r.success ? '#166534' : '#991b1b', margin: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 500, color: tekst, margin: 0 }}>
                           {r.pageName}
                         </p>
-                        {!r.success && r.error && (
+                        {r.pending && (
+                          <p style={{ fontSize: '12px', color: tekst, margin: 0 }}>Instagram behandler videoen — tar vanligvis under ett minutt</p>
+                        )}
+                        {!r.pending && !r.success && r.error && (
                           <p style={{ fontSize: '12px', color: '#991b1b', margin: 0 }}>{r.error}</p>
                         )}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 <button
                   onClick={() => setPublishModalUrl(null)}

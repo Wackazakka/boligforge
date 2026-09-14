@@ -18,7 +18,16 @@ type PublishResult = {
   success: boolean
   postId?: string
   error?: string
+  // Instagram: containeren er opprettet, men Meta er ikke ferdig med aa
+  // prosessere videoen. Raden i reelhome_publications staar som 'processing'
+  // og fullfoeres av finishPendingPublications (klient-polling eller cron).
+  pending?: boolean
+  publicationId?: string
 }
+
+// Hvor lenge en Instagram-container faar staa som 'processing' foer vi gir
+// opp. Meta bruker normalt 30-60 s; en time betyr at noe har gaatt galt.
+const PROSESSERING_MAKS_MS = 60 * 60 * 1000
 
 type Connection = {
   id: string
@@ -74,7 +83,43 @@ export async function publishVideoToConnections(opts: {
       if (conn.platform === 'facebook') {
         result = await publishToFacebook(conn.page_id, conn.access_token, hentbarUrl, fullCaption)
       } else if (conn.platform === 'instagram') {
-        result = await publishToInstagram(conn.page_id, conn.access_token, hentbarUrl, fullCaption)
+        // Instagram bruker 30-60 s paa aa prosessere en video, og Netlify
+        // kutter API-svaret etter 26 s. Foer ventet vi her -- gatewayen ga
+        // opp, klienten fikk aldri noe svar, og dialogen nullstilte seg uten
+        // bekreftelse mens innlegget likevel gikk ut (screencast-take 4,
+        // 14/9). Naa oppretter vi bare containeren og svarer med en gang;
+        // fullfoeringen skjer i finishPendingPublications.
+        const start = await startInstagram(conn.page_id, conn.access_token, hentbarUrl, fullCaption)
+        if (start.containerId) {
+          const { data: row, error: logErr } = await supabase
+            .from('reelhome_publications')
+            .insert({
+              user_id:       userId,
+              property_id:   propertyId,
+              connection_id: conn.id,
+              platform:      conn.platform,
+              page_name:     conn.page_name,
+              caption:       fullCaption,
+              video_url:     videoUrl,
+              // Container-id-en laaner post_id til publiseringen er ferdig;
+              // da byttes den ut med det ekte innleggets id.
+              post_id:       start.containerId,
+              status:        'processing',
+              error:         null,
+            })
+            .select('id')
+            .single()
+          if (logErr) console.error('[publish] kunne ikke logge instagram-container:', logErr.message)
+          return {
+            connectionId:  conn.id,
+            platform:      conn.platform,
+            pageName:      conn.page_name,
+            success:       false,
+            pending:       true,
+            publicationId: row?.id,
+          }
+        }
+        result = { success: false, error: start.error }
       } else if (conn.platform === 'linkedin') {
         result = await publishToLinkedIn(conn.page_id, conn.access_token, videoUrl, fullCaption)
       } else {
@@ -110,14 +155,65 @@ export async function publishVideoToConnections(opts: {
   return results
 }
 
-async function publishToInstagram(
+/**
+ * Fullfoerer Instagram-publiseringer som staar som 'processing': sjekker
+ * containerens status hos Meta EN gang per rad og publiserer hvis den er
+ * FINISHED. Ingen venting her -- kalleren (klientens polling eller cronen)
+ * kommer tilbake. Rader som har staatt for lenge markeres som feilet.
+ */
+export async function finishPendingPublications(
+  supabase: ReturnType<typeof getServiceClient>,
+  filter: { userId?: string; ids?: string[] }
+): Promise<{ id: string; pageName: string; status: 'processing' | 'published' | 'failed'; postId?: string; error?: string }[]> {
+  let query = supabase
+    .from('reelhome_publications')
+    .select('id, user_id, connection_id, page_name, post_id, created_at')
+    .eq('status', 'processing')
+    .eq('platform', 'instagram')
+  if (filter.userId) query = query.eq('user_id', filter.userId)
+  if (filter.ids && filter.ids.length > 0) query = query.in('id', filter.ids)
+  const { data: rows, error } = await query
+  if (error) {
+    console.error('[publish] kunne ikke hente ventende publiseringer:', error.message)
+    return []
+  }
+
+  const out: { id: string; pageName: string; status: 'processing' | 'published' | 'failed'; postId?: string; error?: string }[] = []
+  for (const row of rows ?? []) {
+    const { data: conn } = await supabase
+      .from('social_connections')
+      .select('page_id, access_token')
+      .eq('id', row.connection_id)
+      .maybeSingle()
+
+    let res: { status: 'processing' | 'published' | 'failed'; postId?: string; error?: string }
+    if (!conn || !row.post_id) {
+      res = { status: 'failed', error: 'Tilkoblingen finnes ikke lenger' }
+    } else {
+      res = await finishInstagram(conn.page_id, conn.access_token, row.post_id)
+    }
+    if (res.status === 'processing' && Date.now() - new Date(row.created_at).getTime() > PROSESSERING_MAKS_MS) {
+      res = { status: 'failed', error: 'Timeout: Instagram ble ikke ferdig med videoen innen en time' }
+    }
+    if (res.status !== 'processing') {
+      const { error: updErr } = await supabase
+        .from('reelhome_publications')
+        .update({ status: res.status, post_id: res.postId ?? null, error: res.error ?? null })
+        .eq('id', row.id)
+      if (updErr) console.error('[publish] kunne ikke oppdatere publisering:', updErr.message)
+    }
+    out.push({ id: row.id, pageName: row.page_name, ...res })
+  }
+  return out
+}
+
+async function startInstagram(
   igUserId: string,
   accessToken: string,
   videoUrl: string,
   caption: string
-): Promise<{ success: boolean; postId?: string; error?: string }> {
+): Promise<{ containerId?: string; error?: string }> {
   try {
-    // Step 1: Create media container
     const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -131,30 +227,34 @@ async function publishToInstagram(
     const containerData = await containerRes.json()
     if (containerData.error || !containerData.id) {
       console.error('[publish/instagram] Container error:', containerData.error)
-      return { success: false, error: containerData.error?.message ?? 'Kunne ikke opprette container' }
+      return { error: containerData.error?.message ?? 'Kunne ikke opprette container' }
     }
-    const containerId = containerData.id
+    return { containerId: containerData.id }
+  } catch (err) {
+    console.error('[publish/instagram] Exception:', err)
+    return { error: String(err) }
+  }
+}
 
-    // Step 2: Poll until container status is FINISHED (max 90s)
-    const deadline = Date.now() + 90_000
-    let status = ''
-    while (Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 5000))
-      const statusRes = await fetch(
-        `https://graph.facebook.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
-      )
-      const statusData = await statusRes.json()
-      status = statusData.status_code ?? ''
-      if (status === 'FINISHED') break
-      if (status === 'ERROR' || status === 'EXPIRED') {
-        return { success: false, error: `Video-prosessering feilet: ${status}` }
-      }
+async function finishInstagram(
+  igUserId: string,
+  accessToken: string,
+  containerId: string
+): Promise<{ status: 'processing' | 'published' | 'failed'; postId?: string; error?: string }> {
+  try {
+    const statusRes = await fetch(
+      `https://graph.facebook.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
+    )
+    const statusData = await statusRes.json()
+    if (statusData.error) {
+      return { status: 'failed', error: statusData.error.message ?? 'Kunne ikke lese container-status' }
     }
-    if (status !== 'FINISHED') {
-      return { success: false, error: 'Timeout: video-prosessering tok for lang tid' }
+    const code: string = statusData.status_code ?? ''
+    if (code === 'ERROR' || code === 'EXPIRED') {
+      return { status: 'failed', error: `Video-prosessering feilet: ${code}` }
     }
+    if (code !== 'FINISHED') return { status: 'processing' }
 
-    // Step 3: Publish container
     const publishRes = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -163,12 +263,12 @@ async function publishToInstagram(
     const publishData = await publishRes.json()
     if (publishData.error) {
       console.error('[publish/instagram] Publish error:', publishData.error)
-      return { success: false, error: publishData.error.message ?? 'Publisering feilet' }
+      return { status: 'failed', error: publishData.error.message ?? 'Publisering feilet' }
     }
-    return { success: true, postId: publishData.id }
+    return { status: 'published', postId: publishData.id }
   } catch (err) {
     console.error('[publish/instagram] Exception:', err)
-    return { success: false, error: String(err) }
+    return { status: 'failed', error: String(err) }
   }
 }
 

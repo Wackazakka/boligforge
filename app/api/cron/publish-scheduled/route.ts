@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { publishVideoToConnections } from '../../social/publish/route'
+import { publishVideoToConnections, finishPendingPublications } from '../../social/publish/route'
 
 function getServiceClient() {
   return createClient(
@@ -62,6 +62,17 @@ async function runCron(request: Request) {
 
   const supabase = getServiceClient()
 
+  // Instagram-publiseringer som staar som 'processing' (containeren er
+  // opprettet, videoen prosesseres hos Meta) fullfoeres her -- ogsaa de der
+  // megleren lukket dialogen foer klienten rakk aa polle ferdig. Sjekkes foer
+  // de planlagte postene, saa ingen rad blir hengende til neste kjoering.
+  try {
+    const fullfoert = await finishPendingPublications(supabase, {})
+    if (fullfoert.length) console.log('[cron] ventende instagram-publiseringer:', JSON.stringify(fullfoert))
+  } catch (err) {
+    console.error('[cron] kunne ikke fullfoere ventende publiseringer:', err)
+  }
+
   const { data: due, error } = await supabase
     .from('reelhome_scheduled_publications')
     .select('id, user_id, property_id, video_url, caption, connection_ids, scheduled_at')
@@ -115,7 +126,9 @@ async function runCron(request: Request) {
         propertyId: post.property_id,
       })
 
-      const success = pubResults.every(r => r.success)
+      // «pending» = Instagram-container opprettet; sluttresultatet ligger i
+      // reelhome_publications og fullfoeres av neste kjoering.
+      const success = pubResults.every(r => r.success || r.pending)
       if (!success) {
         console.error(`[cron] Post ${post.id} had failures:`, JSON.stringify(pubResults))
       }
