@@ -108,6 +108,28 @@ export async function GET(request: Request) {
       console.warn('[fb/callback] business-portfolio page enumeration skipped:', e)
     }
 
+    // (c) «Opt in to current Pages only». Velger brukeren det snevre samtykket
+    // i stedet for «all current and future Pages», returnerer /me/accounts en
+    // TOM liste — sidene ligger bare bak /me?fields=accounts{...}. Kilde (b)
+    // redder ikke dette for en ekstern bruker: den krever business_management,
+    // som har Standard access og derfor bare virker for app-roller.
+    // Uten denne kilden fikk en personvernbevisst bruker «no_pages» og kom
+    // aldri videre — og Metas reviewer er nettopp den brukeren. Samme feil
+    // stoppet ContentForge under opptak 1/9 (commit 9b14dd6).
+    if (pageMap.size === 0) {
+      try {
+        const meRes = await fetch(
+          `https://graph.facebook.com/v21.0/me?fields=accounts{id,name,access_token}&access_token=${longToken}`
+        )
+        const meJson: { accounts?: PagedPages } = await meRes.json()
+        for (const p of (meJson.accounts?.data ?? [])) {
+          if (p.id && p.access_token) pageMap.set(p.id, { id: p.id, name: p.name ?? p.id, access_token: p.access_token })
+        }
+      } catch (e) {
+        console.warn('[fb/callback] /me?fields=accounts fallback skipped:', e)
+      }
+    }
+
     const pages: Page[] = Array.from(pageMap.values())
 
     if (pages.length === 0) {
