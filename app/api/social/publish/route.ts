@@ -402,7 +402,9 @@ export async function POST(request: Request) {
     propertyId:  property_id,
   })
 
-  const allOk = results.every(r => r.success)
+  // «pending» er ikke en feil: Instagram-containeren er opprettet, og
+  // resultatet kommer via /api/social/publish/status.
+  const allOk = results.every(r => r.success || r.pending)
 
   // Historikk logges allerede til reelhome_publications inne i publishVideoToConnections.
   // (scheduled_publications er kun for FREMTIDIGE planlagte poster — umiddelbare publiseringer
