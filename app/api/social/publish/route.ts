@@ -196,11 +196,33 @@ export async function finishPendingPublications(
       res = { status: 'failed', error: 'Timeout: Instagram ble ikke ferdig med videoen innen en time' }
     }
     if (res.status !== 'processing') {
-      const { error: updErr } = await supabase
+      // Klientens polling (hvert 5. s) og cronen kan se FINISHED samtidig og
+      // begge kalle media_publish. Meta avviser det andre kallet -- men uten
+      // vilkaaret under ville taperens feil overskrevet vinnerens
+      // 'published'. Bare en rad som fortsatt staar som 'processing' faar
+      // nytt utfall; taperen rapporterer det som faktisk staar i basen.
+      const { data: updated, error: updErr } = await supabase
         .from('reelhome_publications')
         .update({ status: res.status, post_id: res.postId ?? null, error: res.error ?? null })
         .eq('id', row.id)
+        .eq('status', 'processing')
+        .select('id')
+        .maybeSingle()
       if (updErr) console.error('[publish] kunne ikke oppdatere publisering:', updErr.message)
+      if (!updated) {
+        const { data: current } = await supabase
+          .from('reelhome_publications')
+          .select('status, post_id, error')
+          .eq('id', row.id)
+          .maybeSingle()
+        if (current && current.status !== 'processing') {
+          res = {
+            status: current.status as 'published' | 'failed',
+            postId: current.post_id ?? undefined,
+            error:  current.error ?? undefined,
+          }
+        }
+      }
     }
     out.push({ id: row.id, pageName: row.page_name, ...res })
   }
