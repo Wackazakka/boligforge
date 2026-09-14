@@ -105,11 +105,14 @@ export default function CollectionsPage() {
     if (selected?.id === col.id) { setSelected(null); setVideos([]) }
   }
 
-  async function openPublishModal(url: string, propertyId: string | null = null) {
+  async function openPublishModal(url: string, propertyId: string | null = null, address: string | null = null) {
     setPublishModalUrl(url)
     setPublishPropertyId(propertyId)
     setPublishResults(null)
-    setPublishCaption('')
+    // Forhåndsfyll med adressen. Feltet ligger under hele kanallista og ble
+    // oversett to ganger på rad (14/9) — innlegget gikk ut uten tekst. En
+    // boligvideo uten adresse er dessuten et dårlig innlegg uansett.
+    setPublishCaption(address?.trim() || '')
     setPublishSelected(new Set())
     setPublishMode('now')
     setScheduledAt('')
@@ -334,7 +337,7 @@ export default function CollectionsPage() {
                             Last ned
                           </button>
                           <button
-                            onClick={() => openPublishModal(v.video_url, v.property_id)}
+                            onClick={() => openPublishModal(v.video_url, v.property_id, v.address ?? null)}
                             style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                           >
                             📤 Publiser
