@@ -531,7 +531,9 @@ export default function CollectionsPage() {
                             {conn.page_name}
                           </p>
                           <p style={{ fontSize: '11px', color: expired ? '#ef4444' : 'var(--muted)', margin: 0 }}>
-                            {conn.platform === 'facebook' ? 'Facebook' : 'LinkedIn'}
+                            {/* Instagram-kanalene sto merket «LinkedIn» — alt som ikke var
+                                Facebook falt i samme bøtte. Kostet en screencast-take 14/9. */}
+                            {conn.platform === 'facebook' ? 'Facebook' : conn.platform === 'instagram' ? 'Instagram' : 'LinkedIn'}
                             {expired ? ' · Token utløpt' : ''}
                           </p>
                         </div>
