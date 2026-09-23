@@ -600,9 +600,12 @@ export default function PropertyDetailPage() {
       if (res.ok) {
         const conns: SocialConnection[] = await res.json()
         setPublishConnections(conns)
-        // Pre-select all non-expired connections
         const valid = conns.filter(c => !c.token_expires_at || new Date(c.token_expires_at) > new Date())
-        setPublishSelected(new Set(valid.map(c => c.id)))
+        // Forhaandsvelg bare naar valget er opplagt (en side, ev. med sin
+        // Instagram-konto). Med mange sider var ALT huket av, og megleren
+        // maatte fjerne tolv haker for aa ikke sende boligvideoen til alle
+        // sidene sine paa en gang. Samme regel som i Mapper.
+        setPublishSelected(new Set(valid.length <= 2 ? valid.map(c => c.id) : []))
       }
     } finally {
       setPublishLoading(false)
