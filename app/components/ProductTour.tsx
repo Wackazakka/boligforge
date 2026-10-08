@@ -60,6 +60,8 @@ export function hentTourState(): Promise<TourState> {
   return statePromise
 }
 
+let skriveKoe: Promise<unknown> = Promise.resolve()
+
 function lagreTourState(patch: { av?: boolean; sett?: string; nullstill?: boolean }) {
   // Oppdater den lokale kopien foerst, saa samme sidelast ikke viser den igjen
   statePromise = hentTourState().then(s => {
@@ -69,14 +71,19 @@ function lagreTourState(patch: { av?: boolean; sett?: string; nullstill?: boolea
     if (patch.sett) neste.sett = Array.from(new Set([...(neste.sett ?? []), patch.sett]))
     return neste
   })
+  // EN skriving om gangen. Ruta gjoer les-flett-skriv, saa to samtidige PUT-er
+  // (f.eks. «nullstill» + «av: false» fra Hjelp-siden) overskrev hverandre -
+  // maalt i prod 8/10: sett ble tomt, men av ble staaende paa true.
   // keepalive: «sett» skrives idet brukeren lukker boblen og ofte navigerer
   // videre i samme sekund - kallet skal overleve sidebyttet.
-  fetch('/api/profile/tour-state', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(patch),
-    keepalive: true,
-  }).catch(() => { /* reserve = localStorage */ })
+  skriveKoe = skriveKoe
+    .then(() => fetch('/api/profile/tour-state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+      keepalive: true,
+    }))
+    .catch(() => { /* reserve = localStorage */ })
 }
 
 function medFrist<T>(p: Promise<T>, ms: number, reserve: T): Promise<T> {
