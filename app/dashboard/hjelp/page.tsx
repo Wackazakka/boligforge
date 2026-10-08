@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { settTurerAv, turerErAv } from '@/app/components/ProductTour'
+import { settTurerAv, turerErAv, nettleserTurerErAv, settNettleserTurerAv, nullstillSetteTurer } from '@/app/components/ProductTour'
 
 /**
  * Hjelpesenteret. Produktturene er rene handlingslister («gjør dette nå») —
@@ -237,7 +237,11 @@ export default function HelpPage() {
   const [open, setOpen] = useState<string | null>(null)
   const [toursReset, setToursReset] = useState(false)
   const [turerAv, setTurerAv] = useState(false)
-  useEffect(() => { void turerErAv().then(setTurerAv) }, [])
+  const [nettleserAv, setNettleserAv] = useState(false)
+  useEffect(() => {
+    setNettleserAv(nettleserTurerErAv())
+    void turerErAv().then(setTurerAv)
+  }, [])
 
   const needle = q.trim().toLowerCase()
   const sections = useMemo(() => {
@@ -256,9 +260,14 @@ export default function HelpPage() {
         .filter(k => k.startsWith(TOUR_KEY_PREFIX))
         .forEach(k => window.localStorage.removeItem(k))
     } catch { /* ignore */ }
-    // Aa «vise paa nytt» mens de er skrudd av ville ikke gjort noe synlig.
+    // Kontoen husker ogsaa hva som er sett - glem det der ogsaa.
+    nullstillSetteTurer()
+    // Aa «vise paa nytt» mens de er skrudd av ville ikke gjort noe synlig -
+    // verken konto-bryteren eller nettleser-bryteren.
     void settTurerAv(false)
     setTurerAv(false)
+    settNettleserTurerAv(false)
+    setNettleserAv(false)
     setToursReset(true)
   }
 
@@ -324,6 +333,7 @@ export default function HelpPage() {
         <h2 className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>Gjennomgangene på sidene</h2>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
           Første gang du er innom en side, viser ReelHome en kort gjennomgang som peker på hva du skal gjøre.
+          Hva du har sett, og om du har skrudd dem av, følger kontoen din — også på andre maskiner og nettlesere.
           Vil du se dem igjen, nullstiller du dem her — så dukker de opp neste gang du besøker hver side.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -340,6 +350,20 @@ export default function HelpPage() {
             Ikke vis gjennomganger
           </label>
         </div>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={nettleserAv}
+            onChange={e => { setNettleserAv(e.target.checked); settNettleserTurerAv(e.target.checked); if (e.target.checked) setToursReset(false) }}
+            style={{ width: 16, height: 16, accentColor: 'var(--gold)', marginTop: 2 }}
+          />
+          <span>
+            Aldri vis gjennomganger i denne nettleseren
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)' }}>
+              Gjelder alle kontoer du logger inn på herfra — for deg som bytter mellom flere kontoer. Andre maskiner påvirkes ikke.
+            </span>
+          </span>
+        </label>
       </section>
     </div>
   )

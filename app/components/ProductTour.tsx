@@ -33,13 +33,80 @@ export const TOUR_KEY_PREFIX = 'rh_tour_'
  *  Brukerbundet, som «sett»-flagget - en delt kontor-PC skal ikke arve valget. */
 const AV_KEY = 'rh_tours_av'
 
+/** Av for ALLE kontoer i denne nettleseren - bevisst IKKE brukerbundet. For den
+ *  som logger inn paa mange kontoer i samme nettleser (Lars paa testkontoer,
+ *  8/10): hver konto starter ellers fra null. Nye meglere paa egne maskiner
+ *  roeres ikke. Noekkelen starter med «rh_tours», ikke «rh_tour_», saa
+ *  nullstillingen paa Hjelp-siden (prefiks) tar den ikke med ved et uhell. */
+const NETTLESER_AV_KEY = 'rh_tours_av_nettleser'
+
+// --- Tilstand lagret PAA KONTOEN (profiles.tour_state via /api/profile/tour-state)
+//
+// localStorage alene ga gjennomgangene tilbake paa hver ny maskin og nettleser
+// (Nina mellom PC og telefon, 8/10). Kontoen er sannheten; localStorage er
+// den raske reserven som svarer foer nettet. Hentes EN gang per sidelast, og
+// hentingen starter idet ProductTour monteres - saa svaret som regel er der
+// foer ankeret finnes i DOM-en. Vi venter maks 2 s paa det: aa gate touren paa
+// et kaldt API-svar ga 3-4 s forsinkelse sist (maalt 8/8).
+type TourState = { av?: boolean; sett?: string[] }
+let statePromise: Promise<TourState> | null = null
+
+export function hentTourState(): Promise<TourState> {
+  if (!statePromise) {
+    statePromise = fetch('/api/profile/tour-state', { cache: 'no-store' })
+      .then(r => (r.ok ? (r.json() as Promise<TourState>) : {}))
+      .catch(() => ({}))
+  }
+  return statePromise
+}
+
+function lagreTourState(patch: { av?: boolean; sett?: string; nullstill?: boolean }) {
+  // Oppdater den lokale kopien foerst, saa samme sidelast ikke viser den igjen
+  statePromise = hentTourState().then(s => {
+    const neste: TourState = { ...s }
+    if (patch.av !== undefined) neste.av = patch.av
+    if (patch.nullstill) neste.sett = []
+    if (patch.sett) neste.sett = Array.from(new Set([...(neste.sett ?? []), patch.sett]))
+    return neste
+  })
+  // keepalive: «sett» skrives idet brukeren lukker boblen og ofte navigerer
+  // videre i samme sekund - kallet skal overleve sidebyttet.
+  fetch('/api/profile/tour-state', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+    keepalive: true,
+  }).catch(() => { /* reserve = localStorage */ })
+}
+
+function medFrist<T>(p: Promise<T>, ms: number, reserve: T): Promise<T> {
+  return Promise.race([p, new Promise<T>(res => setTimeout(() => res(reserve), ms))])
+}
+
+export function nettleserTurerErAv(): boolean {
+  try { return window.localStorage.getItem(NETTLESER_AV_KEY) === '1' } catch { return false }
+}
+
+export function settNettleserTurerAv(av: boolean) {
+  try { av ? window.localStorage.setItem(NETTLESER_AV_KEY, '1') : window.localStorage.removeItem(NETTLESER_AV_KEY) } catch { /* ignore */ }
+}
+
 export async function turerErAv(): Promise<boolean> {
-  try { return window.localStorage.getItem(await scopedKey(AV_KEY)) === '1' } catch { return false }
+  if (nettleserTurerErAv()) return true
+  try { if (window.localStorage.getItem(await scopedKey(AV_KEY)) === '1') return true } catch { /* ignore */ }
+  const s = await medFrist(hentTourState(), 2000, {})
+  return s.av === true
 }
 
 export async function settTurerAv(av: boolean) {
   const k = await scopedKey(AV_KEY)
   try { av ? window.localStorage.setItem(k, '1') : window.localStorage.removeItem(k) } catch { /* ignore */ }
+  lagreTourState({ av })
+}
+
+/** «Vis paa nytt»: glem alle «sett»-flagg paa kontoen (localStorage ryddes av Hjelp-siden). */
+export function nullstillSetteTurer() {
+  lagreTourState({ nullstill: true })
 }
 
 async function scopedKey(base: string): Promise<string> {
@@ -56,11 +123,18 @@ export type TourStep = {
 // Kun én driver.js-instans om gangen — uten dette kan et automatisk
 // engangs-tour og et manuelt "?"-trigget tour kollidere i samme overlay.
 let activeTour: Driver | null = null
-let activeKey: string | null = null
+let activeKey: string | null = null        // uid-bundet localStorage-noekkel
+let activeBaseKey: string | null = null    // noekkelen uten uid - slik kontoen lagrer den
 
-function startTour(storageKey: string, steps: TourStep[]) {
+function merkSett() {
+  try { if (activeKey) window.localStorage.setItem(activeKey, '1') } catch { /* ignore */ }
+  if (activeBaseKey) lagreTourState({ sett: activeBaseKey })
+}
+
+function startTour(storageKey: string, baseKey: string, steps: TourStep[]) {
   activeTour?.destroy()
   activeKey = storageKey
+  activeBaseKey = baseKey
 
 
   const driveSteps: DriveStep[] = steps.map(s => ({
@@ -142,12 +216,13 @@ function startTour(storageKey: string, steps: TourStep[]) {
     // og lagring). Og hvorfor ikke onDestroyed: den fyrer aldri når man
     // avslutter fra siste steg — se måling i prod 8/8.
     onDestroyStarted: () => {
-      try { window.localStorage.setItem(storageKey, '1') } catch { /* ignore */ }
+      merkSett()
       activeTour?.destroy()
     },
     onDestroyed: () => {
       activeTour = null
       activeKey = null
+      activeBaseKey = null
       document.querySelectorAll('.driver-active-element').forEach(e => e.classList.remove('driver-active-element'))
     },
   })
@@ -165,7 +240,14 @@ export async function runTourOnce(storageKey: string, steps: TourStep[]) {
     if (key !== storageKey) window.localStorage.removeItem(storageKey)
     if (window.localStorage.getItem(key) === '1') return
   } catch { /* ignore */ }
-  startTour(key, steps)
+  // Sett paa en annen maskin/nettleser? Kontoen vet. Speil svaret lokalt saa
+  // neste sidelast slipper aa vente paa nettet.
+  const s = await medFrist(hentTourState(), 2000, {})
+  if (s.sett?.includes(storageKey)) {
+    try { window.localStorage.setItem(key, '1') } catch { /* ignore */ }
+    return
+  }
+  startTour(key, storageKey, steps)
 }
 
 /** Lukker en aktiv tur — brukes naar brukeren utfoerer handlingen turen peker paa.
@@ -173,7 +255,7 @@ export async function runTourOnce(storageKey: string, steps: TourStep[]) {
  *  over onDestroyStarted, saa turen ville ellers dukket opp igjen neste gang. */
 export function closeTour() {
   if (!activeTour) return
-  try { if (activeKey) window.localStorage.setItem(activeKey, '1') } catch { /* ignore */ }
+  merkSett()
   activeTour.destroy()
 }
 
@@ -210,7 +292,7 @@ export function refreshTour() {
 
 /** Kjører touren uansett — for manuell gjenåpning (f.eks. en "?"-knapp). */
 export async function runTour(storageKey: string, steps: TourStep[]) {
-  startTour(await scopedKey(storageKey), steps)
+  startTour(await scopedKey(storageKey), storageKey, steps)
 }
 
 export default function ProductTour({
@@ -231,6 +313,9 @@ export default function ProductTour({
     // allerede begynt å lese skjemaet da boksen plutselig dukket opp.
     let cancelled = false
     let tries = 0
+    // Start hentingen av kontoens tilstand NAA, parallelt med ventingen paa
+    // ankeret - saa er svaret som regel klart naar runTourOnce spoer.
+    void hentTourState()
     const tick = () => {
       if (cancelled) return
       if (steps[0] && document.querySelector(steps[0].selector)) {
