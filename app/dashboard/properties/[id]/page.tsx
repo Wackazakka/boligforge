@@ -1013,6 +1013,11 @@ export default function PropertyDetailPage() {
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
     setNoMotionImages(recipe.noMotionImages ?? [])
+    // Formatet må følge med: en 9:16-video som ble åpnet for redigering sto
+    // ellers igjen på 16:9 i formatvelgeren, og neste generering ble liggende
+    // (Lars 8/10). Oppskrifter fra før formatet ble lagret er 16:9.
+    // Outro-effekten på outputFormat går klar: outroTuned er alt satt over.
+    setOutputFormat(recipe.format === 'portrait' ? 'portrait' : 'landscape')
     setVideoUrl(null)
     setStatusMsg('')
     // Rull opp til redigereren så man ser hva som ble lastet
