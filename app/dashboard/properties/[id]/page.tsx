@@ -2274,7 +2274,13 @@ export default function PropertyDetailPage() {
                 )
               })()}
               <button
-                onClick={handleGenerateScript}
+                onClick={() => {
+                  // Nytt manus = gamle segmenter er feil. Før ble de stående
+                  // (og nå låser de feltet), så spør og rydd.
+                  if (segments.length > 0 && !confirm('Et nytt manus erstatter segmentene og bildevalget. Regenerere?')) return
+                  setSegments([])
+                  void handleGenerateScript()
+                }}
                 disabled={generatingScript}
                 data-tour="generate-script"
                 className={script ? 'app-btn-secondary text-sm' : 'app-btn-primary text-sm'}
@@ -2284,13 +2290,38 @@ export default function PropertyDetailPage() {
               </button>
             </div>
           </div>
+          {/* Delt opp i segmenter = feltet LÅSES. Før slettet ett tastetrykk her
+              hele segmenteringen og bildevalget uten varsel — Nina (hjem.no)
+              skrev om manuset her og mistet alt (7/10). Teksten er fortsatt
+              synlig (helheten er nyttig å lese), men redigeres i segmentene.
+              «Skriv om hele manuset» er den bevisste veien tilbake. */}
+          {segments.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: 'var(--ink)' }}>
+              <span>
+                🔒 Manuset er delt opp i {segments.length} segmenter. <strong>Teksten redigerer du i segmentene under.</strong>
+              </span>
+              <button
+                type="button"
+                className="app-btn-ghost text-xs"
+                onClick={() => {
+                  if (!confirm('Segmentene og bildevalget fjernes, og du må dele opp manuset på nytt etterpå. Skrive om hele manuset?')) return
+                  setSegments([])
+                }}
+              >
+                Skriv om hele manuset
+              </button>
+            </div>
+          )}
           <textarea
             value={script}
-            onChange={e => { setScript(e.target.value); setSegments([]) }}
+            readOnly={segments.length > 0}
+            onChange={e => { if (segments.length > 0) return; setScript(e.target.value) }}
             placeholder="Trykk «Generer manus» for å lage et AI-generert presentasjonsmanus basert på boligdataene..."
             rows={8}
             className="app-textarea"
             data-tour="script-text"
+            title={segments.length > 0 ? 'Låst — manuset er delt opp i segmenter. Rediger teksten i segmentene under.' : undefined}
+            style={segments.length > 0 ? { background: 'var(--surface-2)', color: 'var(--muted)', cursor: 'default' } : undefined}
           />
           {script && (
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
