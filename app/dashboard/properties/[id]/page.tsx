@@ -2352,11 +2352,23 @@ export default function PropertyDetailPage() {
             </div>
             {/* Kvalitetssikring før video: les teksten, hør innlesingen — her fanges
                 rare formuleringer og uttale før det koster en videogenerering. */}
+            {/* Stumt spor (voiceOff): innlesingen lages fortsatt i bakgrunnen ved
+                generering — workeren bruker den som KLOKKE for segment- og
+                tekstlengder og legger stillhet i stedet. Men for megleren finnes
+                det ingen stemme å høre på, så knapper og uttaleråd skjules (Lars 8/10). */}
             <div style={{ background: 'var(--blue-soft)', border: '1px solid var(--blue-line)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5 }}>
-              ✅ <strong>Før du genererer videoen:</strong> Les gjennom teksten i hvert segment og juster den gjerne.
-              Trykk også <strong>«Hør innlesing»</strong> — er du ikke fornøyd med uttalen eller trykket, gir <strong>«Ny innlesing»</strong> en ny versjon.
-              Uttales et ord feil? Prøv å stave det slik det skal <em>uttales</em> (f.eks. «førtti» for «førti») — visningsteksten kan du rette tilbake etterpå.
-              På avatar-segmentene kan du også lage og godkjenne selve <strong>animasjonen</strong> — da brukes nøyaktig det klippet i videoen.
+              {voiceOff ? (
+                <>
+                  ✅ <strong>Før du genererer videoen:</strong> Les gjennom teksten i hvert segment og juster den gjerne — den vises som teksting i videoen.
+                </>
+              ) : (
+                <>
+                  ✅ <strong>Før du genererer videoen:</strong> Les gjennom teksten i hvert segment og juster den gjerne.
+                  Trykk også <strong>«Hør innlesing»</strong> — er du ikke fornøyd med uttalen eller trykket, gir <strong>«Ny innlesing»</strong> en ny versjon.
+                  Uttales et ord feil? Prøv å stave det slik det skal <em>uttales</em> (f.eks. «førtti» for «førti») — visningsteksten kan du rette tilbake etterpå.
+                  På avatar-segmentene kan du også lage og godkjenne selve <strong>animasjonen</strong> — da brukes nøyaktig det klippet i videoen.
+                </>
+              )}
             </div>
             {/* Bevegelse og overgang for SEGMENTbildene. Laa foer helt nederst, ved
                 generer-knappen — over 600 linjer unna bildene den styrer, mens
@@ -2486,27 +2498,31 @@ export default function PropertyDetailPage() {
                         Boligbilde
                       </button>
                     </div>
-                    <div className="flex gap-1.5">
-                      <button
-                        onClick={() => handlePlaySegmentAudio(i)}
-                        disabled={seg.previewingAudio || !effectiveVoiceId}
-                        data-tour={i === 0 ? 'segment-audio' : undefined}
-                        className="app-btn-secondary text-xs"
-                        style={{ padding: '6px 12px' }}
-                      >
-                        {seg.previewingAudio ? '...' : '▶ Hør innlesing'}
-                      </button>
-                      <button
-                        onClick={() => handleRegenSegmentAudio(i)}
-                        disabled={seg.previewingAudio || !effectiveVoiceId}
-                        title="Generer en ny versjon av innlesingen"
-                        className="app-btn-secondary text-xs"
-                        style={{ padding: '6px 12px' }}
-                      >
-                        ⟳ Ny innlesing
-                      </button>
-                    </div>
-                    {i === 0 && (
+                    {/* Ingen stemme = ingenting å høre. Lyden lages likevel stille
+                        ved generering (klokke for lengdene), se kommentaren over. */}
+                    {!voiceOff && (
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handlePlaySegmentAudio(i)}
+                          disabled={seg.previewingAudio || !effectiveVoiceId}
+                          data-tour={i === 0 ? 'segment-audio' : undefined}
+                          className="app-btn-secondary text-xs"
+                          style={{ padding: '6px 12px' }}
+                        >
+                          {seg.previewingAudio ? '...' : '▶ Hør innlesing'}
+                        </button>
+                        <button
+                          onClick={() => handleRegenSegmentAudio(i)}
+                          disabled={seg.previewingAudio || !effectiveVoiceId}
+                          title="Generer en ny versjon av innlesingen"
+                          className="app-btn-secondary text-xs"
+                          style={{ padding: '6px 12px' }}
+                        >
+                          ⟳ Ny innlesing
+                        </button>
+                      </div>
+                    )}
+                    {i === 0 && !voiceOff && (
                       <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '5px', maxWidth: '420px' }}>
                         Blir et ord uttalt feil? Stav det i teksten slik det skal HØRES ut — «kylling» som «kjylling».
                       </p>
