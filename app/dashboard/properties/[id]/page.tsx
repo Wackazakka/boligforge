@@ -2941,6 +2941,32 @@ export default function PropertyDetailPage() {
                 </div>
               )}
 
+              {/* Sluttplakat med logo. Logoen hentes fra profilen (kjede → kontor →
+                  personlig) og legges ALLTID på som egen plakat etter bildeserien —
+                  det finnes ingen bryter. Men ingenting i videoflyten sa det, så
+                  megleren lette etter et logovalg som ikke finnes (Lars 8/10).
+                  Dette er bare bekreftelsen; selve valget skjer på profilsiden. */}
+              <div className="pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                {profile.logo_url ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <img
+                      src={profile.logo_url}
+                      alt="Logoen din"
+                      style={{ height: '36px', maxWidth: '140px', objectFit: 'contain', background: '#fff', border: '1px solid var(--line)', borderRadius: '6px', padding: '4px' }}
+                    />
+                    <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                      Avsluttes med logoen din
+                      <span style={{ color: 'var(--muted)' }}> — egen sluttplakat etter bildeserien. </span>
+                      <a href="/dashboard/profile" style={{ color: 'var(--gold)' }}>Bytt den på profilsiden</a>
+                    </span>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
+                    Ingen logo på sluttplakaten. <a href="/dashboard/profile" style={{ color: 'var(--gold)' }}>Last opp logo på profilsiden</a> — så avsluttes videoene dine med den.
+                  </p>
+                )}
+              </div>
+
               {/* Musikk */}
               <div className="space-y-2 pt-3" data-tour="outro-music" style={{ borderTop: '1px solid var(--line)' }}>
                 <div className="flex items-center justify-between">
