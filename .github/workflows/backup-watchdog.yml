@@ -12,7 +12,7 @@ on:
 
 jobs:
   check-backup-freshness:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Sjekk at R2 har en fersk DB-backup
         env:
