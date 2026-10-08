@@ -2393,7 +2393,16 @@ export default function PropertyDetailPage() {
                     <span className="text-xs mt-2 w-5 shrink-0" style={{ color: 'var(--muted)' }}>{i + 1}.</span>
                     <textarea
                       value={seg.text}
-                      onChange={e => updateSegment(i, { text: e.target.value })}
+                      onChange={e => {
+                        // Ny tekst = gammel innlesing og gammelt avatar-klipp er foreldet.
+                        // Beholdes de, leser stemmen den GAMLE teksten mens tekstingen
+                        // bygges fra den nye (Nina/hjem.no 7/10). Uten audioUrl lages
+                        // innlesingen automatisk på nytt ved generering.
+                        const text = e.target.value
+                        updateSegment(i, text === seg.text
+                          ? { text }
+                          : { text, audioUrl: undefined, previewAudioUrl: undefined, clipUrl: undefined, clipHistory: undefined })
+                      }}
                       rows={2}
                       className="app-textarea flex-1"
                       style={{ fontSize: '13px' }}
