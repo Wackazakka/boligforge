@@ -43,6 +43,12 @@ export const ABONNEMENTER: Record<AbonnementId, {
   vi_produserer_kontor: { id: 'vi_produserer_kontor', navn: 'Vi produserer · Kontor', kind: 'vi_produserer', scope: 'kontor', boligerPerMnd: 8,  prisPerMnd: 14990, beskrivelse: '8 boliger i måneden produsert av oss, delt mellom kontorets meglere' },
 }
 
+// Stripe-prisen for et abonnement slås opp på lookup_key, ikke env-var
+// (opprettet i testmodus 16/10 med scratch-skriptet stripe-setup-priser.mjs).
+export function stripeLookupKey(id: AbonnementId) {
+  return `reelhome_${id}`
+}
+
 // Boliger utover abonnementet koster abonnementets pris per bolig (Vedlegg 1).
 export function prisPerBoligIAbonnement(a: AbonnementId): number {
   const ab = ABONNEMENTER[a]

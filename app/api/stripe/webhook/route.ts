@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
-import { VIDEOS_BY_PLAN, FREE_VIDEOS_PER_MONTH, setPlanForUsers, orgMemberIds } from '../../../../lib/video-credits'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { ABONNEMENTER, unlockProperty, utloperEtterNesteMaaned, type AbonnementId } from '../../../../lib/boliger'
+
+// Stripe-webhook for bolig-modellen (16/10).
+//   checkout.session.completed  type=bolig       → lås opp boligen (purchase)
+//                               type=abonnement  → sørg for abonnementsrad + kundeid på org
+//   invoice.paid                (abonnement)     → ny saldo-post for perioden (idempotent per faktura)
+//   customer.subscription.updated/deleted        → status på abonnementsraden
+// invoice.paid er selvforsynt: mangler abonnementsraden (events kan komme i
+// vilkårlig rekkefølge), lages den fra Stripe-abonnementets metadata.
 
 export const runtime = 'nodejs'
 
@@ -21,24 +29,109 @@ function osloPeriod(unixSeconds?: number): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit' }).format(d)
 }
 
+const idOf = (x: string | { id: string } | null | undefined) => (typeof x === 'string' ? x : x?.id ?? null)
+
+type SubRow = { id: string; organization_id: string; user_id: string | null; kind: string; scope: string; boliger_per_month: number }
+
+function statusFra(stripeStatus: Stripe.Subscription.Status): 'active' | 'past_due' | 'cancelled' {
+  if (stripeStatus === 'canceled' || stripeStatus === 'incomplete_expired') return 'cancelled'
+  if (stripeStatus === 'past_due' || stripeStatus === 'unpaid' || stripeStatus === 'incomplete' || stripeStatus === 'paused') return 'past_due'
+  return 'active'
+}
+
+function periode(sub: Stripe.Subscription) {
+  const item = sub.items?.data?.[0]
+  return {
+    current_period_start: item?.current_period_start ? new Date(item.current_period_start * 1000).toISOString() : null,
+    current_period_end:   item?.current_period_end   ? new Date(item.current_period_end * 1000).toISOString()   : null,
+  }
+}
+
+// Finn eller opprett raden i bolig_subscriptions for et Stripe-abonnement.
+async function ensureSubscriptionRow(supabase: SupabaseClient, sub: Stripe.Subscription): Promise<SubRow | null> {
+  const { data: existing } = await supabase
+    .from('bolig_subscriptions')
+    .select('id, organization_id, user_id, kind, scope, boliger_per_month')
+    .eq('stripe_subscription_id', sub.id)
+    .maybeSingle()
+  if (existing) {
+    await supabase.from('bolig_subscriptions')
+      .update({ status: statusFra(sub.status), ...periode(sub), updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+    return existing as SubRow
+  }
+
+  const abonnement = sub.metadata?.abonnement as AbonnementId | undefined
+  const plan = abonnement ? ABONNEMENTER[abonnement] : null
+  const organizationId = sub.metadata?.organization_id
+  if (!plan || !organizationId) {
+    console.warn('[webhook] abonnement uten gyldig metadata', sub.id, sub.metadata)
+    return null
+  }
+  const { data, error } = await supabase
+    .from('bolig_subscriptions')
+    .insert({
+      organization_id:        organizationId,
+      user_id:                plan.scope === 'medlem' ? (sub.metadata?.user_id ?? null) : null,
+      kind:                   plan.kind,
+      scope:                  plan.scope,
+      boliger_per_month:      plan.boligerPerMnd,
+      price_nok_month:        plan.prisPerMnd,
+      status:                 statusFra(sub.status),
+      stripe_subscription_id: sub.id,
+      ...periode(sub),
+    })
+    .select('id, organization_id, user_id, kind, scope, boliger_per_month')
+    .single()
+  if (error) {
+    // Samtidig event rakk først: hent raden.
+    const { data: again } = await supabase
+      .from('bolig_subscriptions')
+      .select('id, organization_id, user_id, kind, scope, boliger_per_month')
+      .eq('stripe_subscription_id', sub.id)
+      .maybeSingle()
+    return (again as SubRow | null) ?? null
+  }
+
+  await supabase.from('organizations')
+    .update({ stripe_customer_id: idOf(sub.customer), stripe_subscription_id: sub.id, plan: abonnement })
+    .eq('id', organizationId)
+  return data as SubRow
+}
+
+// Én saldo-post per betalt faktura. «Ubrukte boliger overføres til neste
+// måned» = posten gjelder ut neste kalendermåned.
+async function fyllSaldoForFaktura(supabase: SupabaseClient, row: SubRow, invoiceId: string, paidAt: Date) {
+  const note = `invoice:${invoiceId}`
+  const { data: finnes } = await supabase.from('bolig_entitlements').select('id').eq('note', note).maybeSingle()
+  if (finnes) return false
+  const { error } = await supabase.from('bolig_entitlements').insert({
+    organization_id: row.organization_id,
+    user_id:         row.user_id,
+    kind:            row.kind,
+    quantity:        row.boliger_per_month,
+    remaining:       row.boliger_per_month,
+    source:          'subscription',
+    subscription_id: row.id,
+    period_start:    paidAt.toISOString().slice(0, 10),
+    expires_at:      utloperEtterNesteMaaned(paidAt),
+    note,
+  })
+  if (error) throw new Error(`bolig_entitlements insert: ${error.message}`)
+  return true
+}
+
 export async function POST(request: Request) {
   const body = await request.text()
   const sig  = request.headers.get('stripe-signature')
-
-  if (!sig) {
-    return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
-  }
+  if (!sig) return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
 
   const stripe   = getStripe()
   const supabase = getSupabase()
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err) {
     console.error('Webhook signature verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -47,202 +140,91 @@ export async function POST(request: Request) {
   try {
     switch (event.type) {
 
-      // ----------------------------------------------------------------
-      // Checkout fullført → sjekk type (extra_credits eller subscription)
-      // ----------------------------------------------------------------
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+        const meta = session.metadata ?? {}
 
-        // ── Ekstra videokreditter (engangskjøp: legacy buy-credits + ny topup) ──
-        if (
-          session.metadata?.type === 'extra_credits' ||
-          session.metadata?.type === 'topup'
-        ) {
-          const userId  = session.metadata.user_id
-          const credits = parseInt(session.metadata.credits_purchased ?? '0', 10)
-          const type    = session.metadata.type
-
-          if (!userId || !credits) {
-            console.warn(`Webhook: ${type} mangler user_id eller credits_purchased`, session.id)
+        if (meta.type === 'bolig') {
+          const propertyId = meta.property_id
+          const userId     = meta.user_id
+          const pris       = parseInt(meta.pris_nok ?? '0', 10)
+          if (!propertyId || !userId) {
+            console.warn('[webhook] bolig-kjøp mangler metadata', session.id)
             break
           }
-
-          // Les nåværende extra_credits, inkrementer
-          const { data: row } = await supabase
-            .from('video_credits')
-            .select('extra_credits')
-            .eq('user_id', userId)
-            .maybeSingle()
-
-          const current = row?.extra_credits ?? 0
-
-          const { error } = await supabase
-            .from('video_credits')
-            .upsert(
-              { user_id: userId, extra_credits: current + credits },
-              { onConflict: 'user_id' }
-            )
-
-          if (error) {
-            console.error(`Supabase update failed (${type}):`, error)
-            return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+          const unlock = await unlockProperty(supabase, { propertyId, userId, source: 'purchase', priceNok: pris, stripeSessionId: session.id })
+          if (!unlock) return NextResponse.json({ error: 'Kunne ikke låse opp boligen' }, { status: 500 })
+          if (meta.organization_id && session.customer) {
+            await supabase.from('organizations').update({ stripe_customer_id: idOf(session.customer) }).eq('id', meta.organization_id).is('stripe_customer_id', null)
           }
+          console.log(`[webhook] bolig ${propertyId} låst opp for ${userId} (${pris} kr)`)
 
-          console.log(`Bruker ${userId} [${type}]: +${credits} ekstra videokreditter (nå ${current + credits})`)
-
-          // Affiliate-logg: logg topup-betalingen (tilskrevet brukerens org).
           try {
             if (session.amount_total != null) {
-              const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', userId).maybeSingle()
-              await supabase.from('reelhome_payments').upsert(
-                {
-                  org_id: (prof?.organization_id as string) ?? null,
-                  stripe_event_id: event.id,
-                  stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
-                  plan: 'topup',
-                  kind: 'topup',
-                  amount: session.amount_total / 100,
-                  currency: session.currency ?? 'nok',
-                  period: osloPeriod(event.created),
-                },
-                { onConflict: 'stripe_event_id', ignoreDuplicates: true }
-              )
+              await supabase.from('reelhome_payments').upsert({
+                org_id: meta.organization_id || null,
+                stripe_event_id: event.id,
+                stripe_customer_id: idOf(session.customer),
+                plan: 'bolig',
+                kind: 'bolig',
+                amount: session.amount_total / 100,
+                currency: session.currency ?? 'nok',
+                period: osloPeriod(event.created),
+              }, { onConflict: 'stripe_event_id', ignoreDuplicates: true })
             }
           } catch (e) {
-            console.error('[affiliate] topup-logg feilet:', (e as Error).message)
+            console.error('[affiliate] bolig-logg feilet:', (e as Error).message)
           }
           break
         }
 
-        // ── Abonnement ───────────────────────────────────────────────
-        const organizationId = session.metadata?.organization_id
-        const plan           = session.metadata?.plan
-
-        if (!organizationId || !plan) {
-          console.warn('Webhook: mangler metadata på session', session.id)
+        if (meta.type === 'abonnement') {
+          const subId = idOf(session.subscription)
+          if (!subId) { console.warn('[webhook] abonnement-session uten subscription', session.id); break }
+          const sub = await stripe.subscriptions.retrieve(subId)
+          const row = await ensureSubscriptionRow(supabase, sub)
+          if (!row) return NextResponse.json({ error: 'Kunne ikke registrere abonnementet' }, { status: 500 })
+          console.log(`[webhook] abonnement ${meta.abonnement} registrert for org ${row.organization_id}`)
           break
         }
 
-        const subscriptionId = typeof session.subscription === 'string'
-          ? session.subscription
-          : session.subscription?.id
-
-        const customerId = typeof session.customer === 'string'
-          ? session.customer
-          : session.customer?.id
-
-        const { error } = await supabase
-          .from('organizations')
-          .update({
-            stripe_customer_id:     customerId     ?? null,
-            stripe_subscription_id: subscriptionId ?? null,
-            plan,
-          })
-          .eq('id', organizationId)
-
-        if (error) {
-          console.error('Supabase update failed (checkout.session.completed):', error)
-          return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
-        }
-
-        // Sett kvoten i video_credits (per bruker) — det er tabellen
-        // /api/video/generate faktisk håndhever. Kontor-planen er per sete:
-        // alle medlemmer i org-en får sin egen månedskvote.
-        const included = VIDEOS_BY_PLAN[plan]
-        if (included == null) {
-          console.warn(`Webhook: ukjent plan "${plan}" — ingen kvote satt`, session.id)
-          break
-        }
-
-        const quantity = parseInt(session.metadata?.quantity ?? '1', 10)
-        let userIds: string[]
-        if (plan === 'office' || plan === 'kontor') {
-          userIds = await orgMemberIds(supabase, organizationId)
-          if (!userIds.length && session.metadata?.user_id) userIds = [session.metadata.user_id]
-          if (userIds.length > quantity) {
-            console.warn(`Org ${organizationId}: ${userIds.length} medlemmer, men bare ${quantity} betalte seter`)
-          }
-        } else {
-          userIds = session.metadata?.user_id ? [session.metadata.user_id] : []
-        }
-
-        const vcError = await setPlanForUsers(supabase, userIds, plan, included)
-        if (vcError) {
-          console.error('Supabase video_credits update failed (checkout.session.completed):', vcError)
-          return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
-        }
-
-        console.log(`Org ${organizationId} oppgradert til "${plan}" — ${included} videoer/mnd for ${userIds.length} bruker(e)`)
+        console.warn('[webhook] checkout uten kjent type (gammel kjøpsvei?)', session.id, meta)
         break
       }
 
-      // ----------------------------------------------------------------
-      // Abonnement kansellert → sett plan til 'cancelled'
-      // ----------------------------------------------------------------
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription
-        const customerId   = typeof subscription.customer === 'string'
-          ? subscription.customer
-          : subscription.customer?.id
-
-        if (!customerId) break
-
-        const { data: cancelledOrg } = await supabase
-          .from('organizations')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .maybeSingle()
-
-        const { error } = await supabase
-          .from('organizations')
-          .update({ plan: 'cancelled' })
-          .eq('stripe_customer_id', customerId)
-
-        if (error) {
-          console.error('Supabase update failed (customer.subscription.deleted):', error)
-          return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
-        }
-
-        // Nedgrader medlemmenes videokvote til gratis-nivået. Kjøpte
-        // extra_credits beholdes — de ruller over uavhengig av plan.
-        if (cancelledOrg?.id) {
-          const memberIds = await orgMemberIds(supabase, cancelledOrg.id)
-          const vcError = await setPlanForUsers(supabase, memberIds, 'cancelled', FREE_VIDEOS_PER_MONTH)
-          if (vcError) console.error('video_credits downgrade failed (customer.subscription.deleted):', vcError)
-        }
-
-        console.log(`Kunde ${customerId} — abonnement kansellert`)
-        break
-      }
-
-      // ----------------------------------------------------------------
-      // Abonnement-faktura betalt → logg for affiliate-provisjon (per org)
-      // ----------------------------------------------------------------
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice
+        const subId = idOf(invoice.parent?.subscription_details?.subscription ?? null)
+
+        if (subId) {
+          const sub = await stripe.subscriptions.retrieve(subId)
+          const row = await ensureSubscriptionRow(supabase, sub)
+          if (!row) return NextResponse.json({ error: 'Abonnement uten metadata' }, { status: 500 })
+          const ny = await fyllSaldoForFaktura(supabase, row, invoice.id, new Date((invoice.status_transitions?.paid_at ?? event.created) * 1000))
+          console.log(`[webhook] faktura ${invoice.id}: ${ny ? `+${row.boliger_per_month} boliger` : 'alt registrert'} (${row.kind}, org ${row.organization_id})`)
+        }
+
+        // Affiliate-logg (uendret fra før).
         try {
           const amount = (invoice.amount_paid ?? 0) / 100
           if (amount > 0) {
-            const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
+            const customerId = idOf(invoice.customer)
             let orgId: string | null = null
             if (customerId) {
               const { data: org } = await supabase.from('organizations').select('id').eq('stripe_customer_id', customerId).maybeSingle()
               orgId = (org?.id as string) ?? null
             }
-            await supabase.from('reelhome_payments').upsert(
-              {
-                org_id: orgId,
-                stripe_event_id: event.id,
-                stripe_invoice_id: invoice.id,
-                stripe_customer_id: customerId,
-                plan: null,
-                kind: 'invoice',
-                amount,
-                currency: invoice.currency ?? 'nok',
-                period: osloPeriod(event.created),
-              },
-              { onConflict: 'stripe_event_id', ignoreDuplicates: true }
-            )
+            await supabase.from('reelhome_payments').upsert({
+              org_id: orgId,
+              stripe_event_id: event.id,
+              stripe_invoice_id: invoice.id,
+              stripe_customer_id: customerId,
+              plan: null,
+              kind: 'invoice',
+              amount,
+              currency: invoice.currency ?? 'nok',
+              period: osloPeriod(event.created),
+            }, { onConflict: 'stripe_event_id', ignoreDuplicates: true })
           }
         } catch (e) {
           console.error('[affiliate] invoice.paid-logg feilet:', (e as Error).message)
@@ -250,8 +232,30 @@ export async function POST(request: Request) {
         break
       }
 
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription
+        const row = await ensureSubscriptionRow(supabase, sub)
+        if (!row) break
+        const status = event.type === 'customer.subscription.deleted' ? 'cancelled' : statusFra(sub.status)
+        await supabase.from('bolig_subscriptions')
+          .update({ status, ...periode(sub), updated_at: new Date().toISOString() })
+          .eq('id', row.id)
+
+        if (status === 'cancelled') {
+          // organizations.plan er bare et visningsfelt i backoffice: 'cancelled'
+          // når kontoret ikke har flere aktive abonnementer.
+          const { count } = await supabase.from('bolig_subscriptions')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', row.organization_id)
+            .eq('status', 'active')
+          if (!count) await supabase.from('organizations').update({ plan: 'cancelled' }).eq('id', row.organization_id)
+        }
+        console.log(`[webhook] abonnement ${sub.id} → ${status}`)
+        break
+      }
+
       default:
-        // Ignorer ukjente events
         break
     }
   } catch (err) {

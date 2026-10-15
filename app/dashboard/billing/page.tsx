@@ -29,21 +29,28 @@ export default function BillingPage() {
   const [loading, setLoading]   = useState(true)
   const [venter, setVenter]     = useState<string | null>(null)
   const [feil, setFeil]         = useState('')
+  // ?bolig=<id> fra «Lås opp boligen»-modalen på boligsiden; ?abonnement=ok / ?avbrutt=1 fra Stripe.
+  const [boligId, setBoligId]   = useState<string | null>(null)
+  const [melding, setMelding]   = useState('')
 
   useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    setBoligId(p.get('bolig'))
+    if (p.get('abonnement') === 'ok') setMelding('Takk! Abonnementet er registrert, og saldoen fylles så snart betalingen er bekreftet.')
+    if (p.get('avbrutt')) setMelding('Betalingen ble avbrutt. Ingenting er trukket.')
     fetch('/api/boliger/saldo')
       .then(r => r.json())
       .then(d => { if (!d.error) setSaldo(d); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
-  async function velgAbonnement(id: AbonnementId) {
-    setVenter(id)
+  async function startCheckout(body: { abonnement: AbonnementId } | { bolig: string }, nokkel: string) {
+    setVenter(nokkel)
     setFeil('')
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ abonnement: id }),
+      body: JSON.stringify(body),
     })
     const data = await res.json()
     if (!res.ok || !data.url) {
@@ -53,6 +60,7 @@ export default function BillingPage() {
       window.location.href = data.url
     }
   }
+  const velgAbonnement = (id: AbonnementId) => startCheckout({ abonnement: id }, id)
 
   const aktive = saldo?.abonnementer ?? []
   const harAktivt = (id: AbonnementId) => {
@@ -72,6 +80,28 @@ export default function BillingPage() {
           nye versjoner og publisering på den boligen inkludert. Alle priser er eks. mva.
         </p>
 
+        {melding && <p className="app-success" style={{ marginBottom: '16px' }}>{melding}</p>}
+
+        {/* Lås opp én bolig (kommer fra boligsiden med ?bolig=) */}
+        {boligId && saldo && (
+          <div className="app-card" style={{ padding: '20px 24px', marginBottom: '16px', border: '2px solid #2563eb' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>Lås opp boligen</h2>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '14px' }}>
+              Engangskjøp for denne boligen: {nb(saldo.nestePris)} kr eks. mva. Deretter er alle formater, nye versjoner og publisering på boligen inkludert.
+              {saldo.boligerDenneMaaneden >= 4 ? ' Prisen er lavere fordi du alt har laget flere boliger denne måneden.' : ''}
+            </p>
+            {BETALING_AAPEN ? (
+              <button onClick={() => startCheckout({ bolig: boligId }, 'bolig')} disabled={venter !== null} className="app-btn-primary">
+                {venter === 'bolig' ? 'Venter…' : `Lås opp for ${nb(saldo.nestePris)} kr`}
+              </button>
+            ) : (
+              <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
+                Betaling åpnes snart. Send en e-post til <a href="mailto:hei@reelhome.ai" style={{ color: '#2563eb' }}>hei@reelhome.ai</a>, så låser vi opp boligen for deg.
+              </p>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <div style={{ height: '90px', borderRadius: '12px', background: 'var(--line)', opacity: 0.4 }} />
         ) : saldo && (
@@ -85,9 +115,17 @@ export default function BillingPage() {
                 {saldo.gratisBoligIgjen ? 'Gratis' : saldo.lagSelv.igjen > 0 ? 'Inkludert' : `${nb(saldo.nestePris)} kr`}
               </p>
               <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
-                {saldo.gratisBoligIgjen ? 'din første bolig' : saldo.lagSelv.igjen > 0 ? `neste bolig · ${saldo.lagSelv.igjen} igjen` : 'neste bolig'}
+                {saldo.gratisBoligIgjen ? 'din første bolig' : 'neste bolig'}
               </p>
             </div>
+            {saldo.lagSelv.igjen > 0 && (
+              <div>
+                <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{saldo.lagSelv.igjen}</p>
+                <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
+                  boliger igjen i abonnementet{saldo.lagSelv.utloperForst ? ` · gjelder til ${new Date(saldo.lagSelv.utloperForst).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' })}` : ''}
+                </p>
+              </div>
+            )}
             {saldo.viProduserer.igjen > 0 && (
               <div>
                 <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{saldo.viProduserer.igjen}</p>

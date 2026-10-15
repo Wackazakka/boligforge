@@ -90,11 +90,12 @@ export default async function DashboardPage() {
   const saldo = await hentSaldo(serviceSupabase, user.id)
   const firstName = profile.full_name?.split(' ')[0] ?? 'der'
   const harAbonnement = saldo.abonnementer.length > 0
+  const saldoTekst = saldo.lagSelv.igjen > 0
+    ? `${saldo.lagSelv.igjen} bolig${saldo.lagSelv.igjen === 1 ? '' : 'er'} igjen i abonnementet`
+    : null
   const nesteBoligTekst = saldo.gratisBoligIgjen
-    ? 'Din første bolig er gratis'
-    : saldo.lagSelv.igjen > 0
-      ? `${saldo.lagSelv.igjen} bolig${saldo.lagSelv.igjen === 1 ? '' : 'er'} igjen i abonnementet`
-      : `Neste bolig koster ${saldo.nestePris.toLocaleString('nb-NO')} kr`
+    ? ['Din første bolig er gratis', saldoTekst].filter(Boolean).join(' · ')
+    : saldoTekst ?? `Neste bolig koster ${saldo.nestePris.toLocaleString('nb-NO')} kr`
 
   return (
     <div className="p-6">
