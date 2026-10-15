@@ -178,6 +178,32 @@ export async function POST(request: Request) {
           break
         }
 
+        if (meta.type === 'produksjon') {
+          // «Bestill produksjon» betalt med kort: marker betalt, lås opp boligen, varsle oss.
+          const orderId = meta.order_id
+          if (!orderId) { console.warn('[webhook] produksjon uten order_id', session.id); break }
+          const { data: ordre } = await supabase.from('produksjonsordrer').select('*').eq('id', orderId).maybeSingle()
+          if (!ordre) { console.warn('[webhook] produksjon: ukjent ordre', orderId); break }
+          if (!ordre.betalt_at) {
+            await supabase.from('produksjonsordrer').update({ betalt_at: new Date().toISOString(), stripe_session_id: session.id, updated_at: new Date().toISOString() }).eq('id', orderId)
+            await unlockProperty(supabase, { propertyId: ordre.property_id, userId: ordre.user_id, source: 'production', priceNok: ordre.pris_nok, stripeSessionId: session.id })
+            const { data: p } = await supabase.from('properties').select('address, hjem_url, finn_url').eq('id', ordre.property_id).maybeSingle()
+            const { data: u } = await supabase.auth.admin.getUserById(ordre.user_id)
+            const { etterBestilling } = await import('../../../../lib/produksjon')
+            await etterBestilling(ordre, { address: p?.address ?? null, url: p?.hjem_url ?? p?.finn_url ?? null, email: u?.user?.email ?? null })
+          }
+          try {
+            if (session.amount_total != null) {
+              await supabase.from('reelhome_payments').upsert({
+                org_id: meta.organization_id || null, stripe_event_id: event.id, stripe_customer_id: idOf(session.customer),
+                plan: 'produksjon', kind: 'produksjon', amount: session.amount_total / 100, currency: session.currency ?? 'nok', period: osloPeriod(event.created),
+              }, { onConflict: 'stripe_event_id', ignoreDuplicates: true })
+            }
+          } catch (e) { console.error('[affiliate] produksjon-logg feilet:', (e as Error).message) }
+          console.log(`[webhook] produksjonsordre ${orderId} betalt`)
+          break
+        }
+
         if (meta.type === 'abonnement') {
           const subId = idOf(session.subscription)
           if (!subId) { console.warn('[webhook] abonnement-session uten subscription', session.id); break }
