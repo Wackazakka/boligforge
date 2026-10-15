@@ -197,6 +197,8 @@ type VideoRecipe = {
   voiceOff?: boolean
   /** Tekststil: ren | elegant | dynamisk */
   captionStyle?: 'ren' | 'elegant' | 'dynamisk'
+  /** Musikk under hele videoen, ikke bare bildeserien til slutt (16/10) */
+  musicFromStart?: boolean
   /** Ingen presentør — bare boligbilder (+ evt. stemme) */
   noAvatar?: boolean
   /** Formatet videoen ble rendret i — styrer «lag motsatt format»-knappen */
@@ -397,6 +399,13 @@ export default function PropertyDetailPage() {
   // Tekststil (Lars 30/8): fritt meglervalg, IKKE koblet til manusstil.
   // dynamisk krever innlesing — grås ut ved voiceOff.
   const [captionStyle, setCaptionStyle] = useState<'ren' | 'elegant' | 'dynamisk'>('ren')
+  // Musikk under hele videoen (Lars 16/10): rask story uten stemme var stum
+  // fram til bildeserien. Urørt følger valget stemmen: PÅ når stemmen er av,
+  // AV med stemme (da ligger musikken bare under bildeserien som før).
+  const [musicFromStart, setMusicFromStart] = useState(false)
+  const [musicFromStartTouched, setMusicFromStartTouched] = useState(false)
+  // Story-modus skjuler bildeserien til slutt; denne viser den på forespørsel.
+  const [storyVisBildeserie, setStoryVisBildeserie] = useState(false)
   // Uten avatar (Lars 30/8): to likestilte spor uten presentør — «bilder + stemme»
   // og «bilder + teksting, uten stemme». Stumt spor gjenbruker voiceOff-bryteren,
   // så 🔇-boksen og presentørkortene alltid er enige.
@@ -1098,6 +1107,7 @@ export default function PropertyDetailPage() {
     setNoAvatar(recipe.noAvatar === true ||
       (recipe.voiceOff === true && !(recipe.segments ?? []).some(x => x.type === 'avatar')))
     setCaptionStyle(recipe.captionStyle === 'elegant' || recipe.captionStyle === 'dynamisk' ? recipe.captionStyle : 'ren')
+    if (typeof recipe.musicFromStart === 'boolean') { setMusicFromStart(recipe.musicFromStart); setMusicFromStartTouched(true) } else { setMusicFromStartTouched(false) }
     setMotionStrength(recipe.motionStrength ?? 'subtle')
     setSegmentTransition(recipe.segmentTransition ?? 'cut')
     setNoMotionImages(recipe.noMotionImages ?? [])
@@ -1433,6 +1443,8 @@ export default function PropertyDetailPage() {
     const medTeksting = voiceOff ? true : (captionsTouched ? captions : !segments.some(s => s.type === 'avatar'))
     // dynamisk uten innlesing gir ikke mening — fall til ren
     const tekstStil = voiceOff && captionStyle === 'dynamisk' ? 'ren' : captionStyle
+    // Musikk under hele videoen: urørt følger stemmen (på uten stemme).
+    const musikkFraStart = musicFromStartTouched ? musicFromStart : voiceOff
     if (!script || !effectiveVoiceId) {
       setError('Mangler manus eller stemme-ID i profilen')
       return
@@ -1585,13 +1597,14 @@ export default function PropertyDetailPage() {
       skipIntro: utenIntro,
       captions: medTeksting,
       captionStyle: tekstStil,
+      musicFromStart: musikkFraStart,
       voiceOff,
       noAvatar,
       format: portrait ? 'portrait' as const : 'landscape' as const,
     }
 
     const body = segments.length > 0
-      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: noAvatar ? undefined : (selectedAvatarUrl || effectivePortrait), portraitUrl: noAvatar ? undefined : effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true, subtitleStyle: tekstStil } : {}), ...(voiceOff ? { voiceOff: true } : {}) }
+      ? { propertyId: id, voiceId: effectiveVoiceId, avatarImageUrl: noAvatar ? undefined : (selectedAvatarUrl || effectivePortrait), portraitUrl: noAvatar ? undefined : effectivePortrait, backgroundImageUrl: selectedAvatarUrl ? property?.images?.[selectedImageIdx] : undefined, segments: segmentsWithIntro, outro: outroPayload, ambienceType: ambienceType !== 'none' ? ambienceType : undefined, motion, motionStrength, segmentTransition, noMotionImages, recipe, ...(portrait ? { format: 'portrait' as const } : {}), ...(medTeksting ? { subtitles: true, subtitleStyle: tekstStil } : {}), ...(voiceOff ? { voiceOff: true } : {}), ...(musikkFraStart && outroPayload?.musicUrl ? { musicFromStart: true } : {}) }
       // Enkel scriptflyt: ta med outro/logo selv her (fix #2)
       : { propertyId: id, script, voiceId: effectiveVoiceId, avatarImageUrl: selectedAvatarUrl, propertyImages: selectedVideoImages, ...(outroPayload ? { outro: outroPayload } : {}), ambienceType: ambienceType !== 'none' ? ambienceType : undefined }
 
@@ -2977,8 +2990,14 @@ export default function PropertyDetailPage() {
           const unused = (property?.images || []).filter(img => !usedUrls.has(img))
           return (
             <div className="app-card space-y-4" data-tour="outro-images">
-              {/* Story-modus: ingen bildeserie til slutt — kortet holder bare musikken. */}
-              {!storyModus && (<>
+              {/* Story-modus: bildeserien til slutt er skjult til megleren ber om
+                  den — men hun må få vite at den finnes (Lars 16/10). */}
+              {storyModus && !storyVisBildeserie && (
+                <button type="button" onClick={() => setStoryVisBildeserie(true)} className="app-btn-ghost text-xs" style={{ padding: 0 }}>
+                  ➕ Legg til en bildeserie med flere bilder til slutt (valgfritt)
+                </button>
+              )}
+              {(!storyModus || storyVisBildeserie) && (<>
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Outro — gjenværende bilder</h2>
@@ -3153,7 +3172,22 @@ export default function PropertyDetailPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-xs" style={{ color: 'var(--muted)' }}>Bakgrunnsmusikk (valgfritt)</label>
-                    <p className="text-xs" style={{ color: 'var(--muted-2)', marginTop: '2px' }}>Spilles under bildeserien etter at presentatøren har snakket ferdig.</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-2)', marginTop: '2px' }}>
+                      {(musicFromStartTouched ? musicFromStart : voiceOff)
+                        ? 'Ligger under hele videoen, fra første bilde til logoen til slutt.'
+                        : 'Spilles under bildeserien etter at presentatøren har snakket ferdig.'}
+                    </p>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '6px' }}>
+                      <input
+                        type="checkbox"
+                        checked={musicFromStartTouched ? musicFromStart : voiceOff}
+                        onChange={e => { setMusicFromStartTouched(true); setMusicFromStart(e.target.checked) }}
+                        style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }}
+                      />
+                      <span style={{ fontSize: '12px', color: 'var(--ink)' }}>
+                        Musikk under hele videoen <span style={{ color: 'var(--muted)' }}>{voiceOff ? '— anbefalt uten stemme' : '— ligger lavt under stemmen, og fortsetter inn i bildeserien'}</span>
+                      </span>
+                    </label>
                   </div>
                   <label className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${uploadingMusic ? 'opacity-40' : ''} app-btn-secondary`}>
                     {uploadingMusic ? 'Laster opp...' : '+ Last opp MP3'}
