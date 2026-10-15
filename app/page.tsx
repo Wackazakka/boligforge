@@ -101,7 +101,7 @@ export default function Home() {
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                     </svg>
-                    <span className="v1-url-text">finn.no/realestate/homes/ad.html?finnkode=123456</span>
+                    <span className="v1-url-text">hjem.no/property/123456/bygdoy-alle-24</span>
                     <button className="v1-url-btn">Hent</button>
                   </div>
                   <div className="v1-parsed">
@@ -165,7 +165,7 @@ export default function Home() {
                 </div>
               </div>
               <h3>Render og last ned</h3>
-              <p>Ferdig film i 16:9 med kontorets logo og farger. Klar til Finn og sosiale medier.</p>
+              <p>Ferdig film i 16:9 med kontorets logo og farger. Klar til Hjem, Finn og sosiale medier.</p>
             </div>
           </div>
         </div>
@@ -333,7 +333,7 @@ export default function Home() {
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
+                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Hjem, Finn og TikTok</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
             </div>
@@ -352,7 +352,7 @@ export default function Home() {
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
+                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Hjem, Finn og TikTok</li>
               </ul>
               <Link href="/auth/signup" className="btn btn-ghost">Velg Pro</Link>
             </div>
@@ -371,7 +371,7 @@ export default function Home() {
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
                 <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Finn og TikTok</li>
+                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Hjem, Finn og TikTok</li>
               </ul>
               <a href="mailto:hei@reelhome.ai?subject=Kontor-plan%20for%20meglerhuset" className="btn btn-ghost">Snakk med salg</a>
             </div>

@@ -41,7 +41,7 @@ export default function PreviewPage() {
         <div>
           <p className="app-label mb-4">Eiendommer</p>
           <div className="mb-4 flex gap-3">
-            <input className="app-input" placeholder="https://www.finn.no/realestate/homes/ad.html?finnkode=..." style={{ width: 'auto', flex: 1 }} readOnly />
+            <input className="app-input" placeholder="https://hjem.no/property/... eller https://www.finn.no/..." style={{ width: 'auto', flex: 1 }} readOnly />
             <button className="app-btn-primary">Hent annonse</button>
           </div>
           <div className="grid grid-cols-3 gap-4">
