@@ -140,7 +140,7 @@ function buildWelcomeEmail(firstName: string): string {
             <!-- Subtext -->
             <p style="font-family:'Inter',sans-serif; font-size:15px; color:#525252;
               line-height:1.65; margin:0 0 32px;">
-              Du har <strong>14 dager gratis tilgang</strong> til alle funksjoner.
+              <strong>Din første bolig er gratis</strong>, med alle formater og funksjoner.
               Ingen kortinfo nødvendig.
             </p>
 

@@ -143,12 +143,12 @@ export default function OnboardingPage() {
               disabled={soloPending}
               className="app-btn-primary w-full"
             >
-              {soloPending ? 'Starter…' : 'Start gratis prøveperiode →'}
+              {soloPending ? 'Starter…' : 'Kom i gang →'}
             </button>
           </form>
 
           <p style={{ fontSize: '12px', color: '#a3a3a3', textAlign: 'center', marginTop: '20px' }}>
-            14 dager gratis · Ingen kortinfo nødvendig · Kanseller når som helst
+            Første bolig gratis · Ingen kortinfo nødvendig · Ingen binding
           </p>
         </div>
       )}
@@ -195,12 +195,12 @@ export default function OnboardingPage() {
               disabled={orgPending}
               className="app-btn-primary w-full"
             >
-              {orgPending ? 'Starter…' : 'Start gratis prøveperiode →'}
+              {orgPending ? 'Starter…' : 'Kom i gang →'}
             </button>
           </form>
 
           <p style={{ fontSize: '12px', color: '#a3a3a3', textAlign: 'center', marginTop: '20px' }}>
-            14 dager gratis · Ingen kortinfo nødvendig · Kanseller når som helst
+            Første bolig gratis for hver megler · Ingen kortinfo nødvendig · Ingen binding
           </p>
         </div>
       )}

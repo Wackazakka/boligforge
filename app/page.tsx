@@ -67,12 +67,12 @@ export default function Home() {
             </p>
             <div className="hero-cta">
               <Link href="/auth/signup" className="btn btn-primary">
-                Start gratis prøveperiode <ArrowIcon />
+                Lag din første video gratis <ArrowIcon />
               </Link>
               <a href="#hvordan" className="btn btn-ghost">
                 Se hvordan <span className="kbd">D</span>
               </a>
-              <span className="meta">14 dager gratis · Ingen kortinfo</span>
+              <span className="meta">Første bolig gratis · Ingen kortinfo</span>
             </div>
           </div>
 
@@ -252,11 +252,11 @@ export default function Home() {
         <div className="wrap-tight">
           <span className="eyebrow"><span className="dot" />Klar når du er det</span>
           <h2 style={{ marginTop: "24px" }}>
-            Lag din første video.<br /><span className="blue">Gratis i 14 dager.</span>
+            Lag din første video.<br /><span className="blue">Første bolig er gratis.</span>
           </h2>
-          <p>Ingen kortinformasjon. Ingen forpliktelser. Last opp én bolig, se hva ReelHome gjør med den.</p>
+          <p>Ingen kortinformasjon. Ingen forpliktelser. Lim inn én bolig, se hva ReelHome gjør med den.</p>
           <div className="hero-cta" style={{ justifyContent: "center" }}>
-            <Link href="/auth/signup" className="btn btn-primary">Start gratis prøveperiode <ArrowIcon /></Link>
+            <Link href="/auth/signup" className="btn btn-primary">Lag din første video gratis <ArrowIcon /></Link>
             <a href="#" className="btn btn-ghost">Book demo</a>
           </div>
         </div>
@@ -314,77 +314,97 @@ export default function Home() {
         <div className="wrap">
           <div className="sec-head">
             <span className="eyebrow"><span className="dot" />Priser</span>
-            <h2>Enkel prising. Ingen overraskelser.</h2>
-            <p>Faktureres månedlig i NOK eks. mva. Ubrukte videoer forsvinner ikke. Ingen bindingstid.</p>
+            <h2>Betal per bolig. Alle formater inkludert.</h2>
+            <p>En bolig låses opp én gang. Deretter er hovedfilm, reel, story, nye versjoner og publisering på den boligen inkludert. Priser eks. mva. Første bolig er gratis.</p>
           </div>
 
           <div className="price-grid">
-            {/* Starter */}
+            {/* Lag selv */}
             <div className="plan">
-              <div className="nm">Starter</div>
-              <div className="for">For meglere som tester</div>
-              <div className="price"><span className="v">2 090</span><span className="cur">kr / mnd</span></div>
-              <div className="desc">3 ferdig produserte videoer hver måned.</div>
+              <div className="nm">Lag selv</div>
+              <div className="for">Du lager filmen i ReelHome</div>
+              <div className="price"><span className="v">790</span><span className="cur">kr / bolig</span></div>
+              <div className="desc">Hovedfilm 16:9, reel 9:16 og tekstet story, så mange versjoner du vil.</div>
               <ul>
-                <li><CheckIcon /> <span><b>3 videoer</b> per måned</span></li>
-                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
+                <li><CheckIcon /> <span><b>Første bolig gratis</b></span></li>
+                <li><CheckIcon /> <span>690 kr fra bolig fem og 590 kr fra bolig ti i samme måned</span></li>
+                <li><CheckIcon /> Seks AI-meglere eller ditt eget portrett</li>
                 <li><CheckIcon /> Personlig stemmeklone inkludert</li>
-                <li><CheckIcon /> 1080p · 16:9, 9:16 og 1:1</li>
                 <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
-                <li><CheckIcon /> Standard rendering (5–10 min)</li>
                 <li><CheckIcon /> Egen meglerprofil og logo</li>
                 <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Hjem, Finn og TikTok</li>
               </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Start gratis prøveperiode</Link>
+              <Link href="/auth/signup" className="btn btn-ghost">Lag din første video gratis</Link>
             </div>
 
-            {/* Pro */}
+            {/* Vi produserer: story */}
             <div className="plan">
-              <div className="nm">Pro</div>
-              <div className="for">For aktive meglere</div>
+              <div className="nm">Vi produserer · story</div>
+              <div className="for">Tekstet story i 9:16, levert av oss</div>
+              <div className="price"><span className="v">1 490</span><span className="cur">kr / bolig</span></div>
+              <div className="desc">Du bestiller fra boligsiden, vi lager den. Klar innen én virkedag.</div>
+              <ul>
+                <li><CheckIcon /> Vi velger bilder og rekkefølge etter manuset</li>
+                <li><CheckIcon /> Forhåndsvisning til godkjenning før publisering</li>
+                <li><CheckIcon /> Én endringsrunde inkludert</li>
+                <li><CheckIcon /> Publisering via ReelHome, eller bare filene</li>
+                <li><CheckIcon /> 10 prosent rabatt fra femte bestilling i måneden</li>
+              </ul>
+              <a href="mailto:hei@reelhome.ai?subject=Bestill%20produksjon" className="btn btn-ghost">Bestill produksjon</a>
+            </div>
+
+            {/* Vi produserer: film */}
+            <div className="plan">
+              <div className="nm">Vi produserer · film</div>
+              <div className="for">Reel og film med innlest stemme</div>
+              <div className="price"><span className="v">2 490</span><span className="cur">kr / bolig</span></div>
+              <div className="desc">Med eller uten avatar, i alle formater. Klar innen to virkedager.</div>
+              <ul>
+                <li><CheckIcon /> Vi velger bilder og rekkefølge etter manuset</li>
+                <li><CheckIcon /> Forhåndsvisning til godkjenning før publisering</li>
+                <li><CheckIcon /> Én endringsrunde inkludert</li>
+                <li><CheckIcon /> Publisering via ReelHome, eller bare filene</li>
+                <li><CheckIcon /> 10 prosent rabatt fra femte bestilling i måneden</li>
+              </ul>
+              <a href="mailto:hei@reelhome.ai?subject=Bestill%20produksjon" className="btn btn-ghost">Bestill produksjon</a>
+            </div>
+          </div>
+
+          {/* Abonnement */}
+          <div className="sec-head" style={{ marginTop: '56px' }}>
+            <span className="eyebrow"><span className="dot" />Abonnement</span>
+            <h2>Forutsigbar pris for den som lager mye.</h2>
+            <p>Løper månedlig med én måneds oppsigelse. Ubrukte boliger overføres til neste måned. Boliger utover abonnementet koster abonnementets pris per bolig.</p>
+          </div>
+
+          <div className="price-grid price-grid-4">
+            <div className="plan compact">
+              <div className="nm">Lag selv · Megler</div>
+              <div className="for">4 boliger i måneden du lager selv</div>
+              <div className="price"><span className="v">2 490</span><span className="cur">kr / mnd</span></div>
+              <div className="desc">623 kr per bolig.</div>
+              <Link href="/auth/signup" className="btn btn-ghost">Kom i gang</Link>
+            </div>
+            <div className="plan compact">
+              <div className="nm">Lag selv · Kontor</div>
+              <div className="for">15 boliger i måneden, delt mellom kontorets meglere</div>
+              <div className="price"><span className="v">7 990</span><span className="cur">kr / mnd</span></div>
+              <div className="desc">533 kr per bolig.</div>
+              <a href="mailto:hei@reelhome.ai?subject=Kontor-abonnement" className="btn btn-ghost">Snakk med oss</a>
+            </div>
+            <div className="plan compact">
+              <div className="nm">Vi produserer · Megler</div>
+              <div className="for">2 boliger i måneden produsert av oss, med stemme eller avatar</div>
               <div className="price"><span className="v">3 990</span><span className="cur">kr / mnd</span></div>
-              <div className="desc">10 ferdig produserte videoer hver måned.</div>
-              <ul>
-                <li><CheckIcon /> <span><b>10 videoer</b> per måned</span></li>
-                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar</li>
-                <li><CheckIcon /> Personlig stemmeklone inkludert</li>
-                <li><CheckIcon /> 1080p · 16:9, 9:16 og 1:1</li>
-                <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
-                <li><CheckIcon /> Standard rendering (5–10 min)</li>
-                <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Hjem, Finn og TikTok</li>
-              </ul>
-              <Link href="/auth/signup" className="btn btn-ghost">Velg Pro</Link>
+              <div className="desc">1 995 kr per bolig.</div>
+              <a href="mailto:hei@reelhome.ai?subject=Vi%20produserer-abonnement" className="btn btn-ghost">Snakk med oss</a>
             </div>
-
-            {/* Kontor */}
-            <div className="plan">
-              <div className="nm">Kontor</div>
-              <div className="for">For hele meglerhuset</div>
-              <div className="price"><span className="v">1 990</span><span className="cur">kr / megler · mnd</span></div>
-              <div className="desc">7 ferdig produserte videoer per megler hver måned.</div>
-              <ul>
-                <li><CheckIcon /> <span><b>7 videoer</b> per megler · mnd</span></li>
-                <li><CheckIcon /> Tilgang til 6 AI-avatarer og én custom-avatar per megler</li>
-                <li><CheckIcon /> Personlig stemmeklone inkludert</li>
-                <li><CheckIcon /> 1080p · 16:9, 9:16 og 1:1</li>
-                <li><CheckIcon /> Royalty-fritt musikkbibliotek</li>
-                <li><CheckIcon /> Standard rendering (5–10 min)</li>
-                <li><CheckIcon /> Egen meglerprofil og logo</li>
-                <li><CheckIcon /> Publisering til Facebook og Instagram · nedlasting for Hjem, Finn og TikTok</li>
-              </ul>
-              <a href="mailto:hei@reelhome.ai?subject=Kontor-plan%20for%20meglerhuset" className="btn btn-ghost">Snakk med salg</a>
-            </div>
-
-            {/* Ekstra videoer — engangskjøp på toppen av abonnementet */}
-            <div className="plan single">
-              <div className="single-info">
-                <div className="nm">Ekstra videoer</div>
-                <div className="for">Når månedskvoten er brukt opp</div>
-                <div className="desc">Kjøp enkeltvideoer ved behov, rett fra dashbordet — samme kvalitet, AI-avatar og stemmeklone som abonnementsvideoene. Ingen planendring nødvendig.</div>
-              </div>
-              <div className="price" style={{ margin: 0 }}><span className="v">989</span><span className="cur">kr / video</span></div>
-              <Link href="/auth/login" className="btn btn-ghost">Logg inn og kjøp</Link>
+            <div className="plan compact">
+              <div className="nm">Vi produserer · Kontor</div>
+              <div className="for">8 boliger i måneden produsert av oss, delt mellom kontorets meglere</div>
+              <div className="price"><span className="v">14 990</span><span className="cur">kr / mnd</span></div>
+              <div className="desc">1 874 kr per bolig.</div>
+              <a href="mailto:hei@reelhome.ai?subject=Vi%20produserer-abonnement%20for%20kontoret" className="btn btn-ghost">Snakk med oss</a>
             </div>
           </div>
         </div>
