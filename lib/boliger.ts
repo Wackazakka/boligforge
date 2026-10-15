@@ -271,16 +271,38 @@ export async function hentSaldo(sb: SupabaseClient, userId: string): Promise<Sal
   }
 }
 
-// Kontor-oversikt: boliger låst opp per megler denne måneden + kontorets saldo.
+export type KontorBolig = {
+  id: string
+  address: string | null
+  created_at: string
+  source: UnlockSource | null   // null = ikke låst opp ennå
+  unlocked_at: string | null
+  price_nok: number
+  videoer: number
+}
+
+// Kontor-oversikt (avtalen punkt 4): boliger låst opp per megler denne
+// måneden, kostnad, kontorets saldo — og hele boliglisten per megler med
+// antall videoer, så administrator ser hva hver megler har gjort.
 export async function kontorOversikt(sb: SupabaseClient, orgId: string, memberIds: string[]) {
-  const [unlocks, ents] = await Promise.all([
+  const tom = { data: [] as never[] }
+  const [unlocks, ents, props, alleUnlocks, videos] = await Promise.all([
     memberIds.length
       ? sb.from('property_unlocks').select('user_id, source, price_nok').in('user_id', memberIds).gte('created_at', maanedStart())
-      : Promise.resolve({ data: [] as { user_id: string; source: string; price_nok: number }[] }),
+      : Promise.resolve(tom),
     sb.from('bolig_entitlements')
       .select('kind, remaining, user_id, expires_at')
       .eq('organization_id', orgId)
       .gt('remaining', 0),
+    memberIds.length
+      ? sb.from('properties').select('id, user_id, address, created_at').in('user_id', memberIds).order('created_at', { ascending: false })
+      : Promise.resolve(tom),
+    memberIds.length
+      ? sb.from('property_unlocks').select('property_id, source, price_nok, created_at').in('user_id', memberIds)
+      : Promise.resolve(tom),
+    memberIds.length
+      ? sb.from('property_videos').select('property_id').in('user_id', memberIds).not('video_url', 'is', null).neq('video_url', '')
+      : Promise.resolve(tom),
   ])
   const naa = Date.now()
   const perMegler: Record<string, { boliger: number; produksjoner: number; kostnad: number }> = {}
@@ -290,11 +312,25 @@ export async function kontorOversikt(sb: SupabaseClient, orgId: string, memberId
     else m.boliger += 1
     m.kostnad += u.price_nok ?? 0
   }
+
+  const unlockMap: Record<string, { source: UnlockSource; price_nok: number; created_at: string }> = {}
+  for (const u of (alleUnlocks.data ?? []) as { property_id: string; source: UnlockSource; price_nok: number; created_at: string }[]) unlockMap[u.property_id] = u
+  const videoCount: Record<string, number> = {}
+  for (const v of (videos.data ?? []) as { property_id: string }[]) videoCount[v.property_id] = (videoCount[v.property_id] ?? 0) + 1
+  const boligerPerMegler: Record<string, KontorBolig[]> = {}
+  for (const p of (props.data ?? []) as { id: string; user_id: string; address: string | null; created_at: string }[]) {
+    const u = unlockMap[p.id]
+    ;(boligerPerMegler[p.user_id] ??= []).push({
+      id: p.id, address: p.address, created_at: p.created_at,
+      source: u?.source ?? null, unlocked_at: u?.created_at ?? null, price_nok: u?.price_nok ?? 0,
+      videoer: videoCount[p.id] ?? 0,
+    })
+  }
   const saldo = { lagSelv: 0, viProduserer: 0 }
   for (const e of (ents.data ?? []) as { kind: Kind; remaining: number; expires_at: string | null }[]) {
     if (e.expires_at && new Date(e.expires_at).getTime() <= naa) continue
     if (e.kind === 'lag_selv') saldo.lagSelv += e.remaining
     else saldo.viProduserer += e.remaining
   }
-  return { perMegler, saldo }
+  return { perMegler, saldo, boligerPerMegler }
 }
