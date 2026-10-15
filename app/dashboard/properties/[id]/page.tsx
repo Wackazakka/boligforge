@@ -436,6 +436,8 @@ export default function PropertyDetailPage() {
   // (allerede false) tegnet ikke om, og haken spratt tilbake (Nina/Lars 25/8).
   const [introTouched, setIntroTouched] = useState(false)
   const [noCreditsModal, setNoCreditsModal] = useState(false)
+  // Bolig-porten (16/10): prisen for å låse opp denne boligen, fra 402-svaret.
+  const [boligPris, setBoligPris] = useState<number | null>(null)
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
   const [folderPanelVideoId, setFolderPanelVideoId] = useState<string | null>(null)
@@ -1514,9 +1516,10 @@ export default function PropertyDetailPage() {
     })
 
     const data = await res.json()
-    if (res.status === 402 && data.code === 'NO_CREDITS') {
+    if (res.status === 402 && (data.code === 'BOLIG_IKKE_BETALT' || data.code === 'NO_CREDITS')) {
       setGeneratingVideo(false)
       setStatusMsg('')
+      setBoligPris(typeof data.pris_nok === 'number' ? data.pris_nok : null)
       setNoCreditsModal(true)
       return
     }
@@ -1630,24 +1633,25 @@ export default function PropertyDetailPage() {
           <div className="app-modal">
             <div className="text-4xl mb-3">🎬</div>
             <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
-              Ingen videokreditter igjen
+              Lås opp boligen
             </h2>
             <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-              Du har brukt opp alle inkluderte videoer denne måneden. Kredittene nullstilles 1. i neste måned.
+              Du betaler én gang per bolig{boligPris ? `, ${boligPris.toLocaleString('nb-NO')} kr for denne` : ''}. Deretter er alle
+              formater, nye versjoner og publisering på boligen inkludert. Et abonnement gir lavere pris per bolig.
             </p>
             <div className="flex flex-col gap-2">
               {BETALING_AAPEN ? (
                 <a
-                  href="/dashboard/billing#extra-credits"
+                  href={`/dashboard/billing?bolig=${id}`}
                   className="app-btn-primary block w-full text-center"
                   style={{ textDecoration: 'none' }}
                 >
-                  Kjøp enkeltvideoer
+                  Lås opp{boligPris ? ` for ${boligPris.toLocaleString('nb-NO')} kr` : ''}
                 </a>
               ) : (
                 <p className="text-sm" style={{ color: 'var(--muted)', textAlign: 'center' }}>
-                  Trenger du flere før det? Ta kontakt på{' '}
-                  <a href="mailto:hei@reelhome.ai" style={{ color: 'var(--gold)' }}>hei@reelhome.ai</a>.
+                  Betaling åpnes snart. Ta kontakt på{' '}
+                  <a href="mailto:hei@reelhome.ai" style={{ color: 'var(--gold)' }}>hei@reelhome.ai</a>, så låser vi opp boligen for deg.
                 </p>
               )}
               <a
@@ -1655,7 +1659,7 @@ export default function PropertyDetailPage() {
                 className="app-btn-secondary block w-full text-center"
                 style={{ textDecoration: 'none' }}
               >
-                Se fakturering
+                Se priser og abonnement
               </a>
               <button onClick={() => setNoCreditsModal(false)} className="app-btn-ghost w-full text-sm">
                 Lukk

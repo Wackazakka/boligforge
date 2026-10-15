@@ -8,14 +8,15 @@ type Member = {
   email: string
   role: string
   video_count: number
-  credits: { used: number; total: number }
+  boliger: { boliger: number; produksjoner: number; kostnad: number }
 }
 
-type OrgCredits = { used: number; total: number }
+type OrgStat = { boliger_denne_maaneden: number; produksjoner_denne_maaneden: number; saldo_lag_selv: number; saldo_vi_produserer: number }
+const TOM_ORG: OrgStat = { boliger_denne_maaneden: 0, produksjoner_denne_maaneden: 0, saldo_lag_selv: 0, saldo_vi_produserer: 0 }
 
 export default function TeamPage() {
   const [members, setMembers]         = useState<Member[]>([])
-  const [orgCredits, setOrgCredits]   = useState<OrgCredits>({ used: 0, total: 0 })
+  const [org, setOrg]                 = useState<OrgStat>(TOM_ORG)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
   const [removing, setRemoving]       = useState<string | null>(null)
@@ -33,7 +34,7 @@ export default function TeamPage() {
       const d   = await res.json()
       if (!res.ok) { setError(d.error || 'Kunne ikke laste team'); return }
       setMembers(d.members ?? [])
-      setOrgCredits(d.org_credits ?? { used: 0, total: 0 })
+      setOrg(d.org ?? TOM_ORG)
     } catch (e) {
       setError(String(e))
     } finally {
@@ -77,7 +78,6 @@ export default function TeamPage() {
     }
   }
 
-  const usedPct = orgCredits.total > 0 ? Math.round((orgCredits.used / orgCredits.total) * 100) : 0
 
   if (loading) return (
     <div style={{ maxWidth: '760px', margin: '0 auto', padding: '48px 24px' }}>
@@ -158,25 +158,29 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Credit overview */}
+      {/* Boliger denne måneden (16/10: boliger, ikke kreditter) */}
       <div className="app-card" style={{ padding: '20px 24px' }}>
-        <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '14px' }}>Kredittbruk denne måneden</h2>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
-          <span style={{ color: 'var(--ink)' }}>Videoer brukt</span>
-          <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
-            {orgCredits.used} / {orgCredits.total || '—'}
-          </span>
-        </div>
-        {orgCredits.total > 0 && (
-          <div style={{ height: '6px', borderRadius: '99px', overflow: 'hidden', background: 'var(--line)' }}>
-            <div style={{
-              height: '100%', borderRadius: '99px',
-              width: `${usedPct}%`,
-              background: usedPct >= 100 ? '#ef4444' : usedPct >= 80 ? '#f59e0b' : 'var(--blue)',
-              transition: 'width 0.4s',
-            }} />
+        <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '14px' }}>Kontoret denne måneden</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '14px', fontSize: '13px' }}>
+          <div>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{org.boliger_denne_maaneden}</p>
+            <p style={{ color: 'var(--muted)' }}>boliger laget selv</p>
           </div>
-        )}
+          <div>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{org.produksjoner_denne_maaneden}</p>
+            <p style={{ color: 'var(--muted)' }}>produsert av ReelHome</p>
+          </div>
+          <div>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{org.saldo_lag_selv}</p>
+            <p style={{ color: 'var(--muted)' }}>boliger igjen i «Lag selv»</p>
+          </div>
+          {org.saldo_vi_produserer > 0 && (
+            <div>
+              <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{org.saldo_vi_produserer}</p>
+              <p style={{ color: 'var(--muted)' }}>boliger igjen i «Vi produserer»</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Member list */}
@@ -224,12 +228,12 @@ export default function TeamPage() {
                 <p style={{ fontSize: '11px', color: 'var(--muted)' }}>videoer</p>
               </div>
 
-              {/* Credits */}
+              {/* Boliger denne måneden */}
               <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '52px' }}>
-                <p style={{ fontSize: '13px', fontWeight: 500, color: m.credits.used >= m.credits.total && m.credits.total > 0 ? '#ef4444' : 'var(--ink)' }}>
-                  {m.credits.used}/{m.credits.total || '—'}
+                <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>
+                  {m.boliger.boliger + m.boliger.produksjoner}
                 </p>
-                <p style={{ fontSize: '11px', color: 'var(--muted)' }}>kreditter</p>
+                <p style={{ fontSize: '11px', color: 'var(--muted)' }}>boliger i mnd</p>
               </div>
 
               {/* Role badge */}

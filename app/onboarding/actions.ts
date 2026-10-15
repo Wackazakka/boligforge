@@ -3,7 +3,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../lib/supabase/server'
-import { VIDEOS_BY_PLAN, FREE_VIDEOS_PER_MONTH, setPlanForUsers } from '../../lib/video-credits'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -113,17 +112,8 @@ async function provisionOrg(
     return memberError.message
   }
 
-  // 2d. Videokvote for prøveperioden. Raden ble tidligere opprettet først ved
-  // FØRSTE bruk, så dashbordet møtte helt ferske brukere med «0 gjenstående
-  // videoer · Ingen aktiv plan» midt i den gratis prøveperioden — verifisert
-  // i prod 8/8. Nye org-er får plan 'pro', så prøvekvoten følger den.
-  // (Den historiske `credits`-tabellen per org leses ikke av noe.)
-  const trialVideos = VIDEOS_BY_PLAN.pro ?? FREE_VIDEOS_PER_MONTH
-  const vcError = await setPlanForUsers(supabase, [userId], 'pro', trialVideos)
-  if (vcError) {
-    // Ikke-blokkerende: kvoten auto-opprettes uansett ved første generering.
-    console.error('provisionOrg: video_credits seed error', vcError)
-  }
+  // 2d. Ingen videokvote lenger (16/10): bolig-modellen gir første bolig gratis
+  // per megler, håndhevet i /api/video/generate via lib/boliger.ts.
 
   // 4. Affiliate-attribusjon: knytt org-en til selgeren (first-touch) hvis kommet via ?ref=
   if (ref) {

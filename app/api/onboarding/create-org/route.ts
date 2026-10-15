@@ -85,7 +85,9 @@ export async function POST(request: Request) {
     .insert({ organization_id: org.id, user_id: user.id, role: 'admin' })
   if (memberError) console.error('organization_members insert error:', memberError)
 
-  // Videokvoten ligger i video_credits (per bruker) og auto-opprettes med
+  // Bolig-modellen (16/10): ingen kvote å opprette — første bolig er gratis
+  // per megler og håndheves i /api/video/generate (lib/boliger.ts).
+  // (Historisk: videokvoten lå i video_credits (per bruker) og auto-opprettet med
   // default-kvote ved første bruk — den historiske `credits`-tabellen (per org)
   // leses ikke av noe og skrives ikke lenger.
 

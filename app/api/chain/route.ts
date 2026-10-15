@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../lib/supabase/server'
+import { maanedStart } from '../../../lib/boliger'
 
 // Kjedeoversikt: en kjede ER en organization; kontorer er orgs med
 // parent_organization_id satt til kjedens id. Kjedeadmin = admin-medlem av
@@ -50,7 +51,7 @@ export async function GET() {
     .order('created_at')
 
   if (!offices || offices.length === 0) {
-    return NextResponse.json({ chainName: chainOrg?.name ?? '', offices: [], totals: { offices: 0, members: 0, videos: 0, creditsUsed: 0, creditsTotal: 0 } })
+    return NextResponse.json({ chainName: chainOrg?.name ?? '', offices: [], totals: { offices: 0, members: 0, videos: 0, boligerDenneMaaneden: 0, saldoLagSelv: 0 } })
   }
 
   const officeIds = offices.map(o => o.id)
@@ -87,39 +88,52 @@ export async function GET() {
     }
   }
 
-  // Kreditter per kontor (video_credits er per bruker — summer over medlemmene)
-  const creditsByOffice = new Map<string, { used: number; total: number }>()
+  // Boliger låst opp denne måneden per kontor + kontorets «Lag selv»-saldo
+  // (16/10 — erstatter kredittene). Per medlem fordi property_unlocks også
+  // bærer organization_id, men medlemmer kan ha byttet kontor.
+  const boligerByOffice = new Map<string, number>()
   if (allMemberIds.length > 0) {
-    const { data: credits } = await client
-      .from('video_credits')
-      .select('user_id, used_this_month, included_per_month, extra_credits')
+    const { data: unlocks } = await client
+      .from('property_unlocks')
+      .select('user_id')
       .in('user_id', allMemberIds)
-    for (const c of credits ?? []) {
-      const office = userToOffice.get(c.user_id)
-      if (!office) continue
-      const agg = creditsByOffice.get(office) ?? { used: 0, total: 0 }
-      agg.used  += c.used_this_month ?? 0
-      agg.total += (c.included_per_month ?? 0) + (c.extra_credits ?? 0)
-      creditsByOffice.set(office, agg)
+      .gte('created_at', maanedStart())
+    for (const u of unlocks ?? []) {
+      const office = userToOffice.get(u.user_id)
+      if (office) boligerByOffice.set(office, (boligerByOffice.get(office) ?? 0) + 1)
+    }
+  }
+  const saldoByOffice = new Map<string, number>()
+  {
+    const { data: ents } = await client
+      .from('bolig_entitlements')
+      .select('organization_id, remaining, expires_at')
+      .in('organization_id', officeIds)
+      .eq('kind', 'lag_selv')
+      .gt('remaining', 0)
+    const naa = Date.now()
+    for (const e of ents ?? []) {
+      if (e.expires_at && new Date(e.expires_at).getTime() <= naa) continue
+      saldoByOffice.set(e.organization_id, (saldoByOffice.get(e.organization_id) ?? 0) + e.remaining)
     }
   }
 
   const rows = offices.map(o => ({
-    id:           o.id,
-    name:         o.name,
-    plan:         o.plan,
-    members:      (membersByOffice.get(o.id) ?? []).length,
-    videos:       videosByOffice.get(o.id) ?? 0,
-    creditsUsed:  creditsByOffice.get(o.id)?.used ?? 0,
-    creditsTotal: creditsByOffice.get(o.id)?.total ?? 0,
+    id:                   o.id,
+    name:                 o.name,
+    plan:                 o.plan,
+    members:              (membersByOffice.get(o.id) ?? []).length,
+    videos:               videosByOffice.get(o.id) ?? 0,
+    boligerDenneMaaneden: boligerByOffice.get(o.id) ?? 0,
+    saldoLagSelv:         saldoByOffice.get(o.id) ?? 0,
   }))
 
   const totals = {
-    offices:      rows.length,
-    members:      rows.reduce((s, r) => s + r.members, 0),
-    videos:       rows.reduce((s, r) => s + r.videos, 0),
-    creditsUsed:  rows.reduce((s, r) => s + r.creditsUsed, 0),
-    creditsTotal: rows.reduce((s, r) => s + r.creditsTotal, 0),
+    offices:              rows.length,
+    members:              rows.reduce((s, r) => s + r.members, 0),
+    videos:               rows.reduce((s, r) => s + r.videos, 0),
+    boligerDenneMaaneden: rows.reduce((s, r) => s + r.boligerDenneMaaneden, 0),
+    saldoLagSelv:         rows.reduce((s, r) => s + r.saldoLagSelv, 0),
   }
 
   return NextResponse.json({ chainName: chainOrg?.name ?? '', offices: rows, totals })
