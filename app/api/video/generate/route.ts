@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const user = await getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, backgroundImageUrl, propertyImages, segments, outro, ambienceType, motion, motionStrength, segmentTransition, noMotionImages, recipe, format, subtitles, subtitleStyle, voiceOff } = await request.json()
+    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, backgroundImageUrl, propertyImages, segments, outro, ambienceType, motion, motionStrength, segmentTransition, noMotionImages, recipe, format, subtitles, subtitleStyle, voiceOff, musicFromStart } = await request.json()
 
     const useSegments = Array.isArray(segments) && segments.length > 0
     if (!useSegments && (!script || !voiceId || !avatarImageUrl)) {
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(useSegments
-        ? { jobId, propertyId, avatarImageUrl, portraitUrl, backgroundImageUrl, voiceId, segments, outro, ...(format === 'portrait' ? { format: 'portrait' } : {}), ...(subtitles ? { subtitles: true, ...(subtitleStyle ? { subtitleStyle } : {}) } : {}), ...(voiceOff ? { voiceOff: true } : {}), ...(ambienceType ? { ambienceType } : {}), ...(motion ? { motion: true, motionStrength: motionStrength || 'subtle' } : {}), ...(segmentTransition === 'fade' ? { segmentTransition } : {}), ...(Array.isArray(noMotionImages) && noMotionImages.length ? { noMotionImages } : {}) }
+        ? { jobId, propertyId, avatarImageUrl, portraitUrl, backgroundImageUrl, voiceId, segments, outro, ...(format === 'portrait' ? { format: 'portrait' } : {}), ...(subtitles ? { subtitles: true, ...(subtitleStyle ? { subtitleStyle } : {}) } : {}), ...(voiceOff ? { voiceOff: true } : {}), ...(musicFromStart ? { musicFromStart: true } : {}), ...(ambienceType ? { ambienceType } : {}), ...(motion ? { motion: true, motionStrength: motionStrength || 'subtle' } : {}), ...(segmentTransition === 'fade' ? { segmentTransition } : {}), ...(Array.isArray(noMotionImages) && noMotionImages.length ? { noMotionImages } : {}) }
         : { jobId, propertyId, avatarImageUrl, scriptText: script, voiceId, imageUrls: (propertyImages || []).slice(0, 8), ...(ambienceType ? { ambienceType } : {}) }
       ),
     })
