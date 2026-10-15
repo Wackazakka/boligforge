@@ -518,6 +518,11 @@ nav.top .wrap { display: flex; align-items: center; justify-content: space-betwe
 
 /* ─── PRICING */
 .price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: stretch; }
+/* Abonnementsraden (16/10): fire kort på desktop; media-regelen under 980px setter én kolonne som for .price-grid. */
+.price-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.plan.compact { padding: 28px 24px; }
+.plan.compact .for { margin-bottom: 18px; min-height: 38px; }
+.plan.compact .desc { min-height: 0; margin-bottom: 20px; flex: 1; }
 .plan { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 32px 28px; display: flex; flex-direction: column; background: #fff; position: relative; transition: border-color 0.2s; min-width: 0; }
 .plan:hover { border-color: var(--line-2); }
 .plan.single { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: 24px 28px; }

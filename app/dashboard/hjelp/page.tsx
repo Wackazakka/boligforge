@@ -93,7 +93,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: 'Kan jeg se avataren før videoen lages?',
-        a: 'Ja. På avatar-segmenter trykker du «Forhåndsvis animasjonen» (tar ett til tre minutter) og lager nye takes til du er fornøyd. De siste fem takene ligger under «Tidligere takes» — trykk «Bruk denne» for å bytte. Klippet du godkjenner brukes nøyaktig som det er i den ferdige videoen. Forhåndsvisninger koster ikke videokreditt.',
+        a: 'Ja. På avatar-segmenter trykker du «Forhåndsvis animasjonen» (tar ett til tre minutter) og lager nye takes til du er fornøyd. De siste fem takene ligger under «Tidligere takes» — trykk «Bruk denne» for å bytte. Klippet du godkjenner brukes nøyaktig som det er i den ferdige videoen. Forhåndsvisninger koster ingenting ekstra.',
       },
       {
         q: 'Hva gjør merket nede til venstre på et bilde?',
@@ -105,7 +105,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: 'Kan jeg endre en ferdig video?',
-        a: 'Ja. Trykk «Rediger» på videoen, så kommer du tilbake med manus, segmenter og godkjente avatar-klipp intakt. Endre det du vil og generer på nytt — det koster en ny videokreditt. Gjelder videoer laget fra 5. august 2026; eldre videoer har ikke lagret redigeringstilstand.',
+        a: 'Ja. Trykk «Rediger» på videoen, så kommer du tilbake med manus, segmenter og godkjente avatar-klipp intakt. Endre det du vil og generer på nytt — det koster ingenting ekstra, boligen er allerede låst opp. Gjelder videoer laget fra 5. august 2026; eldre videoer har ikke lagret redigeringstilstand.',
       },
       {
         q: 'Selger satte ned prisen — hva gjør jeg?',
@@ -119,29 +119,40 @@ const SECTIONS: Section[] = [
   },
   {
     id: 'priser',
-    title: 'Videoer, priser og fakturering',
+    title: 'Boliger, priser og fakturering',
     topics: [
       {
-        q: 'Hva koster en video?',
-        a: 'Én videokreditt per generering — også når du genererer på nytt etter en redigering. Kredittene er personlige: hver megler har sin egen månedskvote fra planen, pluss eventuelle ekstra kjøpte videoer. Dashbordet viser hva du har igjen.',
+        q: 'Hva koster det?',
+        a: 'Du betaler per bolig, ikke per video. En bolig låses opp én gang, og deretter er hovedfilm, reel, story, nye versjoner og publisering på den boligen inkludert. Første bolig du lager selv er gratis. Dashbordet viser hvor mange boliger du har laget denne måneden og hva neste koster.',
       },
       {
-        q: 'Hva koster planene?',
-        a: 'Priser per august 2026, eks. mva., fakturert månedlig i NOK:',
+        q: 'Hva er prisene?',
+        a: 'Priser per oktober 2026, eks. mva.:',
         list: [
-          'Starter — 2 090 kr/mnd for 3 videoer i måneden',
-          'Pro — 3 990 kr/mnd for 10 videoer i måneden',
-          'Kontor — 1 990 kr/megler/mnd for 7 videoer per megler (avtale via hei@reelhome.ai)',
-          'Ekstra videoer — 989 kr per stykk, kjøpes på toppen av abonnementet uten å bytte plan',
+          'Du lager selv — 790 kr per bolig. Bolig fem til ni i samme måned koster 690 kr, og fra bolig ti 590 kr. Tidligere boliger prises ikke om.',
+          'Vi produserer tekstet story i 9:16 — 1 490 kr per bolig, levert innen én virkedag',
+          'Vi produserer reel og film med innlest stemme, med eller uten avatar — 2 490 kr per bolig, levert innen to virkedager',
+          'Produksjoner vi utfører: 10 prosent rabatt fra femte bestilling i samme måned. Ekstra endringsrunde 490 kr.',
         ],
       },
       {
-        q: 'Forsvinner ubrukte videoer ved månedsskiftet?',
-        a: 'Nei, ubrukte videoer blir med videre.',
+        q: 'Hvilke abonnement finnes?',
+        a: 'To typer, begge for megler eller for hele kontoret. Alle løper månedlig med én måneds oppsigelse, og ubrukte boliger overføres til neste måned:',
+        list: [
+          '«Lag selv» Megler — 2 490 kr/mnd for 4 boliger du lager selv',
+          '«Lag selv» Kontor — 7 990 kr/mnd for 15 boliger, delt mellom kontorets meglere',
+          '«Vi produserer» Megler — 3 990 kr/mnd for 2 boliger vi lager, med stemme eller avatar',
+          '«Vi produserer» Kontor — 14 990 kr/mnd for 8 boliger vi lager, delt mellom kontorets meglere',
+          'Boliger utover abonnementet koster abonnementets pris per bolig',
+        ],
+      },
+      {
+        q: 'Hva skjer når jeg genererer på nytt?',
+        a: 'Ingenting ekstra. Boligen er låst opp, så nye versjoner, andre formater og nye innlesinger på samme bolig er inkludert.',
       },
       {
         q: 'Er det bindingstid?',
-        a: 'Nei. Alle abonnement starter med 14 dagers gratis prøveperiode uten kortinfo, og du beholder tilgangen ut betalt periode. Alle filmer du har produsert kan lastes ned. Tidlige brukere låser dagens pris i to år.',
+        a: 'Nei. Enkeltboliger kjøpes én og én, og abonnement kan sies opp med én måneds varsel. Alle filmer du har produsert kan lastes ned.',
       },
     ],
   },
@@ -167,7 +178,7 @@ const SECTIONS: Section[] = [
         q: 'Hvilke roller finnes?',
         a: 'Tre nivåer:',
         list: [
-          'Megler — lager videoer og har egen profil, avatar, stemme og kreditter',
+          'Megler — lager videoer og har egen profil, avatar og stemme, og ser bare sine egne boliger',
           'Admin (kontorsjef) — alt en megler kan, pluss Team-siden for å invitere og administrere meglere på kontoret',
           'Kjedeadmin — i tillegg Kjede-siden: opprett kontorer, inviter kontorsjefer, og se forbruket per kontor',
         ],
@@ -178,7 +189,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: 'Hvem betaler — hovedkontoret eller kontorene?',
-        a: 'I dag betaler hvert kontor for seg selv, med egen prøveperiode og eget abonnement. Kjedeledelsen ser samlet forbruk på Kjede-siden. Sentral fakturering med kredittfordeling står på veikartet.',
+        a: 'Hvert kontor betaler for seg selv: per bolig eller med et kontor-abonnement som deles mellom meglerne. Kjedeledelsen ser boliger per kontor på Kjede-siden. Sentral fakturering for hele kjeden står på veikartet.',
       },
       {
         q: 'Jeg finner ikke Team- eller Kjede-menyen',
