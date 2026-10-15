@@ -438,7 +438,20 @@ export default function PropertyDetailPage() {
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   // Bolig-porten (16/10): prisen for å låse opp denne boligen, fra 402-svaret.
   const [boligPris, setBoligPris] = useState<number | null>(null)
+  // Produksjonsmodus (16/10, hjem.no-avtalen): «story» = rask story i 9:16 med
+  // kun tekst på en forenklet side (manus og segmenter lages automatisk, bare
+  // tekst, bilder, tekststil og musikk er synlige); «film» = full editor.
+  // null = ikke valgt (valget vises øverst); undefined = laster fra kontoen.
+  const [prodModus, setProdModus] = useState<'story' | 'film' | null | undefined>(undefined)
+  // «Flere valg» i story-modus åpner full editor for denne boligen uten å
+  // endre det lagrede valget. Settes også ved ?editVideo (redigering av en
+  // tidligere video skal vise alt den ble laget med).
+  const [visAlleValg, setVisAlleValg] = useState(false)
+  const storyModus = prodModus === 'story' && !visAlleValg
+  // Automatikken i story-modus kjører hvert steg én gang per bolig/manus.
+  const storyAuto = useRef<{ manus: boolean; deling: boolean }>({ manus: false, deling: false })
   const [pastVideos, setPastVideos] = useState<{ id: string; video_url: string; created_at: string; recipe?: VideoRecipe | null; collection_ids: string[] }[]>([])
+  const [pastVideosLastet, setPastVideosLastet] = useState(false)
   const [collections, setCollections] = useState<{ id: string; name: string; is_org: boolean }[]>([])
   const [folderPanelVideoId, setFolderPanelVideoId] = useState<string | null>(null)
   // Folder panel for the freshly generated video (lazy-loads collections on open)
@@ -754,6 +767,12 @@ export default function PropertyDetailPage() {
       setSelectedVideoImages(p.images || [])
     })
     fetch('/api/profile/get').then(r => r.json()).then(setProfile)
+    // Produksjonsmodus fra kontoen. Redigering av en tidligere video viser
+    // alltid full editor (oppskriften bestemmer, ikke story-presetet).
+    if (new URLSearchParams(window.location.search).get('editVideo')) setVisAlleValg(true)
+    fetch('/api/profile/prod-modus').then(r => r.json())
+      .then(d => setProdModus(d?.modus === 'story' || d?.modus === 'film' ? d.modus : null))
+      .catch(() => setProdModus(null))
     fetch('/api/profile/settings-images').then(r => r.json()).then((d: SettingImage[]) => {
       if (Array.isArray(d)) {
         setSettingImages(d)
@@ -765,7 +784,8 @@ export default function PropertyDetailPage() {
     })
     fetch(`/api/properties/videos?propertyId=${id}`).then(r => r.json()).then(d => {
       if (Array.isArray(d)) setPastVideos(d)
-    })
+      setPastVideosLastet(true)
+    }).catch(() => setPastVideosLastet(true))
     fetch('/api/collections').then(r => r.json()).then(d => {
       if (Array.isArray(d)) setCollections(d)
     })
@@ -804,7 +824,9 @@ export default function PropertyDetailPage() {
     )
   }
 
-  async function handleSplitSegments() {
+  // maksBilder: story-modus vil ha ETT bilde per tekstblokk (enkel side, korte
+  // klipp); ellers anslås antallet fra taletiden som før.
+  async function handleSplitSegments(maksBilder?: number) {
     if (!script) return
     const newSegments = splitIntoSegments(script)
     setSegments(newSegments)
@@ -852,7 +874,7 @@ export default function PropertyDetailPage() {
           const isLast = idx === last && !noAvatar
           // Avatar-segmenter (første/siste) trenger bare ett bakgrunnsbilde;
           // bildesegmenter får antall etter anslått taletid (~2,5 s per bilde).
-          const count = (isFirst || isLast) ? 1 : suggestedImageCount(seg.text)
+          const count = (isFirst || isLast) ? 1 : Math.min(suggestedImageCount(seg.text), maksBilder ?? Infinity)
           const suggested = matchSegmentToImages(seg.text, data.imageTags, images, usedImages, count)
           suggested.forEach(img => usedImages.add(img))
           if (isFirst || isLast) {
@@ -873,6 +895,69 @@ export default function PropertyDetailPage() {
     } finally {
       setClassifyingImages(false)
     }
+  }
+
+  // ── Produksjonsmodus (16/10) ──────────────────────────────────────────────
+  // Story-presetet: ingen presentør, ingen stemme, 9:16, teksting på. Samme
+  // grep som «Uten avatar — helt uten stemme»-kortet, pluss format og teksting.
+  function brukStoryPreset() {
+    setNoAvatar(true); setVoiceOff(true)
+    setSelectedAvatarUrl(''); setGeneratedAvatarUrl(null)
+    setSegments(prev => prev.some(x => x.type === 'avatar')
+      ? prev.map(x => x.type === 'avatar' ? { ...x, type: 'image' as const, clipUrl: undefined, clipHistory: undefined } : x)
+      : prev)
+    setOutputFormat('portrait')
+    setCaptionsTouched(true); setCaptions(true)
+    setCaptionStyle(s => (s === 'dynamisk' ? 'ren' : s))
+  }
+
+  function velgModus(m: 'story' | 'film') {
+    setProdModus(m)
+    setVisAlleValg(false)
+    if (m === 'story') brukStoryPreset()
+    fetch('/api/profile/prod-modus', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modus: m }),
+      keepalive: true,
+    }).catch(() => {})
+  }
+
+  // Lagret «story» fra kontoen → presetet må på før automatikken starter.
+  // Ikke ved redigering av tidligere video (visAlleValg), der styrer oppskriften.
+  useEffect(() => {
+    if (prodModus === 'story' && !visAlleValg) brukStoryPreset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prodModus])
+
+  // Story-automatikk, steg 1: lag manus så snart bolig og profil er lastet —
+  // men bare for boliger UTEN tidligere videoer. Ellers ville hvert besøk på
+  // boligsiden kostet et nytt manus; der venter vi på «Lag ny story».
+  // Effekten kjører ETTER render, så handleGenerateScript ser noAvatar/voiceOff
+  // fra presetet (de leses fra render-closuren).
+  useEffect(() => {
+    if (!storyModus || !property || !profile || !pastVideosLastet) return
+    if (script || generatingScript || storyAuto.current.manus) return
+    if (pastVideos.length > 0) return
+    storyAuto.current.manus = true
+    handleGenerateScript()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyModus, property, profile, pastVideosLastet, pastVideos.length, script, generatingScript])
+
+  // Steg 2: del opp og velg ett bilde per blokk så snart manuset finnes.
+  useEffect(() => {
+    if (!storyModus || !script || segments.length > 0 || classifyingImages) return
+    if (storyAuto.current.deling) return
+    storyAuto.current.deling = true
+    handleSplitSegments(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyModus, script, segments.length])
+
+  // «Nytt manus» i story-modus: nytt manus + ny oppdeling.
+  async function storyNyttManus() {
+    storyAuto.current = { manus: true, deling: false }
+    setSegments([])
+    await handleGenerateScript()
   }
 
   function updateSegment(idx: number, patch: Partial<Segment>) {
@@ -1710,19 +1795,21 @@ export default function PropertyDetailPage() {
         {/* Tre gjennomganger, gjensidig utelukkende og i takt med hvor langt
             brukeren er kommet: oppsett (før manus) -> del opp (manus finnes,
             ikke segmentert) -> kvalitetssikring (segmentene finnes). */}
+        {/* Ikke i story-modus: stegene peker på kort som er skjult der, og
+            driver.js hopper ikke over selektorer uten treff. */}
         <ProductTour
           storageKey={TOUR_SETUP_KEY}
-          when={activeTab === 'video' && segments.length === 0 && !script}
+          when={activeTab === 'video' && !storyModus && segments.length === 0 && !script}
           steps={setupSteps}
         />
         <ProductTour
           storageKey={TOUR_SPLIT_KEY}
-          when={activeTab === 'video' && segments.length === 0 && !!script}
+          when={activeTab === 'video' && !storyModus && segments.length === 0 && !!script}
           steps={SPLIT_STEPS}
         />
         <ProductTour
           storageKey={TOUR_REVIEW_KEY}
-          when={activeTab === 'video' && segments.length > 0}
+          when={activeTab === 'video' && !storyModus && segments.length > 0}
           steps={reviewSteps}
         />
 
@@ -1812,7 +1899,72 @@ export default function PropertyDetailPage() {
 
         {activeTab === 'video' && (<>
 
+        {/* ── Valg øverst (16/10, hjem.no-avtalen): rask story eller full film.
+            Valget huskes på kontoen. ── */}
+        {prodModus === null && (
+          <div className="app-card" style={{ padding: '18px 20px' }}>
+            <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '4px', fontSize: '15px' }}>Hva vil du lage?</h2>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px' }}>
+              Valget huskes, og du kan bytte når som helst. Alle formater på boligen er inkludert uansett.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+              <button type="button" onClick={() => velgModus('story')} className="app-card" style={{ textAlign: 'left', padding: '16px', cursor: 'pointer', border: '2px solid var(--blue)', background: 'var(--blue-soft)' }}>
+                <div style={{ fontSize: '22px', marginBottom: '6px' }}>📱</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>Rask story</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                  9:16 med tekst, uten stemme og avatar. Manus og bilder velges automatisk, du justerer teksten og trykker generer.
+                </div>
+              </button>
+              <button type="button" onClick={() => velgModus('film')} className="app-card" style={{ textAlign: 'left', padding: '16px', cursor: 'pointer', border: '2px solid var(--line)' }}>
+                <div style={{ fontSize: '22px', marginBottom: '6px' }}>🎬</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>Film med stemme og avatar</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                  Hovedfilm i 16:9 eller 9:16 med innlest stemme, presentør og alle valg.
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+        {prodModus === 'story' && (
+          <div className="app-card" style={{ padding: '14px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+              <div>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>📱 Rask story</span>
+                <span style={{ fontSize: '12px', color: 'var(--muted)', marginLeft: '8px' }}>9:16 · tekst · uten stemme</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {storyModus
+                  ? <button type="button" onClick={() => setVisAlleValg(true)} className="app-btn-secondary text-xs" style={{ padding: '6px 12px' }}>Flere valg</button>
+                  : <button type="button" onClick={() => { setVisAlleValg(false); brukStoryPreset() }} className="app-btn-secondary text-xs" style={{ padding: '6px 12px' }}>Tilbake til enkel visning</button>}
+                <button type="button" onClick={() => velgModus('film')} className="app-btn-ghost text-xs" style={{ padding: '6px 12px' }}>Bytt til film</button>
+              </div>
+            </div>
+            {storyModus && (
+              <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--ink)', lineHeight: 1.6 }}>
+                {!script && generatingScript
+                  ? <span>⏳ Lager manus fra annonsen…</span>
+                  : !script && !storyAuto.current.manus && pastVideosLastet && pastVideos.length > 0
+                    ? <span>Boligen har {pastVideos.length} video{pastVideos.length === 1 ? '' : 'er'} fra før (nederst). <button type="button" onClick={storyNyttManus} className="app-btn-primary text-xs" style={{ padding: '6px 12px', marginLeft: '6px' }}>Lag ny story</button></span>
+                  : !script && !storyAuto.current.manus
+                    ? <span>⏳ Laster…</span>
+                  : !script
+                    ? <span>Manuset ble ikke laget. <button type="button" onClick={storyNyttManus} style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Prøv igjen</button></span>
+                    : segments.length === 0 || classifyingImages
+                      ? <span>⏳ Deler opp teksten og velger bilder…</span>
+                      : <span>✅ Klar. Les gjennom tekstblokkene under, bytt bilde der du vil, velg tekststil og musikk, og trykk generer.
+                          {' '}<button type="button" onClick={storyNyttManus} style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Nytt manus</button></span>}
+              </div>
+            )}
+          </div>
+        )}
+        {prodModus === 'film' && (
+          <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 4px' }}>
+            🎬 Film med stemme og avatar · <button type="button" onClick={() => velgModus('story')} style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Bytt til rask story</button>
+          </p>
+        )}
+
         {/* ── Presenter + bakgrunn (unified) ── */}
+        {!storyModus && (
         <div className="app-card" data-tour="presenter" style={{ padding: '16px 20px' }}>
           <h2 className="font-semibold" style={{ color: 'var(--ink)', marginBottom: '4px', fontSize: '15px' }}>
             Hvem presenterer boligen?
@@ -2218,8 +2370,11 @@ export default function PropertyDetailPage() {
             </div>
           )}
         </div>
+        )}
 
-        {/* Script section */}
+        {/* Script section — skjult i story-modus (manuset lages automatisk;
+            teksten redigeres i blokkene). */}
+        {!storyModus && (
         <div ref={editSectionRef} className="app-card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Presentasjonsmanus</h2>
@@ -2261,7 +2416,7 @@ export default function PropertyDetailPage() {
                       50%     { box-shadow: 0 0 0 7px rgba(124,26,58,0); }
                     }`}</style>
                     <button
-                      onClick={handleSplitSegments}
+                      onClick={() => handleSplitSegments()}
                       disabled={classifyingImages}
                       data-tour="split-segments"
                       className="app-btn-primary text-sm"
@@ -2342,17 +2497,21 @@ export default function PropertyDetailPage() {
           )}
         </div>
 
+        )}
+
         {/* Segment editor */}
         {segments.length > 0 && (
           <div className="app-card space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Segmenter</h2>
+                <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>{storyModus ? 'Tekst og bilder' : 'Segmenter'}</h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                  {segments.filter(s => s.type === 'avatar').length} avatar · {segments.filter(s => s.type === 'image').length} bilde
+                  {storyModus
+                    ? `${segments.length} tekstblokker, ett bilde hver`
+                    : `${segments.filter(s => s.type === 'avatar').length} avatar · ${segments.filter(s => s.type === 'image').length} bilde`}
                 </p>
               </div>
-              <button onClick={() => setSegments([])} className="app-btn-ghost text-xs">Fjern segmentering</button>
+              {!storyModus && <button onClick={() => setSegments([])} className="app-btn-ghost text-xs">Fjern segmentering</button>}
             </div>
             {/* Kvalitetssikring før video: les teksten, hør innlesingen — her fanges
                 rare formuleringer og uttale før det koster en videogenerering. */}
@@ -2381,6 +2540,7 @@ export default function PropertyDetailPage() {
             {/* Egen kort-bakgrunn: sto foer som en naken avkrysningsboks + graa tekst
                 rett under den fargede blaa QA-boksen, og ble oversett (Lars 21/8).
                 Et lett kort gir kontrollen tyngde og skiller den fra teksten over. */}
+            {!storyModus && (<>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '12px 14px', background: '#eef4fb', border: '1px solid #c7dbf0', borderRadius: '10px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                 <input
@@ -2432,6 +2592,7 @@ export default function PropertyDetailPage() {
                 bruker du merket nede til venstre på det bildet.
               </p>
             )}
+            </>)}
 
             <div className="space-y-3">
               {segments.map((seg, i) => (
@@ -2478,6 +2639,7 @@ export default function PropertyDetailPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-y-2">
+                    {!storyModus && (
                     <div className="flex gap-2">
                       <button
                         onClick={() => updateSegment(i, { type: 'avatar', imageUrl: undefined })}
@@ -2502,6 +2664,7 @@ export default function PropertyDetailPage() {
                         Boligbilde
                       </button>
                     </div>
+                    )}
                     {/* Ingen stemme = ingenting å høre. Lyden lages likevel stille
                         ved generering (klokke for lengdene), se kommentaren over. */}
                     {!voiceOff && (
@@ -2805,6 +2968,8 @@ export default function PropertyDetailPage() {
           const unused = (property?.images || []).filter(img => !usedUrls.has(img))
           return (
             <div className="app-card space-y-4" data-tour="outro-images">
+              {/* Story-modus: ingen bildeserie til slutt — kortet holder bare musikken. */}
+              {!storyModus && (<>
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Outro — gjenværende bilder</h2>
@@ -2869,8 +3034,9 @@ export default function PropertyDetailPage() {
                   </div>
                 </div>
               )}
+              </>)}
 
-              {outro.images.length > 0 && (
+              {outro.images.length > 0 && !storyModus && (
                 <div className="space-y-3 pt-3" data-tour="outro-duration" style={{ borderTop: '1px solid var(--line)' }}>
                   <div className="flex items-center gap-3">
                     <label className="text-xs w-36 shrink-0" style={{ color: 'var(--ink-2)' }}>Varighet per bilde</label>
@@ -2950,6 +3116,7 @@ export default function PropertyDetailPage() {
                   det finnes ingen bryter. Men ingenting i videoflyten sa det, så
                   megleren lette etter et logovalg som ikke finnes (Lars 8/10).
                   Dette er bare bekreftelsen; selve valget skjer på profilsiden. */}
+              {!storyModus && (
               <div className="pt-3" style={{ borderTop: '1px solid var(--line)' }}>
                 {profile.logo_url ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -2970,6 +3137,7 @@ export default function PropertyDetailPage() {
                   </p>
                 )}
               </div>
+              )}
 
               {/* Musikk */}
               <div className="space-y-2 pt-3" data-tour="outro-music" style={{ borderTop: '1px solid var(--line)' }}>
@@ -3020,7 +3188,8 @@ export default function PropertyDetailPage() {
                 )}
               </div>
 
-              {/* Atmosfærelyd */}
+              {/* Atmosfærelyd — ikke i story-modus (ingen presentør å legge lyd bak). */}
+              {!storyModus && (
               <div className="space-y-2 pt-3" data-tour="ambience" style={{ borderTop: '1px solid var(--line)' }}>
                 <div>
                   <label className="text-xs" style={{ color: 'var(--muted)' }}>Atmosfærelyd (valgfritt)</label>
@@ -3079,13 +3248,14 @@ export default function PropertyDetailPage() {
                   })}
                 </div>
               </div>
+              )}
             </div>
           )
         })()}
 
 
         {/* Property image picker for video */}
-        {segments.length === 0 && property.images?.length > 0 && (
+        {segments.length === 0 && !storyModus && property.images?.length > 0 && (
           <div className="app-card space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -3168,6 +3338,9 @@ export default function PropertyDetailPage() {
               ferdig 16:9 (Lars 21/8). Hovedknappen genererer i valgt format. */}
           {!generatingVideo && (
             <div style={{ marginBottom: '10px' }}>
+              {/* Format, tittelkort og teksting er låst i story-modus (9:16, uten
+                  kort, teksting på) — bare tekststilen under er valgbar. */}
+              {!storyModus && (<>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {([['landscape', '16:9 (vanlig)'], ['portrait', '9:16 (mobil/Reels)']] as const).map(([val, label]) => (
                   <button
@@ -3218,6 +3391,7 @@ export default function PropertyDetailPage() {
                   💬 Teksting på videoen <span style={{ color: 'var(--muted)' }}>{voiceOff ? '— manuset vises som tekst i videoen (stemmen er av, så teksten bærer budskapet)' : '— manuset vises mens det leses (anbefalt uten presentør; de fleste ser uten lyd)'}</span>
                 </span>
               </label>
+              </>)}
               {(captionsTouched ? captions : (voiceOff || !segments.some(s => s.type === 'avatar'))) && (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', marginLeft: '23px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Tekststil:</span>
@@ -3270,7 +3444,9 @@ export default function PropertyDetailPage() {
           >
             {generatingVideo
               ? 'Genererer video...'
-              : `Generer ${outputFormat === 'portrait' ? '9:16-video (mobil)' : 'presentasjonsvideo'}`}
+              : storyModus
+                ? 'Generer story (9:16)'
+                : `Generer ${outputFormat === 'portrait' ? '9:16-video (mobil)' : 'presentasjonsvideo'}`}
           </button>
           {/* En grå/deaktivert knapp ble lest som «jobber» i stedet for «mangler
               noe» (Lars 21/8). Si tydelig HVA som må til for å slå den på. */}
@@ -3282,7 +3458,7 @@ export default function PropertyDetailPage() {
             </p>
           )}
           <p style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '8px' }}>
-            Tar 5–10 minutter og bruker én videokreditt — jo flere bilder i avslutningen, jo lengre. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
+            Tar 5–10 minutter — jo flere bilder i avslutningen, jo lengre. Alle versjoner og formater på boligen er inkludert, og den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
           </p>
         </div>
 
