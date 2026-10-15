@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-import TopupBanner from './TopupBanner'
 import GettingStarted, { type ChecklistStep } from './GettingStarted'
+import { hentSaldo } from '../../lib/boliger'
 
 // Service-role client for data reads — brukes etter at bruker er verifisert
 // via createSupabaseServerClient().auth.getUser(). Bypasser RLS-problematikk
@@ -85,35 +85,16 @@ export default async function DashboardPage() {
   // Vis sjekklisten kun før første video er laget.
   const showChecklist = !hasVideo
 
-  // Kreditt-visning speiler /api/video/credits: video_credits (per bruker) er
-  // kilden som videogenereringen og Stripe-kjøp faktisk bruker. Dashboardet leste
-  // tidligere den utdaterte per-org `credits`-tabellen (som de fleste org-er ikke
-  // har en rad i) → viste feilaktig «0 / Ingen aktiv plan» selv med credits igjen.
-  const { data: vc } = await serviceSupabase
-    .from('video_credits')
-    .select('included_per_month, extra_credits, used_this_month')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  const { data: org } = await serviceSupabase
-    .from('organizations')
-    .select('trial_ends_at')
-    .eq('id', profile.organization_id)
-    .maybeSingle()
-
-  const hasCredits       = !!vc
-  const includedPerMonth = vc?.included_per_month ?? 0
-  const extraCredits     = vc?.extra_credits ?? 0
-  const usedThisMonth    = vc?.used_this_month ?? 0
-  const total      = includedPerMonth + extraCredits
-  const remaining  = Math.max(0, total - usedThisMonth)
-  const firstName  = profile.full_name?.split(' ')[0] ?? 'der'
-  const usedPct    = total > 0 ? Math.round((usedThisMonth / total) * 100) : 0
-
-  const trialDaysLeft = org?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(org.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null
-  const isInTrial = trialDaysLeft !== null && trialDaysLeft > 0
+  // Bolig-saldo (16/10): betaling er per bolig, ikke per video. Samme kilde
+  // som porten i /api/video/generate (lib/boliger.ts).
+  const saldo = await hentSaldo(serviceSupabase, user.id)
+  const firstName = profile.full_name?.split(' ')[0] ?? 'der'
+  const harAbonnement = saldo.abonnementer.length > 0
+  const nesteBoligTekst = saldo.gratisBoligIgjen
+    ? 'Din første bolig er gratis'
+    : saldo.lagSelv.igjen > 0
+      ? `${saldo.lagSelv.igjen} bolig${saldo.lagSelv.igjen === 1 ? '' : 'er'} igjen i abonnementet`
+      : `Neste bolig koster ${saldo.nestePris.toLocaleString('nb-NO')} kr`
 
   return (
     <div className="p-6">
@@ -132,82 +113,27 @@ export default async function DashboardPage() {
         {/* Kom-i-gang-sjekkliste — kun for nye brukere uten video ennå */}
         {showChecklist && <GettingStarted steps={checklistSteps} />}
 
-        {/* Trial-banner */}
-        {isInTrial && (
-          <div style={{
-            background: '#fffbeb',
-            border: '1px solid #fcd34d',
-            borderRadius: '10px',
-            padding: '14px 20px',
-            marginBottom: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}>
-            <p style={{ fontSize: '14px', color: '#92400e', margin: 0 }}>
-              ⏳ Du har <strong>{trialDaysLeft} dag{trialDaysLeft === 1 ? '' : 'er'} igjen</strong> av din gratis prøveperiode.
-            </p>
-            <Link
-              href="/dashboard/billing"
-              style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: '#2563eb',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Velg plan for å fortsette etter prøveperioden →
-            </Link>
-          </div>
-        )}
-
-        {/* Topup-banner — vises når ≤ 1 video gjenstår */}
-        {remaining <= 1 && hasCredits && (
-          <TopupBanner remaining={remaining} />
-        )}
-
-        {/* Stats-rad */}
+        {/* Stats-rad: boliger, ikke videoer (16/10). Alle formater og
+            regenereringer på en opplåst bolig er fri, så det eneste tallet som
+            betyr noe er hvor mange boliger du har laget og hva neste koster. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '40px' }}>
 
-          {/* Gjenstående videoer */}
           <div className="app-card" style={{ padding: '24px' }}>
             <div style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 500, marginBottom: '10px' }}>
-              Gjenstående videoer
+              Boliger denne måneden
             </div>
-            <div style={{
-              fontSize: '44px', fontWeight: 700, lineHeight: 1,
-              color: remaining > 0 ? 'var(--ink)' : '#ef4444',
-            }}>
-              {remaining}
+            <div style={{ fontSize: '44px', fontWeight: 700, lineHeight: 1, color: 'var(--ink)' }}>
+              {saldo.boligerDenneMaaneden}
             </div>
-            {total > 0 && (
-              <>
-                <div style={{ fontSize: '13px', color: 'var(--muted-2)', marginTop: '6px' }}>
-                  av {total} tilgjengelig
-                </div>
-                {/* Progressbar */}
-                <div style={{ marginTop: '14px', height: '4px', background: 'var(--line)', borderRadius: '99px', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${usedPct}%`,
-                    background: usedPct > 80 ? '#ef4444' : 'var(--blue)',
-                    borderRadius: '99px',
-                    transition: 'width 0.4s',
-                  }} />
-                </div>
-              </>
-            )}
-            {!hasCredits && (
-              <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '8px' }}>
-                Ingen aktiv plan ·{' '}
-                <Link href="/dashboard/billing" style={{ color: 'var(--blue)', textDecoration: 'none' }}>
-                  Velg plan
-                </Link>
-              </div>
-            )}
+            <div style={{ fontSize: '13px', color: 'var(--muted-2)', marginTop: '8px' }}>
+              {nesteBoligTekst}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '10px' }}>
+              Alle formater og endringer på en bolig er inkludert.{' '}
+              <Link href="/dashboard/billing" style={{ color: 'var(--blue)', textDecoration: 'none' }}>
+                {harAbonnement ? 'Se abonnement' : 'Se priser'}
+              </Link>
+            </div>
           </div>
 
         </div>

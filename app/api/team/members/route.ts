@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
+import { kontorOversikt } from '../../../../lib/boliger'
 
 export const runtime = 'nodejs'
 
@@ -77,19 +78,9 @@ export async function GET() {
     if (u.email) emailMap[u.id] = u.email
   }
 
-  // Credits this month per member
-  const { data: credits } = memberIds.length
-    ? await client.from('video_credits').select('user_id, used_this_month, included_per_month, extra_credits').in('user_id', memberIds)
-    : { data: [] }
-
-  const creditMap: Record<string, { used: number; total: number }> = {}
-  for (const c of credits ?? []) {
-    creditMap[c.user_id] = { used: c.used_this_month ?? 0, total: (c.included_per_month ?? 0) + (c.extra_credits ?? 0) }
-  }
-
-  // Total org credits this month
-  const totalUsed  = Object.values(creditMap).reduce((s, c) => s + c.used, 0)
-  const totalTotal = Object.values(creditMap).reduce((s, c) => s + c.total, 0)
+  // Boliger låst opp per megler denne måneden + kontorets saldo (16/10 —
+  // erstatter kredittene).
+  const oversikt = await kontorOversikt(client, orgId, memberIds)
 
   const enriched = (members ?? []).map(m => ({
     id:          m.user_id,
@@ -97,12 +88,20 @@ export async function GET() {
     email:       emailMap[m.user_id] ?? '—',
     role:        m.role,
     video_count: videoCountMap[m.user_id] ?? 0,
-    credits:     creditMap[m.user_id] ?? { used: 0, total: 0 },
+    boliger:     oversikt.perMegler[m.user_id] ?? { boliger: 0, produksjoner: 0, kostnad: 0 },
   }))
+
+  const boligerDenneMaaneden = enriched.reduce((s, m) => s + m.boliger.boliger, 0)
+  const produksjonerDenneMaaneden = enriched.reduce((s, m) => s + m.boliger.produksjoner, 0)
 
   return NextResponse.json({
     members: enriched,
-    org_credits: { used: totalUsed, total: totalTotal },
+    org: {
+      boliger_denne_maaneden: boligerDenneMaaneden,
+      produksjoner_denne_maaneden: produksjonerDenneMaaneden,
+      saldo_lag_selv: oversikt.saldo.lagSelv,
+      saldo_vi_produserer: oversikt.saldo.viProduserer,
+    },
   })
 }
 

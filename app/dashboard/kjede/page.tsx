@@ -12,14 +12,14 @@ type Office = {
   plan: string
   members: number
   videos: number
-  creditsUsed: number
-  creditsTotal: number
+  boligerDenneMaaneden: number
+  saldoLagSelv: number
 }
 
 type ChainData = {
   chainName: string
   offices: Office[]
-  totals: { offices: number; members: number; videos: number; creditsUsed: number; creditsTotal: number }
+  totals: { offices: number; members: number; videos: number; boligerDenneMaaneden: number; saldoLagSelv: number }
 }
 
 const nb = (n: number) => n.toLocaleString('nb-NO')
@@ -93,7 +93,7 @@ export default function KjedePage() {
     { label: 'Kontorer', value: nb(totals.offices) },
     { label: 'Meglere', value: nb(totals.members) },
     { label: 'Videoer', value: nb(totals.videos) },
-    { label: 'Kreditter brukt', value: `${nb(totals.creditsUsed)} av ${nb(totals.creditsTotal)}` },
+    { label: 'Boliger denne måneden', value: nb(totals.boligerDenneMaaneden) },
   ]
 
   return (
@@ -165,20 +165,12 @@ export default function KjedePage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {data.offices.map(o => {
-            const pct = o.creditsTotal > 0 ? Math.round((o.creditsUsed / o.creditsTotal) * 100) : 0
             return (
               <div key={o.id} style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>{o.name}</span>
-                    <span className="app-badge-muted">{o.plan}</span>
-                  </div>
-                  <div style={{ marginTop: '8px', height: '6px', borderRadius: '99px', overflow: 'hidden', background: 'var(--line)', maxWidth: '220px' }}>
-                    <div style={{
-                      height: '100%', width: `${Math.min(100, pct)}%`,
-                      background: pct >= 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : 'var(--blue)',
-                      transition: 'width 0.4s',
-                    }} />
+                    {o.saldoLagSelv > 0 && <span className="app-badge-muted">{nb(o.saldoLagSelv)} boliger igjen</span>}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '24px', textAlign: 'right' }}>
@@ -191,8 +183,8 @@ export default function KjedePage() {
                     <div style={{ fontSize: '11px', color: 'var(--muted)' }}>videoer</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>{nb(o.creditsUsed)} / {nb(o.creditsTotal)}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>kreditter</div>
+                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>{nb(o.boligerDenneMaaneden)}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>boliger i mnd</div>
                   </div>
                 </div>
               </div>

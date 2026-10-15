@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
+import { ensureUnlocked } from '../../../../lib/boliger'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -37,37 +38,29 @@ export async function POST(request: Request) {
 
     const supabase = getServiceClient()
 
-    // ── Credit check ────────────────────────────────────────────────────────
-    let { data: credits } = await supabase
-      .from('video_credits')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    // Auto-create credits row if missing
-    if (!credits) {
-      const { data: newCredits } = await supabase
-        .from('video_credits')
-        .insert({ user_id: user.id })
-        .select('*')
-        .single()
-      credits = newCredits
+    // ── Bolig-porten (16/10) ────────────────────────────────────────────────
+    // Betaling er per BOLIG, ikke per video: første bolig gratis, deretter
+    // abonnementssaldo eller enkeltkjøp. Er boligen låst opp, er alle formater
+    // og regenereringer fri. Erstatter video_credits-sjekken.
+    if (!propertyId) {
+      return NextResponse.json({ error: 'Mangler propertyId' }, { status: 400 })
     }
-
-    if (credits) {
-      const available = (credits.included_per_month ?? 3) + (credits.extra_credits ?? 0) - (credits.used_this_month ?? 0)
-      if (available <= 0) {
-        return NextResponse.json(
-          {
-            error: 'Ingen videokreditter igjen denne måneden',
-            code: 'NO_CREDITS',
-            extra_credit_price_nok: 989,
-          },
-          { status: 402 }
-        )
+    const port = await ensureUnlocked(supabase, user.id, propertyId)
+    if (!port.ok) {
+      if (port.code === 'NOT_OWNER') {
+        return NextResponse.json({ error: 'Boligen tilhører ikke din konto' }, { status: 403 })
       }
+      return NextResponse.json(
+        {
+          error: 'Boligen må låses opp før du kan lage video',
+          code: 'BOLIG_IKKE_BETALT',
+          pris_nok: port.pris,
+          boliger_denne_maaneden: port.boligerDenneMaaneden,
+        },
+        { status: 402 }
+      )
     }
-    // ── End credit check ────────────────────────────────────────────────────
+    // ── Slutt bolig-porten ──────────────────────────────────────────────────
 
     const jobId = randomUUID()
     const scriptText = useSegments ? segments.map((s: { text: string }) => s.text).join(' ') : script
@@ -146,23 +139,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: friendly }, { status: 500 })
     }
 
-    // ── Increment usage ──────────────────────────────────────────────────────
-    if (credits) {
-      const newUsed = (credits.used_this_month ?? 0) + 1
-      const usedExtra = newUsed > (credits.included_per_month ?? 3)
-      await supabase
-        .from('video_credits')
-        .update({
-          used_this_month: newUsed,
-          ...(usedExtra && credits.extra_credits > 0
-            ? { extra_credits: Math.max(0, credits.extra_credits - 1) }
-            : {}),
-        })
-        .eq('user_id', user.id)
-    }
-    // ── End increment ────────────────────────────────────────────────────────
-
-    return NextResponse.json({ jobId, status: 'queued' })
+    // Ingen telling per video lenger: boligen er låst opp, og alt på den er fri.
+    return NextResponse.json({ jobId, status: 'queued', unlock: { source: port.unlock.source, ny: port.ny } })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: msg }, { status: 500 })
