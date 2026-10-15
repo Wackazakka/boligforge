@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ProductTour, { runTourOnce, type TourStep } from '@/app/components/ProductTour'
 
@@ -67,16 +67,35 @@ export default function PropertiesPage() {
     finally { setLoading(false) }
   }
 
+  // Hjem.no-inngangen (16/10): /auth/accept-invite sender megleren hit med
+  // ?hent=<annonse-URL> — annonsen hentes uten at hun trenger å lime inn noe,
+  // og hun lander på boligsiden når den er klar.
+  const hentConsumedRef = useRef(false)
+  useEffect(() => {
+    if (hentConsumedRef.current) return
+    const hent = new URLSearchParams(window.location.search).get('hent')
+    if (!hent) return
+    hentConsumedRef.current = true
+    window.history.replaceState(null, '', window.location.pathname)
+    setUrl(hent)
+    void startScrape(hent, true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function handleScrape(e: React.FormEvent) {
     e.preventDefault()
     if (!url.trim()) return
+    await startScrape(url.trim(), false)
+  }
+
+  async function startScrape(scrapeUrl: string, gaaTilBolig: boolean) {
     setScraping(true)
     setScrapeError('')
     try {
       const res = await fetch('/api/properties/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: scrapeUrl }),
       })
       const data = await res.json()
       if (!res.ok || !data.scrapeId) {
@@ -93,6 +112,12 @@ export default function PropertiesPage() {
         if (!finished) setScrapeError('Hentingen tok for lang tid — prøv å laste siden på nytt om litt.')
         setUrl('')
         await loadProperties()
+        if (gaaTilBolig && finished) {
+          // Finn boligen som nettopp kom inn og gå rett til den.
+          const liste = await fetch('/api/properties/list').then(r => r.ok ? r.json() : []).catch(() => []) as { id: string; hjem_url?: string | null; finn_url?: string | null }[]
+          const treff = liste.find(p => p.hjem_url === scrapeUrl || p.finn_url === scrapeUrl) ?? liste[0]
+          if (treff?.id) router.push(`/dashboard/properties/${treff.id}`)
+        }
       }
     } catch (err) { setScrapeError(String(err)) }
     finally { setScraping(false) }

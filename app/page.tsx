@@ -72,7 +72,7 @@ export default function Home() {
               <a href="#hvordan" className="btn btn-ghost">
                 Se hvordan <span className="kbd">D</span>
               </a>
-              <span className="meta">Første bolig gratis · Ingen kortinfo</span>
+              <span className="meta">Første bolig gratis · Ingen kortinfo · <Link href="/hjem" style={{ color: 'inherit' }}>Megler på hjem.no? Start her</Link></span>
             </div>
           </div>
 
