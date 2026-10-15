@@ -7,6 +7,7 @@ import { VOICES, voiceLabel } from '../../../../lib/voices'
 import { BETALING_AAPEN } from '../../../../lib/betaling'
 import { videoFilnavn as lagFilnavn, lastNedVideo } from '../../../../lib/video-download'
 import ProductTour, { advanceTour, refreshTour, remeasureTour, type TourStep } from '@/app/components/ProductTour'
+import BestillProduksjon from './BestillProduksjon'
 
 // To gjennomganger: én fram til segmenteringen, én for kvalitetssikringen
 // etterpå. Grunnen er at segment-editoren, outroen, musikken og ambiensen
@@ -1962,6 +1963,10 @@ export default function PropertyDetailPage() {
             🎬 Film med stemme og avatar · <button type="button" onClick={() => velgModus('story')} style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Bytt til rask story</button>
           </p>
         )}
+
+        {/* «Bestill produksjon» (avtalen punkt 6): vi lager videoen. */}
+        <BestillProduksjon propertyId={id} images={property.images ?? []} hjemUrl={property.hjem_url} />
+
 
         {/* ── Presenter + bakgrunn (unified) ── */}
         {!storyModus && (
