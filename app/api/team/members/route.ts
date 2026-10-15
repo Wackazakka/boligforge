@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
-import { kontorOversikt } from '../../../../lib/boliger'
+import { kontorOversikt, maanedStart } from '../../../../lib/boliger'
 
 export const runtime = 'nodejs'
 
@@ -82,6 +82,19 @@ export async function GET() {
   // erstatter kredittene).
   const oversikt = await kontorOversikt(client, orgId, memberIds)
 
+  // Bestillinger per megler denne måneden (ordrekøen), til oversikten.
+  const { data: ordrer } = memberIds.length
+    ? await client.from('produksjonsordrer').select('user_id, status, nivaa, created_at').in('user_id', memberIds).neq('status', 'avbrutt').gte('created_at', maanedStart())
+    : { data: [] }
+  const ordreMap: Record<string, { antall: number; aapne: number }> = {}
+  for (const o of ordrer ?? []) {
+    const r = ordreMap[o.user_id] ?? (ordreMap[o.user_id] = { antall: 0, aapne: 0 })
+    r.antall += 1
+    if (o.status !== 'publisert') r.aapne += 1
+  }
+
+  const { data: orgRow } = await client.from('organizations').select('faktura_samlet').eq('id', orgId).maybeSingle()
+
   const enriched = (members ?? []).map(m => ({
     id:          m.user_id,
     full_name:   nameMap[m.user_id] ?? '(Ikke satt opp)',
@@ -89,20 +102,65 @@ export async function GET() {
     role:        m.role,
     video_count: videoCountMap[m.user_id] ?? 0,
     boliger:     oversikt.perMegler[m.user_id] ?? { boliger: 0, produksjoner: 0, kostnad: 0 },
+    bestillinger: ordreMap[m.user_id] ?? { antall: 0, aapne: 0 },
+    boliger_liste: oversikt.boligerPerMegler[m.user_id] ?? [],
   }))
 
   const boligerDenneMaaneden = enriched.reduce((s, m) => s + m.boliger.boliger, 0)
   const produksjonerDenneMaaneden = enriched.reduce((s, m) => s + m.boliger.produksjoner, 0)
+  const kostnadDenneMaaneden = enriched.reduce((s, m) => s + m.boliger.kostnad, 0)
 
   return NextResponse.json({
     members: enriched,
+    meg: user.id,
     org: {
       boliger_denne_maaneden: boligerDenneMaaneden,
       produksjoner_denne_maaneden: produksjonerDenneMaaneden,
+      kostnad_denne_maaneden: kostnadDenneMaaneden,
       saldo_lag_selv: oversikt.saldo.lagSelv,
       saldo_vi_produserer: oversikt.saldo.viProduserer,
+      faktura_samlet: !!orgRow?.faktura_samlet,
     },
   })
+}
+
+// ── PATCH — rolle (gi/ta admin) eller fakturavalg ────────────────────────────
+/** Body: { memberId, role: 'admin' | 'member' } eller { faktura_samlet: boolean } */
+export async function PATCH(request: Request) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const body = (await request.json().catch(() => ({}))) as { memberId?: string; role?: string; faktura_samlet?: unknown }
+  const client = sb()
+  const membership = await getMembership(client, user.id)
+  if (!membership?.organization_id || membership.role !== 'admin') {
+    return NextResponse.json({ error: 'Kun admin kan endre dette' }, { status: 403 })
+  }
+  const orgId = membership.organization_id
+
+  if (typeof body.faktura_samlet === 'boolean') {
+    const { error } = await client.from('organizations').update({ faktura_samlet: body.faktura_samlet }).eq('id', orgId)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, faktura_samlet: body.faktura_samlet })
+  }
+
+  if (body.memberId && (body.role === 'admin' || body.role === 'member')) {
+    const target = await getMembership(client, body.memberId)
+    if (target?.organization_id !== orgId) return NextResponse.json({ error: 'Megleren tilhører ikke din organisasjon' }, { status: 403 })
+    if (body.role === 'member') {
+      // Kontoret må alltid ha minst én administrator (avtalen punkt 4).
+      const { count } = await client.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('role', 'admin')
+      if ((count ?? 0) <= 1 && target?.role === 'admin') {
+        return NextResponse.json({ error: 'Kontoret må ha minst én administrator. Gi rollen til noen andre først.' }, { status: 400 })
+      }
+    }
+    const { error } = await client.from('organization_members').update({ role: body.role }).eq('user_id', body.memberId).eq('organization_id', orgId)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    await client.from('profiles').update({ role: body.role === 'admin' ? 'admin' : 'agent', account_type: body.role === 'admin' ? 'team_admin' : 'team_member' })
+      .eq('id', body.memberId).eq('organization_id', orgId)
+    return NextResponse.json({ ok: true, role: body.role })
+  }
+
+  return NextResponse.json({ error: 'Ugyldig forespørsel' }, { status: 400 })
 }
 
 // ── DELETE — remove member from org ──────────────────────────────────────────
@@ -146,5 +204,16 @@ export async function DELETE(request: Request) {
     .eq('id', memberId)
     .eq('organization_id', membership.organization_id)
 
-  return NextResponse.json({ success: true })
+  // Ferdige videoer tilhører kontoret (avtalen punkt 11): boligene og videoene
+  // til den som slutter blir igjen hos kontoret — de flyttes til administratoren
+  // som fjernet henne, så de fortsatt er synlige og kan redigeres.
+  const { data: flyttet } = await client
+    .from('properties')
+    .update({ user_id: user.id, organization_id: membership.organization_id })
+    .eq('user_id', memberId)
+    .select('id')
+  await client.from('property_videos').update({ user_id: user.id }).eq('user_id', memberId)
+  await client.from('property_unlocks').update({ user_id: user.id }).eq('user_id', memberId)
+
+  return NextResponse.json({ success: true, boliger_flyttet: (flyttet ?? []).length })
 }

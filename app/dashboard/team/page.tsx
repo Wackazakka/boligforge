@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
+type Bolig = { id: string; address: string | null; created_at: string; source: string | null; unlocked_at: string | null; price_nok: number; videoer: number }
+
 type Member = {
   id: string
   full_name: string
@@ -9,17 +11,25 @@ type Member = {
   role: string
   video_count: number
   boliger: { boliger: number; produksjoner: number; kostnad: number }
+  bestillinger: { antall: number; aapne: number }
+  boliger_liste: Bolig[]
 }
 
-type OrgStat = { boliger_denne_maaneden: number; produksjoner_denne_maaneden: number; saldo_lag_selv: number; saldo_vi_produserer: number }
-const TOM_ORG: OrgStat = { boliger_denne_maaneden: 0, produksjoner_denne_maaneden: 0, saldo_lag_selv: 0, saldo_vi_produserer: 0 }
+type OrgStat = { boliger_denne_maaneden: number; produksjoner_denne_maaneden: number; kostnad_denne_maaneden: number; saldo_lag_selv: number; saldo_vi_produserer: number; faktura_samlet: boolean }
+const TOM_ORG: OrgStat = { boliger_denne_maaneden: 0, produksjoner_denne_maaneden: 0, kostnad_denne_maaneden: 0, saldo_lag_selv: 0, saldo_vi_produserer: 0, faktura_samlet: false }
+
+const nb = (n: number) => n.toLocaleString('nb-NO')
+const KILDE: Record<string, string> = { free_first: 'gratis første', entitlement: 'abonnement', purchase: 'kjøpt', production: 'produsert av ReelHome', admin: 'uten kostnad' }
 
 export default function TeamPage() {
   const [members, setMembers]         = useState<Member[]>([])
   const [org, setOrg]                 = useState<OrgStat>(TOM_ORG)
+  const [meg, setMeg]                 = useState<string>('')
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
   const [removing, setRemoving]       = useState<string | null>(null)
+  const [utvidet, setUtvidet]         = useState<string | null>(null)
+  const [lagrer, setLagrer]           = useState(false)
 
   // Invite form
   const [showInvite, setShowInvite]   = useState(false)
@@ -35,6 +45,7 @@ export default function TeamPage() {
       if (!res.ok) { setError(d.error || 'Kunne ikke laste team'); return }
       setMembers(d.members ?? [])
       setOrg(d.org ?? TOM_ORG)
+      setMeg(d.meg ?? '')
     } catch (e) {
       setError(String(e))
     } finally {
@@ -44,8 +55,28 @@ export default function TeamPage() {
 
   useEffect(() => { load() }, [])
 
+  async function settRolle(memberId: string, role: 'admin' | 'member') {
+    setLagrer(true); setError('')
+    try {
+      const res = await fetch('/api/team/members', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ memberId, role }) })
+      const d = await res.json()
+      if (!res.ok) { setError(d.error || 'Kunne ikke endre rollen'); return }
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role } : m))
+    } finally { setLagrer(false) }
+  }
+
+  async function settFaktura(samlet: boolean) {
+    setLagrer(true); setError('')
+    try {
+      const res = await fetch('/api/team/members', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ faktura_samlet: samlet }) })
+      const d = await res.json()
+      if (!res.ok) { setError(d.error || 'Kunne ikke lagre'); return }
+      setOrg(o => ({ ...o, faktura_samlet: samlet }))
+    } finally { setLagrer(false) }
+  }
+
   async function handleRemove(memberId: string, name: string) {
-    if (!confirm(`Fjerne ${name} fra organisasjonen?`)) return
+    if (!confirm(`Fjerne ${name} fra kontoret? Boligene og videoene hennes blir liggende hos kontoret og flyttes til deg.`)) return
     setRemoving(memberId)
     try {
       const res = await fetch('/api/team/members', {
@@ -180,7 +211,17 @@ export default function TeamPage() {
               <p style={{ color: 'var(--muted)' }}>boliger igjen i «Vi produserer»</p>
             </div>
           )}
+          <div>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{nb(org.kostnad_denne_maaneden)} kr</p>
+            <p style={{ color: 'var(--muted)' }}>kostnad denne måneden, eks. mva</p>
+          </div>
         </div>
+        {/* Fakturavalg (avtalen punkt 4): per megler eller kontoret samlet.
+            Kontor-abonnement faktureres alltid kontoret. */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', fontSize: '13px', color: 'var(--ink)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={org.faktura_samlet} disabled={lagrer} onChange={e => settFaktura(e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }} />
+          Fakturer kontoret samlet <span style={{ color: 'var(--muted)' }}>— ellers faktureres hver megler for seg. Kontor-abonnement faktureres alltid kontoret.</span>
+        </label>
       </div>
 
       {/* Member list */}
@@ -196,7 +237,7 @@ export default function TeamPage() {
             <div
               key={m.id}
               style={{
-                display: 'flex', alignItems: 'center', gap: '16px',
+                display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
                 background: 'var(--surface)', border: '1px solid var(--line)',
                 borderRadius: '10px', padding: '14px 16px',
               }}
@@ -212,8 +253,9 @@ export default function TeamPage() {
                 </span>
               </div>
 
-              {/* Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Info — får en minstebredde så navn og e-post ikke klemmes bort
+                  når raden har mange tall (bryter heller til ny linje). */}
+              <div style={{ flex: '1 1 180px', minWidth: '160px' }}>
                 <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {m.full_name}
                 </p>
@@ -228,18 +270,39 @@ export default function TeamPage() {
                 <p style={{ fontSize: '11px', color: 'var(--muted)' }}>videoer</p>
               </div>
 
-              {/* Boliger denne måneden */}
+              {/* Boliger / bestillinger / kostnad denne måneden */}
               <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '52px' }}>
                 <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>
                   {m.boliger.boliger + m.boliger.produksjoner}
                 </p>
                 <p style={{ fontSize: '11px', color: 'var(--muted)' }}>boliger i mnd</p>
               </div>
+              <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '52px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: m.bestillinger.aapne > 0 ? 'var(--gold)' : 'var(--ink)' }}>
+                  {m.bestillinger.antall}
+                </p>
+                <p style={{ fontSize: '11px', color: 'var(--muted)' }}>bestillinger</p>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '64px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>{nb(m.boliger.kostnad)} kr</p>
+                <p style={{ fontSize: '11px', color: 'var(--muted)' }}>denne mnd</p>
+              </div>
 
-              {/* Role badge */}
+              {/* Rolle (avtalen punkt 4: administrator kan gi rollen videre) */}
               <span className={m.role === 'admin' ? 'app-badge-gold' : 'app-badge-muted'} style={{ flexShrink: 0 }}>
                 {m.role === 'admin' ? 'Admin' : 'Megler'}
               </span>
+              {m.role === 'admin' ? (
+                m.id !== meg && (
+                  <button onClick={() => settRolle(m.id, 'member')} disabled={lagrer} className="app-btn-ghost text-xs" style={{ flexShrink: 0 }} title="Ta bort administratorrollen">Fjern admin</button>
+                )
+              ) : (
+                <button onClick={() => settRolle(m.id, 'admin')} disabled={lagrer} className="app-btn-ghost text-xs" style={{ flexShrink: 0 }} title="Gi administratorrollen">Gjør til admin</button>
+              )}
+
+              <button onClick={() => setUtvidet(utvidet === m.id ? null : m.id)} className="app-btn-ghost text-xs" style={{ flexShrink: 0 }}>
+                {utvidet === m.id ? 'Skjul' : `Boliger (${m.boliger_liste.length})`}
+              </button>
 
               {/* Remove — only non-admins */}
               {m.role !== 'admin' && (
@@ -251,6 +314,26 @@ export default function TeamPage() {
                 >
                   {removing === m.id ? '…' : 'Fjern'}
                 </button>
+              )}
+
+              {/* Boliglisten til megleren (hele bredden) */}
+              {utvidet === m.id && (
+                <div style={{ flexBasis: '100%', borderTop: '1px solid var(--line)', paddingTop: '10px', marginTop: '4px' }}>
+                  {m.boliger_liste.length === 0 ? (
+                    <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Ingen boliger ennå.</p>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '4px' }}>
+                      {m.boliger_liste.map(b => (
+                        <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '12px', flexWrap: 'wrap' }}>
+                          <span style={{ color: 'var(--ink)' }}>{b.address ?? 'Uten adresse'}</span>
+                          <span style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                            {b.videoer} video{b.videoer === 1 ? '' : 'er'} · {b.source ? KILDE[b.source] ?? b.source : 'ikke låst opp'}{b.price_nok ? ` · ${nb(b.price_nok)} kr` : ''} · {new Date(b.unlocked_at ?? b.created_at).toLocaleDateString('nb-NO')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}
