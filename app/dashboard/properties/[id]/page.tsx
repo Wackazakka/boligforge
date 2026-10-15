@@ -1958,14 +1958,18 @@ export default function PropertyDetailPage() {
             )}
           </div>
         )}
+        {/* Samme kort som i story-modus, så byttet er like synlig begge veier
+            (Lars fant ikke tilbake til rask story etter å ha valgt film, 16/10). */}
         {prodModus === 'film' && (
-          <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 4px' }}>
-            🎬 Film med stemme og avatar · <button type="button" onClick={() => velgModus('story')} style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Bytt til rask story</button>
-          </p>
+          <div className="app-card" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <div>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>🎬 Film med stemme og avatar</span>
+              <span style={{ fontSize: '12px', color: 'var(--muted)', marginLeft: '8px' }}>alle valg</span>
+            </div>
+            <button type="button" onClick={() => velgModus('story')} className="app-btn-secondary text-xs" style={{ padding: '6px 12px' }}>📱 Bytt til rask story</button>
+          </div>
         )}
 
-        {/* «Bestill produksjon» (avtalen punkt 6): vi lager videoen. */}
-        <BestillProduksjon propertyId={id} images={property.images ?? []} hjemUrl={property.hjem_url} />
 
 
         {/* ── Presenter + bakgrunn (unified) ── */}
@@ -3466,6 +3470,11 @@ export default function PropertyDetailPage() {
             Tar 5–10 minutter — jo flere bilder i avslutningen, jo lengre. Alle versjoner og formater på boligen er inkludert, og den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
           </p>
         </div>
+
+        {/* «Bestill produksjon» (avtalen punkt 6): vi lager videoen. Ligger
+            ETTER generer-knappen, ikke mellom statuskortet og tekstblokkene —
+            der skjulte det neste steg i story-modus (Lars 16/10). */}
+        <BestillProduksjon propertyId={id} images={property.images ?? []} hjemUrl={property.hjem_url} />
 
         {/* Video result */}
         {videoUrl && (
