@@ -1287,6 +1287,38 @@ export default function PropertyDetailPage() {
   const filnavnFor = (format: '16x9' | '9x16' | '1x1') =>
     lagFilnavn(property?.address || property?.title, format)
 
+  // «Ta boligen i bruk nå» fra dialogen (Lars 16/10): gratis eller fra saldo
+  // går med ett trykk; ellers vises prisen og veien til betaling.
+  const [taIBrukJobber, setTaIBrukJobber] = useState(false)
+  const [taIBrukMelding, setTaIBrukMelding] = useState('')
+  async function taIBrukNaa() {
+    setTaIBrukJobber(true); setTaIBrukMelding('')
+    try {
+      const res = await fetch('/api/boliger/ta-i-bruk', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ propertyId: id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setNoCreditsModal(false)
+        setError('')
+        setStatusMsg(data.source === 'free_first'
+          ? 'Boligen er tatt i bruk — din første bolig er gratis. Nå kan du lage så mange versjoner du vil.'
+          : data.source === 'entitlement'
+            ? 'Boligen er tatt i bruk og trukket fra abonnementet. Nå kan du lage så mange versjoner du vil.'
+            : 'Boligen er tatt i bruk. Nå kan du lage så mange versjoner du vil.')
+        hentBoligStatus(id)
+        return
+      }
+      if (res.status === 402) {
+        setBoligPris(typeof data.pris_nok === 'number' ? data.pris_nok : null)
+        setTaIBrukMelding(`Gratisboligen er brukt og det er ingen saldo i abonnementet. Denne boligen koster ${Number(data.pris_nok ?? 0).toLocaleString('nb-NO')} kr.`)
+        return
+      }
+      setTaIBrukMelding(data.error || 'Kunne ikke ta boligen i bruk')
+    } catch (e) { setTaIBrukMelding(String(e)) }
+    finally { setTaIBrukJobber(false) }
+  }
+
   // Nedlasting tar boligen i bruk (16/10): første bolig gratis, så saldo,
   // ellers vises opplåsingsdialogen. Avspilling i appen er alltid fri.
   const downloadVideo = async (url: string, filename = 'presentasjon.mp4') => {
@@ -1785,25 +1817,37 @@ export default function PropertyDetailPage() {
             <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
               Ta boligen i bruk
             </h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-              Å laste ned eller publisere tar boligen i bruk. Du betaler én gang per bolig{boligPris ? `, ${boligPris.toLocaleString('nb-NO')} kr for denne` : ''}.
+            <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
+              {boligStatus && !boligStatus.tattIBruk && (boligStatus.igjen ?? 1) <= 0
+                ? `Du har brukt de ${boligStatus.tak} prøvegenereringene på denne boligen. `
+                : 'Å laste ned eller publisere tar boligen i bruk. '}
+              Du betaler én gang per bolig{boligPris ? `, ${boligPris.toLocaleString('nb-NO')} kr for denne` : ''}
+              {boligStatus?.gratisBoligIgjen ? ' — men din første bolig er gratis' : ''}.
               Deretter er alle formater, nye versjoner og publisering på boligen inkludert. Et abonnement gir lavere pris per bolig.
             </p>
             <div className="flex flex-col gap-2">
+              {!taIBrukMelding && (
+                <button onClick={taIBrukNaa} disabled={taIBrukJobber} className="app-btn-primary w-full">
+                  {taIBrukJobber ? 'Et øyeblikk…' : 'Ta boligen i bruk nå'}
+                </button>
+              )}
+              {taIBrukMelding && (
+                <p className="text-sm" style={{ color: 'var(--gold)', textAlign: 'center' }}>{taIBrukMelding}</p>
+              )}
               {BETALING_AAPEN ? (
                 <a
                   href={`/dashboard/billing?bolig=${id}`}
-                  className="app-btn-primary block w-full text-center"
+                  className={`${taIBrukMelding ? 'app-btn-primary' : 'app-btn-secondary'} block w-full text-center`}
                   style={{ textDecoration: 'none' }}
                 >
-                  Lås opp{boligPris ? ` for ${boligPris.toLocaleString('nb-NO')} kr` : ''}
+                  Betal{boligPris ? ` ${boligPris.toLocaleString('nb-NO')} kr` : ''} og ta boligen i bruk
                 </a>
-              ) : (
+              ) : taIBrukMelding ? (
                 <p className="text-sm" style={{ color: 'var(--muted)', textAlign: 'center' }}>
                   Betaling åpnes snart. Ta kontakt på{' '}
-                  <a href="mailto:hei@reelhome.ai" style={{ color: 'var(--gold)' }}>hei@reelhome.ai</a>, så låser vi opp boligen for deg.
+                  <a href="mailto:hei@reelhome.ai" style={{ color: 'var(--gold)' }}>hei@reelhome.ai</a>, så tar vi boligen i bruk for deg.
                 </p>
-              )}
+              ) : null}
               <a
                 href="/dashboard/billing"
                 className="app-btn-secondary block w-full text-center"
@@ -1811,7 +1855,7 @@ export default function PropertyDetailPage() {
               >
                 Se priser og abonnement
               </a>
-              <button onClick={() => setNoCreditsModal(false)} className="app-btn-ghost w-full text-sm">
+              <button onClick={() => { setNoCreditsModal(false); setTaIBrukMelding('') }} className="app-btn-ghost w-full text-sm">
                 Lukk
               </button>
             </div>
