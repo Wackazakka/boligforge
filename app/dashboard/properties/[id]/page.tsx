@@ -448,6 +448,13 @@ export default function PropertyDetailPage() {
   const [noCreditsModal, setNoCreditsModal] = useState(false)
   // Bolig-porten (16/10): prisen for å låse opp denne boligen, fra 402-svaret.
   const [boligPris, setBoligPris] = useState<number | null>(null)
+  // Status for taket (Lars 16/10): hvor mange genereringer som er igjen før
+  // boligen må tas i bruk, og om den alt er i bruk. Hentes ved last og
+  // oppdateres etter generering og nedlasting.
+  const [boligStatus, setBoligStatus] = useState<{ tattIBruk: boolean; genereringer: number; tak: number; igjen: number | null; gratisBoligIgjen: boolean } | null>(null)
+  const hentBoligStatus = (pid: string) => {
+    fetch(`/api/boliger/ta-i-bruk?propertyId=${pid}`).then(r => r.ok ? r.json() : null).then(d => { if (d && typeof d.tak === 'number') setBoligStatus(d) }).catch(() => {})
+  }
   // Produksjonsmodus (16/10, hjem.no-avtalen): «story» = rask story i 9:16 med
   // kun tekst på en forenklet side (manus og segmenter lages automatisk, bare
   // tekst, bilder, tekststil og musikk er synlige); «film» = full editor.
@@ -791,6 +798,7 @@ export default function PropertyDetailPage() {
       setSelectedVideoImages(p.images || [])
     })
     fetch('/api/profile/get').then(r => r.json()).then(setProfile)
+    hentBoligStatus(id)
     // Produksjonsmodus fra kontoen. Redigering av en tidligere video viser
     // alltid full editor (oppskriften bestemmer, ikke story-presetet).
     if (new URLSearchParams(window.location.search).get('editVideo')) setVisAlleValg(true)
@@ -1293,6 +1301,7 @@ export default function PropertyDetailPage() {
         return
       }
       if (!res.ok) { setError(data.error || 'Kunne ikke ta boligen i bruk'); return }
+      hentBoligStatus(id)
     } catch (e) { setError(String(e)); return }
     await lastNedVideo(url, filename)
   }
@@ -1649,7 +1658,10 @@ export default function PropertyDetailPage() {
       setGeneratingVideo(false)
       setStatusMsg('')
       setBoligPris(typeof data.pris_nok === 'number' ? data.pris_nok : null)
+      // Taket på genereringer (7 per ubrukt bolig): si det tydelig ved knappen også.
+      if (data.aarsak === 'tak') setError(data.error)
       setNoCreditsModal(true)
+      hentBoligStatus(id)
       return
     }
     if (data.error) {
@@ -1660,6 +1672,15 @@ export default function PropertyDetailPage() {
     }
 
     setActiveJobId(data.jobId)
+    if (data.bolig && typeof data.bolig.tak === 'number') {
+      setBoligStatus(s => ({
+        gratisBoligIgjen: s?.gratisBoligIgjen ?? true,
+        tattIBruk: !!data.bolig.tattIBruk,
+        genereringer: data.bolig.genereringer,
+        tak: data.bolig.tak,
+        igjen: data.bolig.tattIBruk ? null : Math.max(0, data.bolig.tak - data.bolig.genereringer),
+      }))
+    }
     setStatusMsg(STATUS_LABELS['queued'])
     startPolling(data.jobId)
   }
@@ -3531,8 +3552,19 @@ export default function PropertyDetailPage() {
             </p>
           )}
           <p style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '8px' }}>
-            Tar 5–10 minutter — jo flere bilder i avslutningen, jo lengre. Alle versjoner og formater på boligen er inkludert, og den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
+            Tar 5–10 minutter — jo flere bilder i avslutningen, jo lengre. Den ferdige videoen kan du redigere etterpå — manus, bilder og musikk — uten å begynne på nytt.
           </p>
+          {/* Taket (Lars 16/10): si hvor mange genereringer som er igjen før
+              boligen må tas i bruk, og at det skjer ved nedlasting/publisering. */}
+          {boligStatus && (
+            <p style={{ fontSize: '12px', color: boligStatus.tattIBruk ? 'var(--muted)' : (boligStatus.igjen ?? 1) <= 1 ? 'var(--gold)' : 'var(--ink-2)', textAlign: 'center', marginTop: '6px' }}>
+              {boligStatus.tattIBruk
+                ? '✅ Boligen er tatt i bruk — lag så mange versjoner og formater du vil, det er inkludert.'
+                : (boligStatus.igjen ?? 0) > 0
+                  ? `Du kan lage ${boligStatus.igjen} video${boligStatus.igjen === 1 ? '' : 'er'} til av denne boligen (${boligStatus.genereringer} av ${boligStatus.tak} brukt) før den må tas i bruk. Det skjer ved første nedlasting eller publisering${boligStatus.gratisBoligIgjen ? ', og din første bolig er gratis' : ''}. Etterpå er alt på boligen inkludert.`
+                  : `Du har brukt alle ${boligStatus.tak} prøvegenereringene på denne boligen. Ta den i bruk — last ned eller publiser en av videoene — så kan du lage så mange du vil.`}
+            </p>
+          )}
         </div>
 
         {/* «Bestill produksjon» (avtalen punkt 6): vi lager videoen. Ligger

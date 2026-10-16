@@ -1,10 +1,33 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
-import { ensureUnlocked, taIBrukForVideoUrl } from '../../../../lib/boliger'
+import { ensureUnlocked, taIBrukForVideoUrl, kanGenerere, harGratisIgjen, GENERERINGSTAK } from '../../../../lib/boliger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+// Status for boligsiden: er boligen tatt i bruk, hvor mange genereringer er
+// brukt av taket, og har megleren gratisboligen igjen. ?propertyId=
+export async function GET(request: Request) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const propertyId = new URL(request.url).searchParams.get('propertyId')
+  if (!propertyId) return NextResponse.json({ error: 'Mangler propertyId' }, { status: 400 })
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+  const [k, gratis] = await Promise.all([kanGenerere(sb, user.id, propertyId), harGratisIgjen(sb, user.id)])
+  if (!k.ok && k.code === 'NOT_OWNER') return NextResponse.json({ error: 'Fant ikke boligen på kontoen din' }, { status: 403 })
+  const tattIBruk = k.ok ? k.unlocked : false
+  const genereringer = k.ok ? k.antall : k.antall
+  return NextResponse.json({
+    tattIBruk,
+    genereringer,
+    tak: GENERERINGSTAK,
+    igjen: tattIBruk ? null : Math.max(0, GENERERINGSTAK - genereringer),
+    gratisBoligIgjen: gratis,
+  })
+}
 
 // «Ta boligen i bruk» (16/10): kalles før nedlasting (klienten) og av
 // publiserings-/planleggingsrutene (serveren). Første bolig gratis →
