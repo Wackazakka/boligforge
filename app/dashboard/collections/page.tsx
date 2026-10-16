@@ -147,6 +147,25 @@ export default function CollectionsPage() {
     }
   }
 
+  // Nedlasting tar boligen i bruk (16/10): første bolig gratis, så saldo,
+  // ellers tilbud om å åpne abonnementssiden med boligen valgt.
+  async function lastNedMedBruk(url: string, propertyId: string, filnavn: string) {
+    try {
+      const res = await fetch('/api/boliger/ta-i-bruk', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ propertyId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 402 && data.code === 'BOLIG_IKKE_BETALT') {
+        if (confirm(`${data.error} (${Number(data.pris_nok ?? 0).toLocaleString('nb-NO')} kr).\n\nVil du åpne Abonnement og ta boligen i bruk nå?`)) {
+          window.location.href = `/dashboard/billing?bolig=${propertyId}`
+        }
+        return
+      }
+      if (!res.ok) { alert(data.error || 'Kunne ikke ta boligen i bruk'); return }
+    } catch (e) { alert(String(e)); return }
+    await lastNedVideo(url, filnavn)
+  }
+
   async function handlePublish() {
     if (!publishModalUrl || publishSelected.size === 0) return
     setPublishLoading(true)
@@ -163,6 +182,14 @@ export default function CollectionsPage() {
         }),
       })
       const data = await res.json()
+      // Publisering tar boligen i bruk (16/10): ikke betalt → send til
+      // abonnementssiden med boligen ferdig valgt.
+      if (res.status === 402 && data.code === 'BOLIG_IKKE_BETALT') {
+        if (confirm(`${data.error}\n\nVil du åpne Abonnement og ta boligen i bruk nå?`)) {
+          window.location.href = `/dashboard/billing?bolig=${publishPropertyId ?? ''}`
+        }
+        return
+      }
       if (data.results) {
         setPublishResults(data.results)
         // Instagram svarer «pending»: containeren er opprettet, men videoen
@@ -234,6 +261,10 @@ export default function CollectionsPage() {
             day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
           })
         )
+      } else if (res.status === 402 && data.code === 'BOLIG_IKKE_BETALT') {
+        if (confirm(`${data.error}\n\nVil du åpne Abonnement og ta boligen i bruk nå?`)) {
+          window.location.href = `/dashboard/billing?bolig=${publishPropertyId ?? ''}`
+        }
       } else {
         setScheduleError(data.error || 'Kunne ikke planlegge publisering')
       }
@@ -383,7 +414,7 @@ export default function CollectionsPage() {
                             </a>
                           )}
                           <button
-                            onClick={() => void lastNedVideo(v.video_url, videoFilnavn(v.address, '16x9'))}
+                            onClick={() => void lastNedMedBruk(v.video_url, v.property_id, videoFilnavn(v.address, '16x9'))}
                             style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                           >
                             Last ned

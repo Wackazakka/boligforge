@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
+import { ensureUnlocked, taIBrukForVideoUrl } from '../../../../lib/boliger'
 
 function getServiceClient() {
   return createClient(
@@ -47,6 +48,21 @@ export async function POST(request: Request) {
   }
   if (when.getTime() <= Date.now()) {
     return NextResponse.json({ error: 'Tidspunktet må være i framtiden' }, { status: 400 })
+  }
+
+  // Planlagt publisering = boligen tas i bruk (16/10), på samme vilkår som
+  // direkte publisering og nedlasting.
+  {
+    const sbBruk = getServiceClient()
+    const bruk = property_id
+      ? await ensureUnlocked(sbBruk, user.id, property_id)
+      : await taIBrukForVideoUrl(sbBruk, user.id, video_url)
+    if (!bruk.ok && bruk.code === 'BOLIG_IKKE_BETALT') {
+      return NextResponse.json({
+        error: `Boligen må tas i bruk før publisering (${bruk.pris.toLocaleString('nb-NO')} kr). Åpne Abonnement for å låse den opp.`,
+        code: 'BOLIG_IKKE_BETALT', pris_nok: bruk.pris, property_id: property_id ?? null,
+      }, { status: 402 })
+    }
   }
 
   const supabase = getServiceClient()

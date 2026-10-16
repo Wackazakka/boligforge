@@ -213,6 +213,37 @@ export async function ensureUnlocked(sb: SupabaseClient, userId: string, propert
   return { ok: false, code: 'BOLIG_IKKE_BETALT', pris: prisForNesteBolig(antall), boligerDenneMaaneden: antall }
 }
 
+// ── «Tatt i bruk» (Lars 16/10) ────────────────────────────────────────────
+// Boligen belastes ikke ved generering, men ved FØRSTE nedlasting eller
+// publisering. Fram til da kan megleren lage inntil GENERERINGSTAK videoer av
+// boligen for å se resultatet (koster oss noen kroner per video — taket
+// stopper misbruk uten å plage noen). Etter opplåsing er alt fritt.
+export const GENERERINGSTAK = 7
+
+export type KanGenerereResult =
+  | { ok: true; unlocked: boolean; antall: number }
+  | { ok: false; code: 'NOT_OWNER' }
+  | { ok: false; code: 'BOLIG_IKKE_BETALT'; aarsak: 'tak'; antall: number; pris: number; boligerDenneMaaneden: number }
+
+export async function kanGenerere(sb: SupabaseClient, userId: string, propertyId: string): Promise<KanGenerereResult> {
+  const { data: prop } = await sb.from('properties').select('id, user_id').eq('id', propertyId).maybeSingle()
+  if (!prop || prop.user_id !== userId) return { ok: false, code: 'NOT_OWNER' }
+  const unlock = await hentUnlock(sb, propertyId)
+  const { count } = await sb.from('property_videos').select('id', { count: 'exact', head: true }).eq('property_id', propertyId)
+  const antall = count ?? 0
+  if (unlock) return { ok: true, unlocked: true, antall }
+  if (antall < GENERERINGSTAK) return { ok: true, unlocked: false, antall }
+  const denneMaaneden = await boligerDenneMaaneden(sb, userId)
+  return { ok: false, code: 'BOLIG_IKKE_BETALT', aarsak: 'tak', antall, pris: prisForNesteBolig(denneMaaneden), boligerDenneMaaneden: denneMaaneden }
+}
+
+// Nedlasting/publisering fra en video-URL: finn boligen og ta den i bruk.
+export async function taIBrukForVideoUrl(sb: SupabaseClient, userId: string, videoUrl: string): Promise<EnsureResult | { ok: false; code: 'UKJENT_VIDEO' }> {
+  const { data: v } = await sb.from('property_videos').select('property_id').eq('video_url', videoUrl).eq('user_id', userId).limit(1).maybeSingle()
+  if (!v?.property_id) return { ok: false, code: 'UKJENT_VIDEO' }
+  return ensureUnlocked(sb, userId, v.property_id)
+}
+
 // Låser opp etter betaling/manuelt. Idempotent på property_id.
 export async function unlockProperty(
   sb: SupabaseClient,
