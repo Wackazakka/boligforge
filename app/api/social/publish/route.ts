@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
 import { hentbarMediaUrl } from '../../../../lib/r2-presign'
+import { ensureUnlocked, taIBrukForVideoUrl } from '../../../../lib/boliger'
 
 function getServiceClient() {
   return createClient(
@@ -403,6 +404,18 @@ export async function POST(request: Request) {
   }
 
   const supabase = getServiceClient()
+
+  // Publisering = boligen tas i bruk (16/10). Første bolig gratis, så saldo,
+  // ellers må den kjøpes først.
+  const bruk = property_id
+    ? await ensureUnlocked(supabase, user.id, property_id)
+    : await taIBrukForVideoUrl(supabase, user.id, video_url)
+  if (!bruk.ok && bruk.code === 'BOLIG_IKKE_BETALT') {
+    return NextResponse.json({
+      error: `Boligen må tas i bruk før publisering (${bruk.pris.toLocaleString('nb-NO')} kr). Åpne Abonnement for å låse den opp.`,
+      code: 'BOLIG_IKKE_BETALT', pris_nok: bruk.pris, property_id: property_id ?? null,
+    }, { status: 402 })
+  }
 
   // Fetch the requested connections (verify they belong to this user)
   const { data: connections, error: dbErr } = await supabase

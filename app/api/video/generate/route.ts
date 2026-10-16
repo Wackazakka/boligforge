@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
-import { ensureUnlocked } from '../../../../lib/boliger'
+import { kanGenerere, GENERERINGSTAK } from '../../../../lib/boliger'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -39,21 +39,23 @@ export async function POST(request: Request) {
     const supabase = getServiceClient()
 
     // ── Bolig-porten (16/10) ────────────────────────────────────────────────
-    // Betaling er per BOLIG, ikke per video: første bolig gratis, deretter
-    // abonnementssaldo eller enkeltkjøp. Er boligen låst opp, er alle formater
-    // og regenereringer fri. Erstatter video_credits-sjekken.
+    // Betaling er per BOLIG og skjer ved første nedlasting/publisering (se
+    // /api/boliger/ta-i-bruk), ikke her. Generering er fri fram til da, med et
+    // mykt tak på GENERERINGSTAK videoer per bolig som ikke er tatt i bruk.
     if (!propertyId) {
       return NextResponse.json({ error: 'Mangler propertyId' }, { status: 400 })
     }
-    const port = await ensureUnlocked(supabase, user.id, propertyId)
+    const port = await kanGenerere(supabase, user.id, propertyId)
     if (!port.ok) {
       if (port.code === 'NOT_OWNER') {
         return NextResponse.json({ error: 'Boligen tilhører ikke din konto' }, { status: 403 })
       }
       return NextResponse.json(
         {
-          error: 'Boligen må låses opp før du kan lage video',
+          error: `Du har laget ${port.antall} videoer av denne boligen. Ta den i bruk først — last ned eller publiser en av dem — så kan du lage så mange du vil.`,
           code: 'BOLIG_IKKE_BETALT',
+          aarsak: 'tak',
+          tak: GENERERINGSTAK,
           pris_nok: port.pris,
           boliger_denne_maaneden: port.boligerDenneMaaneden,
         },
@@ -139,8 +141,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: friendly }, { status: 500 })
     }
 
-    // Ingen telling per video lenger: boligen er låst opp, og alt på den er fri.
-    return NextResponse.json({ jobId, status: 'queued', unlock: { source: port.unlock.source, ny: port.ny } })
+    return NextResponse.json({ jobId, status: 'queued', bolig: { tattIBruk: port.unlocked, genereringer: port.antall + 1, tak: GENERERINGSTAK } })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: msg }, { status: 500 })

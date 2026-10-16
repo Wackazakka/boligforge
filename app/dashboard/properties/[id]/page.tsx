@@ -653,6 +653,14 @@ export default function PropertyDetailPage() {
         }),
       })
       const data = await res.json()
+      // Publisering tar boligen i bruk (16/10). Ikke betalt → vis opplåsings-
+      // dialogen i stedet for publiseringsresultatet.
+      if (res.status === 402 && data.code === 'BOLIG_IKKE_BETALT') {
+        setPublishModalUrl(null)
+        setBoligPris(typeof data.pris_nok === 'number' ? data.pris_nok : null)
+        setNoCreditsModal(true)
+        return
+      }
       if (data.results) setPublishResults(data.results)
     } finally {
       setPublishLoading(false)
@@ -680,6 +688,12 @@ export default function PropertyDetailPage() {
         }),
       })
       const data = await res.json()
+      if (res.status === 402 && data.code === 'BOLIG_IKKE_BETALT') {
+        setPublishModalUrl(null)
+        setBoligPris(typeof data.pris_nok === 'number' ? data.pris_nok : null)
+        setNoCreditsModal(true)
+        return
+      }
       if (data.ok) {
         setScheduleDone(
           new Date(scheduledAt).toLocaleString('nb-NO', {
@@ -1265,7 +1279,23 @@ export default function PropertyDetailPage() {
   const filnavnFor = (format: '16x9' | '9x16' | '1x1') =>
     lagFilnavn(property?.address || property?.title, format)
 
-  const downloadVideo = (url: string, filename = 'presentasjon.mp4') => lastNedVideo(url, filename)
+  // Nedlasting tar boligen i bruk (16/10): første bolig gratis, så saldo,
+  // ellers vises opplåsingsdialogen. Avspilling i appen er alltid fri.
+  const downloadVideo = async (url: string, filename = 'presentasjon.mp4') => {
+    try {
+      const res = await fetch('/api/boliger/ta-i-bruk', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ propertyId: id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 402 && data.code === 'BOLIG_IKKE_BETALT') {
+        setBoligPris(typeof data.pris_nok === 'number' ? data.pris_nok : null)
+        setNoCreditsModal(true)
+        return
+      }
+      if (!res.ok) { setError(data.error || 'Kunne ikke ta boligen i bruk'); return }
+    } catch (e) { setError(String(e)); return }
+    await lastNedVideo(url, filename)
+  }
 
   async function handleGenerateScript() {
     // Turen peker paa denne knappen som siste steg. Trykker du den, er hjelpen
@@ -1732,11 +1762,11 @@ export default function PropertyDetailPage() {
           <div className="app-modal">
             <div className="text-4xl mb-3">🎬</div>
             <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
-              Lås opp boligen
+              Ta boligen i bruk
             </h2>
             <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-              Du betaler én gang per bolig{boligPris ? `, ${boligPris.toLocaleString('nb-NO')} kr for denne` : ''}. Deretter er alle
-              formater, nye versjoner og publisering på boligen inkludert. Et abonnement gir lavere pris per bolig.
+              Å laste ned eller publisere tar boligen i bruk. Du betaler én gang per bolig{boligPris ? `, ${boligPris.toLocaleString('nb-NO')} kr for denne` : ''}.
+              Deretter er alle formater, nye versjoner og publisering på boligen inkludert. Et abonnement gir lavere pris per bolig.
             </p>
             <div className="flex flex-col gap-2">
               {BETALING_AAPEN ? (
