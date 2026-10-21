@@ -1,0 +1,40 @@
+name: Fakturaunderlag (månedlig)
+
+# Sender forrige måneds fakturaunderlag for hver fakturakunde (Hjem.no) som
+# e-post til hei@reelhome.ai med CSV vedlagt. Ruten er idempotent per
+# organisasjon og måned, så en ekstra kjøring sender ikke dobbelt.
+# Manuell kjøring kan velge måned og tvinge ny utsending.
+
+on:
+  schedule:
+    - cron: '0 5 1 * *'   # 05:00 UTC den 1. hver måned (06/07 norsk tid)
+  workflow_dispatch:
+    inputs:
+      maaned:
+        description: 'Måned (YYYY-MM). Tom = forrige måned.'
+        required: false
+        default: ''
+      force:
+        description: 'Send på nytt selv om måneden alt er sendt (1/0)'
+        required: false
+        default: '0'
+
+jobs:
+  send:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Kall cron-ruten
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MAANED: ${{ github.event.inputs.maaned }}
+          FORCE: ${{ github.event.inputs.force }}
+        run: |
+          set -euo pipefail
+          Q=""
+          [ -n "${MAANED}" ] && Q="maaned=${MAANED}"
+          [ "${FORCE}" = "1" ] && Q="${Q:+$Q&}force=1"
+          URL="https://reelhome.ai/api/cron/fakturaunderlag${Q:+?$Q}"
+          echo "Kaller ${URL}"
+          HTTP=$(curl -s -o svar.json -w '%{http_code}' --max-time 90 -X POST -H "x-cron-secret: ${CRON_SECRET}" "${URL}")
+          cat svar.json; echo
+          [ "${HTTP}" = "200" ] || { echo "Feilet med HTTP ${HTTP}"; exit 1; }
