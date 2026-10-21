@@ -452,6 +452,17 @@ export default function PropertyDetailPage() {
   // boligen må tas i bruk, og om den alt er i bruk. Hentes ved last og
   // oppdateres etter generering og nedlasting.
   const [boligStatus, setBoligStatus] = useState<{ tattIBruk: boolean; genereringer: number; tak: number; igjen: number | null; gratisBoligIgjen: boolean } | null>(null)
+  // Kontorets logo fra annonsen (hjem.no-modellen, 21/10): bare en bekreftelse
+  // av hva sluttplakaten får når kontoen selv ikke har logo. Selve valget
+  // skjer server-side i /api/video/generate.
+  const [kontorLogo, setKontorLogo] = useState<{ logoUrl: string | null; navn: string | null } | null>(null)
+  useEffect(() => {
+    if (!property?.hjem_url || profile.logo_url) { setKontorLogo(null); return }
+    fetch(`/api/properties/kontor-logo?id=${id}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(k => setKontorLogo(k))
+      .catch(() => setKontorLogo(null))
+  }, [id, property?.hjem_url, profile.logo_url])
   const hentBoligStatus = (pid: string) => {
     fetch(`/api/boliger/ta-i-bruk?propertyId=${pid}`).then(r => r.ok ? r.json() : null).then(d => { if (d && typeof d.tak === 'number') setBoligStatus(d) }).catch(() => {})
   }
@@ -3252,6 +3263,20 @@ export default function PropertyDetailPage() {
                       Avsluttes med logoen din
                       <span style={{ color: 'var(--muted)' }}> — egen sluttplakat etter bildeserien. </span>
                       <a href="/dashboard/profile" style={{ color: 'var(--gold)' }}>Bytt den på profilsiden</a>
+                    </span>
+                  </div>
+                ) : kontorLogo?.logoUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <img
+                      src={kontorLogo.logoUrl}
+                      alt={kontorLogo.navn ? `Logoen til ${kontorLogo.navn}` : 'Kontorets logo'}
+                      style={{ height: '36px', maxWidth: '140px', objectFit: 'contain', background: '#fff', border: '1px solid var(--line)', borderRadius: '6px', padding: '4px' }}
+                    />
+                    <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                      Avsluttes med kontorets logo fra annonsen{kontorLogo.navn ? ` (${kontorLogo.navn})` : ''}
+                      <span style={{ color: 'var(--muted)' }}> — egen sluttplakat etter bildeserien. </span>
+                      <a href="/dashboard/profile" style={{ color: 'var(--gold)' }}>Last opp egen logo på profilsiden</a>
+                      <span style={{ color: 'var(--muted)' }}> for å bruke den i stedet.</span>
                     </span>
                   </div>
                 ) : (
