@@ -12,8 +12,9 @@ export const maxDuration = 60
 // hei@reelhome.ai med CSV vedlagt. Idempotent per organisasjon og måned via
 // fakturaunderlag_sendt; ?force=1 sender på nytt, ?maaned=YYYY-MM velger måned.
 //
-// Krever x-cron-secret (eller ?secret=) lik CRON_SECRET — strengere enn de
-// andre cron-rutene, siden denne sender e-post.
+// Krever x-cron-secret (eller ?secret=) lik FAKTURA_CRON_SECRET — strengere
+// enn de andre cron-rutene, siden denne sender e-post. Egen secret fordi
+// CRON_SECRET er merket «secret» i Netlify og ikke kan leses ut til GitHub.
 
 const MOTTAKERE = ['hei@reelhome.ai']
 
@@ -61,7 +62,7 @@ function html(u: Fakturaunderlag): string {
 }
 
 async function run(request: Request) {
-  const secret = process.env.CRON_SECRET
+  const secret = process.env.FAKTURA_CRON_SECRET
   const provided = request.headers.get('x-cron-secret') || new URL(request.url).searchParams.get('secret')
   if (!secret || provided !== secret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
