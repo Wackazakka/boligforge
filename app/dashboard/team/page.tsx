@@ -55,6 +55,23 @@ export default function TeamPage() {
 
   useEffect(() => { load() }, [])
 
+  // Fakturaunderlag (21/10, Hjem.no-modellen): én rad per bolig tatt i bruk i
+  // valgt måned, med produsent og pris. Oversikten her, CSV til regnearket.
+  const maaneder = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - i, 1))
+    return d.toISOString().slice(0, 7)
+  })
+  const [fakturaMaaned, setFakturaMaaned] = useState<string>(maaneder[0])
+  const [faktura, setFaktura] = useState<{ antall: number; sum_nok: number; organisasjon: { fakturaKunde: boolean; prisPerBolig: number | null } } | null>(null)
+  useEffect(() => {
+    setFaktura(null)
+    fetch(`/api/team/fakturaunderlag?maaned=${fakturaMaaned}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setFaktura(d))
+      .catch(() => setFaktura(null))
+  }, [fakturaMaaned])
+  const maanedNavn = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleDateString('nb-NO', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+
   async function settRolle(memberId: string, role: 'admin' | 'member') {
     setLagrer(true); setError('')
     try {
@@ -222,6 +239,40 @@ export default function TeamPage() {
           <input type="checkbox" checked={org.faktura_samlet} disabled={lagrer} onChange={e => settFaktura(e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--gold)' }} />
           Fakturer kontoret samlet <span style={{ color: 'var(--muted)' }}>— ellers faktureres hver megler for seg. Kontor-abonnement faktureres alltid kontoret.</span>
         </label>
+      </div>
+
+      {/* Fakturaunderlag: boliger tatt i bruk i valgt måned, CSV til regneark */}
+      <div className="app-card" style={{ padding: '18px 22px', marginBottom: '28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div>
+            <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>Fakturaunderlag</h2>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>
+              Én linje per bolig tatt i bruk i måneden, med hvem som laget den og pris eks. mva.
+              {faktura?.organisasjon.fakturaKunde ? ' Dette er grunnlaget for fakturaen fra ReelHome.' : ''}
+            </p>
+          </div>
+          <select value={fakturaMaaned} onChange={e => setFakturaMaaned(e.target.value)} className="app-input" style={{ fontSize: '13px', padding: '6px 10px', width: 'auto' }} aria-label="Måned">
+            {maaneder.map(m => <option key={m} value={m}>{maanedNavn(m)}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '28px', flexWrap: 'wrap', marginTop: '14px', fontSize: '13px' }}>
+          <div>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{faktura ? faktura.antall : '…'}</p>
+            <p style={{ color: 'var(--muted)' }}>boliger tatt i bruk</p>
+          </div>
+          <div>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{faktura ? `${nb(faktura.sum_nok)} kr` : '…'}</p>
+            <p style={{ color: 'var(--muted)' }}>sum eks. mva{faktura?.organisasjon.prisPerBolig ? ` · ${nb(faktura.organisasjon.prisPerBolig)} kr per bolig` : ''}</p>
+          </div>
+          <a
+            href={`/api/team/fakturaunderlag?maaned=${fakturaMaaned}&format=csv`}
+            download
+            className="app-btn-secondary"
+            style={{ fontSize: '13px', padding: '8px 16px', marginLeft: 'auto', textDecoration: 'none', opacity: faktura && faktura.antall > 0 ? 1 : 0.5, pointerEvents: faktura && faktura.antall > 0 ? 'auto' : 'none' }}
+          >
+            ⬇ Last ned CSV
+          </a>
+        </div>
       </div>
 
       {/* Member list */}
