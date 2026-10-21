@@ -73,7 +73,10 @@ export function utloperEtterNesteMaaned(periodStart = new Date()): string {
   return new Date(Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth() + 2, 1)).toISOString()
 }
 
-export type UnlockSource = 'free_first' | 'entitlement' | 'purchase' | 'production' | 'admin'
+// 'faktura' (21/10): fakturakunde (Hjem.no-modellen) — boligen låses opp
+// automatisk når den tas i bruk, med organisasjonens faste pris, og
+// faktureres etterskuddsvis. Se fakturaInfoFor.
+export type UnlockSource = 'free_first' | 'entitlement' | 'purchase' | 'production' | 'admin' | 'faktura'
 
 export type Unlock = {
   id: string
@@ -91,6 +94,8 @@ export type Saldo = {
   gratisBoligIgjen: boolean
   boligerDenneMaaneden: number       // selvlagde boliger låst opp av megleren denne måneden
   nestePris: number                   // det neste bolig koster uten saldo
+  fakturaKunde: boolean               // organisasjonen faktureres per bolig (Hjem.no-modellen) — ingen kjøp i appen
+  fakturaPris: number | null          // prisen per bolig for en fakturakunde
   lagSelv: { igjen: number; utloperForst: string | null }
   viProduserer: { igjen: number; utloperForst: string | null }
   abonnementer: { id: string; kind: Kind; scope: Scope; boliger_per_month: number; price_nok_month: number; status: string; user_id: string | null }[]
@@ -104,6 +109,19 @@ async function orgIdFor(sb: SupabaseClient, userId: string): Promise<string | nu
     .limit(1)
     .maybeSingle()
   return data?.organization_id ?? null
+}
+
+// Fakturakunde (Hjem.no-modellen, 21/10): organisasjoner som betaler en fast
+// pris per bolig etterskuddsvis. Standardpris = «Medlemmet lager selv» hvis
+// ingen egen pris er satt. Gjelder også kortbetaling som avtales utenfor
+// appen — poenget er at ingen i organisasjonen møter en betalingsmur.
+export const FAKTURA_STANDARDPRIS = 500
+
+export async function fakturaInfoFor(sb: SupabaseClient, orgId: string | null): Promise<{ faktura: boolean; pris: number }> {
+  if (!orgId) return { faktura: false, pris: FAKTURA_STANDARDPRIS }
+  const { data } = await sb.from('organizations').select('faktura_kunde, pris_per_bolig_nok').eq('id', orgId).maybeSingle()
+  const o = data as { faktura_kunde?: boolean | null; pris_per_bolig_nok?: number | null } | null
+  return { faktura: !!o?.faktura_kunde, pris: o?.pris_per_bolig_nok ?? FAKTURA_STANDARDPRIS }
 }
 
 async function hentUnlock(sb: SupabaseClient, propertyId: string): Promise<Unlock | null> {
@@ -166,6 +184,24 @@ export async function ensureUnlocked(sb: SupabaseClient, userId: string, propert
   const orgId = (prop.organization_id as string | null) ?? await orgIdFor(sb, userId)
   if (orgId && !prop.organization_id) {
     await sb.from('properties').update({ organization_id: orgId }).eq('id', propertyId)
+  }
+
+  // 0. Fakturakunde (Hjem.no-modellen): boligen tas i bruk uten betalingsmur,
+  //    med organisasjonens faste pris, og faktureres etterskuddsvis. Ingen
+  //    gratisbolig, ingen saldo — alle boliger teller likt.
+  if (orgId) {
+    const faktura = await fakturaInfoFor(sb, orgId)
+    if (faktura.faktura) {
+      const { data, error } = await sb
+        .from('property_unlocks')
+        .insert({ property_id: propertyId, organization_id: orgId, user_id: userId, source: 'faktura', price_nok: faktura.pris })
+        .select('*')
+        .single()
+      if (!error && data) return { ok: true, unlock: data as Unlock, ny: true }
+      const igjen = await hentUnlock(sb, propertyId)
+      if (igjen) return { ok: true, unlock: igjen, ny: false }
+      throw new Error(`faktura-opplåsing feilet: ${error?.message ?? 'ukjent'}`)
+    }
   }
 
   // 1. Første bolig gratis. Den partielle unike indeksen stopper nummer to
@@ -266,7 +302,7 @@ export async function unlockProperty(
 
 export async function hentSaldo(sb: SupabaseClient, userId: string): Promise<Saldo> {
   const orgId = await orgIdFor(sb, userId)
-  const [gratis, antall] = await Promise.all([harGratisIgjen(sb, userId), boligerDenneMaaneden(sb, userId)])
+  const [gratis, antall, faktura] = await Promise.all([harGratisIgjen(sb, userId), boligerDenneMaaneden(sb, userId), fakturaInfoFor(sb, orgId)])
 
   const sum = (rows: EntitlementRow[]) => ({
     igjen: rows.reduce((s, r) => s + r.remaining, 0),
@@ -293,9 +329,11 @@ export async function hentSaldo(sb: SupabaseClient, userId: string): Promise<Sal
 
   return {
     organizationId: orgId,
-    gratisBoligIgjen: gratis,
+    gratisBoligIgjen: faktura.faktura ? false : gratis,
     boligerDenneMaaneden: antall,
-    nestePris: prisForNesteBolig(antall),
+    nestePris: faktura.faktura ? faktura.pris : prisForNesteBolig(antall),
+    fakturaKunde: faktura.faktura,
+    fakturaPris: faktura.faktura ? faktura.pris : null,
     lagSelv,
     viProduserer,
     abonnementer,

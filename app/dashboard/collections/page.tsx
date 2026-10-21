@@ -64,6 +64,7 @@ export default function CollectionsPage() {
   const [scheduledAt,        setScheduledAt]        = useState('')
   const [scheduleDone,       setScheduleDone]       = useState<string | null>(null)
   const [scheduleError,      setScheduleError]      = useState<string | null>(null)
+  const [fakturaKunde,       setFakturaKunde]       = useState(false)
 
   useEffect(() => {
     fetch('/api/collections')
@@ -72,7 +73,11 @@ export default function CollectionsPage() {
       .finally(() => setLoading(false))
     fetch('/api/org/me')
       .then(r => r.json())
-      .then(d => { if (d.role === 'admin' || d.role === 'superadmin') setIsAdmin(true) })
+      .then(d => {
+        if (d.role === 'admin' || d.role === 'superadmin') setIsAdmin(true)
+        // Fakturakunde (Hjem.no) publiserer i eget system — ingen Publiser-knapp.
+        setFakturaKunde(!!d.fakturaKunde)
+      })
   }, [])
 
   useEffect(() => {
@@ -419,12 +424,14 @@ export default function CollectionsPage() {
                           >
                             Last ned
                           </button>
+                          {!fakturaKunde && (
                           <button
                             onClick={() => openPublishModal(v.video_url, v.property_id, v.address ?? null)}
                             style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                           >
                             📤 Publiser
                           </button>
+                          )}
                         </div>
                       </div>
                     </div>

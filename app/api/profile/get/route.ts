@@ -1,6 +1,22 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, getUser } from '../../../../lib/supabase/server'
 import { resolveLogo } from '../../../../lib/org-branding'
+import { createClient } from '@supabase/supabase-js'
+import { fakturaInfoFor } from '../../../../lib/boliger'
+
+// Fakturakunde (Hjem.no-modellen, 21/10): produksjonssiden skjuler
+// publisering for medlemmer av en organisasjon som faktureres per bolig.
+async function erFakturaKunde(userId: string): Promise<boolean> {
+  try {
+    const svc = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } })
+    const { data } = await svc.from('organization_members').select('organization_id').eq('user_id', userId).limit(1).maybeSingle()
+    const orgId = (data as { organization_id?: string } | null)?.organization_id ?? null
+    return (await fakturaInfoFor(svc, orgId)).faktura
+  } catch {
+    return false
+  }
+}
 
 export async function GET() {
   const user = await getUser()
@@ -48,5 +64,6 @@ export async function GET() {
     voice_id: default_voice_id,
     cloned_voice_id,
     has_video: hasVideo,
+    faktura_kunde: await erFakturaKunde(user.id),
   })
 }

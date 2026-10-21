@@ -93,7 +93,9 @@ export default async function DashboardPage() {
   const saldoTekst = saldo.lagSelv.igjen > 0
     ? `${saldo.lagSelv.igjen} bolig${saldo.lagSelv.igjen === 1 ? '' : 'er'} igjen i abonnementet`
     : null
-  const nesteBoligTekst = saldo.gratisBoligIgjen
+  const nesteBoligTekst = saldo.fakturaKunde
+    ? `${saldo.nestePris.toLocaleString('nb-NO')} kr per bolig, faktureres samlet til organisasjonen`
+    : saldo.gratisBoligIgjen
     ? ['Din første bolig er gratis', saldoTekst].filter(Boolean).join(' · ')
     : saldoTekst ?? `Neste bolig koster ${saldo.nestePris.toLocaleString('nb-NO')} kr`
 

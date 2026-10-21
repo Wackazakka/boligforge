@@ -19,11 +19,14 @@ export default function DashboardNav() {
   const pathname = usePathname()
   const [role, setRole] = useState<string | null>(null)
   const [isChainAdmin, setIsChainAdmin] = useState(false)
+  // Fakturakunde (Hjem.no-modellen, 21/10): publiserer i eget system, så
+  // Publisering og Kalender skjules for alle i organisasjonen.
+  const [fakturaKunde, setFakturaKunde] = useState(false)
 
   useEffect(() => {
     fetch('/api/org/me')
       .then(r => r.json())
-      .then(d => { setRole(d.role ?? null); setIsChainAdmin(!!d.isChainAdmin) })
+      .then(d => { setRole(d.role ?? null); setIsChainAdmin(!!d.isChainAdmin); setFakturaKunde(!!d.fakturaKunde) })
       .catch(() => {})
   }, [])
 
@@ -31,7 +34,7 @@ export default function DashboardNav() {
   const isSuperadmin = role === 'superadmin'
 
   const links = [
-    ...BASE_LINKS,
+    ...BASE_LINKS.filter(l => !fakturaKunde || (l.href !== '/dashboard/settings/social' && l.href !== '/dashboard/calendar')),
     ...(isAdmin      ? [{ href: '/dashboard/team',  label: 'Team'   }] : []),
     ...(isChainAdmin ? [{ href: '/dashboard/kjede', label: 'Kjede'  }] : []),
     ...(isAdmin      ? [{ href: '/dashboard/admin', label: 'Admin'  }] : []),

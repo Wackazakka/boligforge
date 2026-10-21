@@ -47,9 +47,13 @@ export async function GET() {
 
     const { data: org } = await supabase
       .from('organizations')
-      .select('id, name, slug, plan, trial_ends_at')
+      .select('id, name, slug, plan, trial_ends_at, faktura_kunde, pris_per_bolig_nok')
       .eq('id', membership.organization_id)
       .maybeSingle()
+    // Fakturakunde (Hjem.no-modellen, 21/10): organisasjonen betaler per bolig
+    // utenfor appen og publiserer i eget system — klienten skjuler da
+    // Publisering, Kalender og kjøpsknapper.
+    const fakturaKunde = !!(org as { faktura_kunde?: boolean | null } | null)?.faktura_kunde
 
     // Kjede-admin: org-admin med meglerhus-konto (team_admin) kan opprette og
     // se kontorer under sin org (Kjede-siden). Solo-brukere slipper støyen.
@@ -57,7 +61,7 @@ export async function GET() {
       (!!superadminEmail && user.email === superadminEmail)
     const isChainAdmin = isAdmin && prof?.account_type === 'team_admin'
 
-    return NextResponse.json({ org, role: membership.role, isChainAdmin })
+    return NextResponse.json({ org, role: membership.role, isChainAdmin, fakturaKunde })
   } catch (err: unknown) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
