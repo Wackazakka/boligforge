@@ -157,6 +157,7 @@ type AgentProfile = {
   tone_of_voice?: string
   portrait_url?: string
   logo_url?: string
+  faktura_kunde?: boolean   // organisasjonen faktureres per bolig og publiserer i eget system (Hjem.no)
 }
 
 type Segment = {
@@ -3682,6 +3683,7 @@ export default function PropertyDetailPage() {
                   </button>
                 )
               })}
+              {!profile.faktura_kunde && (
               <button
                 onClick={() => openPublishModal(videoUrl)}
                 className="app-btn-secondary"
@@ -3689,6 +3691,7 @@ export default function PropertyDetailPage() {
               >
                 📤 Publiser
               </button>
+              )}
               <button
                 onClick={() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 className="app-btn-secondary"
@@ -3903,9 +3906,11 @@ export default function PropertyDetailPage() {
                         </button>
                       )
                     })}
+                    {!profile.faktura_kunde && (
                     <button onClick={() => openPublishModal(v.video_url)} className="text-sm" style={{ color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       📤 Publiser
                     </button>
+                    )}
                   </div>
                 </div>
               ))}

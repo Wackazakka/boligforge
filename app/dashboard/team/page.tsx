@@ -19,7 +19,7 @@ type OrgStat = { boliger_denne_maaneden: number; produksjoner_denne_maaneden: nu
 const TOM_ORG: OrgStat = { boliger_denne_maaneden: 0, produksjoner_denne_maaneden: 0, kostnad_denne_maaneden: 0, saldo_lag_selv: 0, saldo_vi_produserer: 0, faktura_samlet: false }
 
 const nb = (n: number) => n.toLocaleString('nb-NO')
-const KILDE: Record<string, string> = { free_first: 'gratis første', entitlement: 'abonnement', purchase: 'kjøpt', production: 'produsert av ReelHome', admin: 'uten kostnad' }
+const KILDE: Record<string, string> = { free_first: 'gratis første', entitlement: 'abonnement', purchase: 'kjøpt', production: 'produsert av ReelHome', admin: 'uten kostnad', faktura: 'faktureres' }
 
 export default function TeamPage() {
   const [members, setMembers]         = useState<Member[]>([])

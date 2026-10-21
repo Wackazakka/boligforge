@@ -12,6 +12,8 @@ type Saldo = {
   gratisBoligIgjen: boolean
   boligerDenneMaaneden: number
   nestePris: number
+  fakturaKunde?: boolean
+  fakturaPris?: number | null
   lagSelv: { igjen: number; utloperForst: string | null }
   viProduserer: { igjen: number; utloperForst: string | null }
   abonnementer: { id: string; kind: Kind; scope: Scope; boliger_per_month: number; price_nok_month: number; status: string; user_id: string | null }[]
@@ -66,6 +68,36 @@ export default function BillingPage() {
   const harAktivt = (id: AbonnementId) => {
     const a = ABONNEMENTER[id]
     return aktive.some(x => x.kind === a.kind && x.scope === a.scope && x.status === 'active')
+  }
+
+  // Fakturakunde (Hjem.no-modellen, 21/10): fast pris per bolig, faktureres
+  // samlet utenfor appen — ingen kjøp, saldo eller abonnement å vise.
+  if (saldo?.fakturaKunde) {
+    return (
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '40px 24px' }}>
+        <AccountTabs />
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', marginBottom: '6px' }}>Priser</h1>
+        <p style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '20px' }}>
+          Organisasjonen din betaler en fast pris per bolig, samlet og etterskuddsvis. Du trenger ikke kjøpe noe her.
+        </p>
+        <div className="app-card" style={{ padding: '20px 24px' }}>
+          <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{nb(saldo.nestePris)} kr</p>
+              <p style={{ fontSize: '12px', color: 'var(--muted)' }}>per bolig, eks. mva</p>
+            </div>
+            <div>
+              <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1 }}>{saldo.boligerDenneMaaneden}</p>
+              <p style={{ fontSize: '12px', color: 'var(--muted)' }}>boliger du har tatt i bruk denne måneden</p>
+            </div>
+          </div>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '16px', marginBottom: 0 }}>
+            En bolig regnes som tatt i bruk ved første nedlasting. Fram til da kan du lage inntil sju videoer av den for å se resultatet,
+            og etterpå er alle formater og nye versjoner på boligen inkludert. Administrator ser alle boliger og kostnaden per måned under Team.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
