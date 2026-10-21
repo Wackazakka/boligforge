@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
 import { kanGenerere, GENERERINGSTAK } from '../../../../lib/boliger'
+import { hentKontorLogo } from '../../../../lib/kontorlogo'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -22,7 +23,9 @@ export async function POST(request: Request) {
     const user = await getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, backgroundImageUrl, propertyImages, segments, outro, ambienceType, motion, motionStrength, segmentTransition, noMotionImages, recipe, format, subtitles, subtitleStyle, voiceOff, musicFromStart } = await request.json()
+    const { propertyId, script, voiceId, avatarImageUrl, portraitUrl, backgroundImageUrl, propertyImages, segments, outro: outroIn, ambienceType, motion, motionStrength, segmentTransition, noMotionImages, recipe, format, subtitles, subtitleStyle, voiceOff, musicFromStart } = await request.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let outro: any = outroIn
 
     const useSegments = Array.isArray(segments) && segments.length > 0
     if (!useSegments && (!script || !voiceId || !avatarImageUrl)) {
@@ -66,6 +69,21 @@ export async function POST(request: Request) {
 
     const jobId = randomUUID()
     const scriptText = useSegments ? segments.map((s: { text: string }) => s.text).join(' ') : script
+
+    // Kontorets logo fra annonsen (hjem.no-modellen, 21/10): klienten sender
+    // kontoens egen logo (kjede → kontor → personlig) som outro.logoUrl. Har
+    // kontoen ingen, og boligen er fra hjem.no, får sluttplakaten kontorets
+    // logo fra annonsen — Hjem.nos produsenter lager videoer for mange
+    // kontorer fra én konto, så logoen må følge boligen. Hentes lat og lagres
+    // på boligen (lib/kontorlogo.ts). Feiler oppslaget: ingen logo, som før.
+    if (!outro?.logoUrl) {
+      try {
+        const kontor = await hentKontorLogo(supabase, propertyId)
+        if (kontor?.logoUrl) outro = { ...(outro ?? {}), logoUrl: kontor.logoUrl }
+      } catch (e) {
+        console.error('[generate] kontorlogo-oppslag feilet:', e)
+      }
+    }
 
     // Sluttplakat-bakgrunn etter logoens lysstyrke: mørk logo (f.eks. svart skrift
     // på gjennomsiktig) -> hvit plakat; lys logo -> svart. Alpha-vektet snitt så
