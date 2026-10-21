@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Kall cron-ruten
         env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRON_SECRET: ${{ secrets.FAKTURA_CRON_SECRET }}
           MAANED: ${{ github.event.inputs.maaned }}
           FORCE: ${{ github.event.inputs.force }}
         run: |
