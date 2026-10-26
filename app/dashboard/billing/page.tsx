@@ -92,8 +92,8 @@ export default function BillingPage() {
             </div>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '16px', marginBottom: 0 }}>
-            En bolig regnes som tatt i bruk ved første nedlasting. Fram til da kan du lage inntil sju videoer av den for å se resultatet,
-            og etterpå er alle formater og nye versjoner på boligen inkludert. Administrator ser alle boliger og kostnaden per måned under Team.
+            En bolig regnes som tatt i bruk ved første nedlasting. Inntil 15 videoer per bolig er inkludert i prisen, medregnet de du lager før nedlasting;
+            videoer utover det koster 40 kr per video. Administrator ser alle boliger og kostnaden per måned under Team.
           </p>
         </div>
       </div>

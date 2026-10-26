@@ -256,6 +256,29 @@ export async function ensureUnlocked(sb: SupabaseClient, userId: string, propert
 // stopper misbruk uten å plage noen). Etter opplåsing er alt fritt.
 export const GENERERINGSTAK = 7
 
+// Avtalen pkt 5 (rev 80, 26/10): inntil VIDEOER_INKLUDERT videoer per bolig er
+// inkludert i prisen, medregnet versjoner laget før nedlasting. Hver video
+// utover det koster PRIS_EKSTRA_VIDEO kr — hver generering koster oss noen
+// kroner, og «ubegrenset» ville sett ut som gratis. Registreres i video_ekstra
+// ved generering og tas med i fakturaunderlaget.
+export const VIDEOER_INKLUDERT = 15
+export const PRIS_EKSTRA_VIDEO = 40
+
+export async function registrerEkstraVideo(
+  sb: SupabaseClient,
+  args: { propertyId: string; userId: string; jobId: string; nummer: number },
+): Promise<boolean> {
+  if (args.nummer <= VIDEOER_INKLUDERT) return false
+  const { data: prop } = await sb.from('properties').select('organization_id').eq('id', args.propertyId).maybeSingle()
+  const orgId = (prop as { organization_id?: string | null } | null)?.organization_id ?? await orgIdFor(sb, args.userId)
+  const { error } = await sb.from('video_ekstra').insert({
+    property_id: args.propertyId, user_id: args.userId, organization_id: orgId, job_id: args.jobId,
+    nummer: args.nummer, price_nok: PRIS_EKSTRA_VIDEO,
+  })
+  if (error) { console.error('[boliger] video_ekstra-insert feilet:', error); return false }
+  return true
+}
+
 export type KanGenerereResult =
   | { ok: true; unlocked: boolean; antall: number }
   | { ok: false; code: 'NOT_OWNER' }

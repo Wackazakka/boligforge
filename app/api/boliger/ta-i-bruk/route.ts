@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
-import { ensureUnlocked, taIBrukForVideoUrl, kanGenerere, harGratisIgjen, GENERERINGSTAK } from '../../../../lib/boliger'
+import { ensureUnlocked, taIBrukForVideoUrl, kanGenerere, harGratisIgjen, GENERERINGSTAK, VIDEOER_INKLUDERT, PRIS_EKSTRA_VIDEO } from '../../../../lib/boliger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,6 +26,10 @@ export async function GET(request: Request) {
     tak: GENERERINGSTAK,
     igjen: tattIBruk ? null : Math.max(0, GENERERINGSTAK - genereringer),
     gratisBoligIgjen: gratis,
+    // Avtalen pkt 5: 15 videoer per bolig inkludert, 40 kr per video utover.
+    inkludert: VIDEOER_INKLUDERT,
+    ekstraPris: PRIS_EKSTRA_VIDEO,
+    ekstraNeste: tattIBruk && genereringer >= VIDEOER_INKLUDERT,
   })
 }
 
