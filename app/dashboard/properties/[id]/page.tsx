@@ -452,7 +452,7 @@ export default function PropertyDetailPage() {
   // Status for taket (Lars 16/10): hvor mange genereringer som er igjen før
   // boligen må tas i bruk, og om den alt er i bruk. Hentes ved last og
   // oppdateres etter generering og nedlasting.
-  const [boligStatus, setBoligStatus] = useState<{ tattIBruk: boolean; genereringer: number; tak: number; igjen: number | null; gratisBoligIgjen: boolean } | null>(null)
+  const [boligStatus, setBoligStatus] = useState<{ tattIBruk: boolean; genereringer: number; tak: number; igjen: number | null; gratisBoligIgjen: boolean; inkludert?: number; ekstraPris?: number; ekstraNeste?: boolean } | null>(null)
   // Kontorets logo fra annonsen (hjem.no-modellen, 21/10): bare en bekreftelse
   // av hva sluttplakaten får når kontoen selv ikke har logo. Selve valget
   // skjer server-side i /api/video/generate.
@@ -1835,7 +1835,7 @@ export default function PropertyDetailPage() {
                 : 'Å laste ned eller publisere tar boligen i bruk. '}
               Du betaler én gang per bolig{boligPris ? `, ${boligPris.toLocaleString('nb-NO')} kr for denne` : ''}
               {boligStatus?.gratisBoligIgjen ? ' — men din første bolig er gratis' : ''}.
-              Deretter er alle formater, nye versjoner og publisering på boligen inkludert. Et abonnement gir lavere pris per bolig.
+              Deretter er inntil {boligStatus?.inkludert ?? 15} videoer på boligen inkludert, i alle formater; videoer utover det koster {boligStatus?.ekstraPris ?? 40} kr. Et abonnement gir lavere pris per bolig.
             </p>
             <div className="flex flex-col gap-2">
               {!taIBrukMelding && (
@@ -3629,10 +3629,12 @@ export default function PropertyDetailPage() {
           {boligStatus && (
             <p style={{ fontSize: '12px', color: boligStatus.tattIBruk ? 'var(--muted)' : (boligStatus.igjen ?? 1) <= 1 ? 'var(--gold)' : 'var(--ink-2)', textAlign: 'center', marginTop: '6px' }}>
               {boligStatus.tattIBruk
-                ? '✅ Boligen er tatt i bruk — lag så mange versjoner og formater du vil, det er inkludert.'
+                ? boligStatus.ekstraNeste
+                  ? `Boligen er tatt i bruk. De ${boligStatus.inkludert ?? 15} inkluderte videoene er brukt (${boligStatus.genereringer} laget) — hver ny video koster ${boligStatus.ekstraPris ?? 40} kr.`
+                  : `✅ Boligen er tatt i bruk — ${boligStatus.genereringer} av ${boligStatus.inkludert ?? 15} inkluderte videoer brukt. Nye versjoner og alle formater er inkludert fram til det; deretter ${boligStatus.ekstraPris ?? 40} kr per video.`
                 : (boligStatus.igjen ?? 0) > 0
-                  ? `Du kan lage ${boligStatus.igjen} video${boligStatus.igjen === 1 ? '' : 'er'} til av denne boligen (${boligStatus.genereringer} av ${boligStatus.tak} brukt) før den må tas i bruk. Det skjer ved første nedlasting eller publisering${boligStatus.gratisBoligIgjen ? ', og din første bolig er gratis' : ''}. Etterpå er alt på boligen inkludert.`
-                  : `Du har brukt alle ${boligStatus.tak} prøvegenereringene på denne boligen. Ta den i bruk — last ned eller publiser en av videoene — så kan du lage så mange du vil.`}
+                  ? `Du kan lage ${boligStatus.igjen} video${boligStatus.igjen === 1 ? '' : 'er'} til av denne boligen (${boligStatus.genereringer} av ${boligStatus.tak} brukt) før den må tas i bruk. Det skjer ved første nedlasting eller publisering${boligStatus.gratisBoligIgjen ? ', og din første bolig er gratis' : ''}. Etterpå er inntil ${boligStatus.inkludert ?? 15} videoer på boligen inkludert.`
+                  : `Du har brukt alle ${boligStatus.tak} prøvegenereringene på denne boligen. Ta den i bruk — last ned eller publiser en av videoene — så er inntil ${boligStatus.inkludert ?? 15} videoer på boligen inkludert.`}
             </p>
           )}
         </div>

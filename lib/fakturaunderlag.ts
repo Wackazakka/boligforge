@@ -62,14 +62,25 @@ export async function hentFakturaunderlag(sb: SupabaseClient, orgId: string, maa
   }
   if (memberIds.length === 0) return tom
 
-  const { data: unlocks } = await sb
-    .from('property_unlocks')
-    .select('property_id, user_id, source, price_nok, created_at')
-    .in('user_id', memberIds)
-    .gte('created_at', vindu.fra)
-    .lt('created_at', vindu.til)
-    .order('created_at', { ascending: true })
-  const rows = (unlocks ?? []) as { property_id: string; user_id: string; source: string; price_nok: number | null; created_at: string }[]
+  const [{ data: unlocks }, { data: ekstra }] = await Promise.all([
+    sb.from('property_unlocks')
+      .select('property_id, user_id, source, price_nok, created_at')
+      .in('user_id', memberIds)
+      .gte('created_at', vindu.fra)
+      .lt('created_at', vindu.til),
+    // Videoer utover de 15 inkluderte per bolig (avtalen pkt 5): 40 kr per stk.
+    sb.from('video_ekstra')
+      .select('property_id, user_id, nummer, price_nok, created_at')
+      .in('user_id', memberIds)
+      .gte('created_at', vindu.fra)
+      .lt('created_at', vindu.til),
+  ])
+  type Rad = { property_id: string; user_id: string; source: string; price_nok: number | null; created_at: string }
+  const rows: Rad[] = [
+    ...((unlocks ?? []) as Rad[]),
+    ...((ekstra ?? []) as { property_id: string; user_id: string; nummer: number; price_nok: number | null; created_at: string }[])
+      .map(e => ({ property_id: e.property_id, user_id: e.user_id, source: `ekstra:${e.nummer}`, price_nok: e.price_nok, created_at: e.created_at })),
+  ].sort((a, b) => a.created_at.localeCompare(b.created_at))
   if (rows.length === 0) return tom
 
   const propIds = Array.from(new Set(rows.map(r => r.property_id)))
@@ -95,7 +106,7 @@ export async function hentFakturaunderlag(sb: SupabaseClient, orgId: string, maa
     annonse: adr[r.property_id]?.url ?? null,
     produsent: navn[r.user_id] ?? epost[r.user_id] ?? r.user_id,
     epost: epost[r.user_id] ?? '',
-    kilde: KILDE_TEKST[r.source] ?? r.source,
+    kilde: r.source.startsWith('ekstra:') ? `Ekstra video (nr. ${r.source.slice(7)} på boligen)` : (KILDE_TEKST[r.source] ?? r.source),
     pris_nok: r.price_nok ?? 0,
   }))
   return { ...tom, antall: rader.length, sum_nok: rader.reduce((s, r) => s + r.pris_nok, 0), rader }
@@ -111,7 +122,7 @@ export function tilCsv(u: Fakturaunderlag): string {
   const linjer = [
     ['Dato', 'Adresse', 'Produsent', 'E-post', 'Kilde', 'Pris eks. mva', 'Annonse'].join(';'),
     ...u.rader.map(r => [dato(r.dato), r.adresse, r.produsent, r.epost, r.kilde, r.pris_nok, r.annonse ?? ''].map(esc).join(';')),
-    ['Sum', `${u.antall} boliger`, '', '', '', u.sum_nok, ''].map(esc).join(';'),
+    ['Sum', `${u.antall} linjer`, '', '', '', u.sum_nok, ''].map(esc).join(';'),
   ]
   return '﻿' + linjer.join('\r\n') + '\r\n'
 }

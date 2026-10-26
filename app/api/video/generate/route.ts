@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getUser } from '../../../../lib/supabase/server'
-import { kanGenerere, GENERERINGSTAK } from '../../../../lib/boliger'
+import { kanGenerere, GENERERINGSTAK, VIDEOER_INKLUDERT, PRIS_EKSTRA_VIDEO, registrerEkstraVideo } from '../../../../lib/boliger'
 import { hentKontorLogo } from '../../../../lib/kontorlogo'
 
 export const dynamic = 'force-dynamic'
@@ -159,7 +159,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: friendly }, { status: 500 })
     }
 
-    return NextResponse.json({ jobId, status: 'queued', bolig: { tattIBruk: port.unlocked, genereringer: port.antall + 1, tak: GENERERINGSTAK } })
+    // Avtalen pkt 5: videoer utover de inkluderte koster 40 kr. Teller bare når
+    // boligen er tatt i bruk (før det stopper GENERERINGSTAK). Nummeret er
+    // denne videoens løpenummer på boligen.
+    const nummer = port.antall + 1
+    const ekstra = port.unlocked && nummer > VIDEOER_INKLUDERT
+    if (ekstra) await registrerEkstraVideo(supabase, { propertyId, userId: user.id, jobId, nummer })
+
+    return NextResponse.json({
+      jobId, status: 'queued',
+      bolig: { tattIBruk: port.unlocked, genereringer: nummer, tak: GENERERINGSTAK, inkludert: VIDEOER_INKLUDERT, ekstraPris: PRIS_EKSTRA_VIDEO, ekstra },
+    })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: msg }, { status: 500 })
